@@ -1,0 +1,4 @@
+Builds
+__pycache__
+Tensorboard/*
+.idea
