@@ -1,3 +1,16 @@
 *.data filter=lfs diff=lfs merge=lfs -text
 /Users/matt-barthet/Documents/University[[:space:]]Work/PhD[[:space:]]Work/Affectively-Environments/Builds/MS_SolidRally/Racing_Data/level0 filter=lfs diff=lfs merge=lfs -text
 /Users/matt-barthet/Documents/University[[:space:]]Work/PhD[[:space:]]Work/Affectively-Environments/Builds/SolidRally.app/Contents/Resources/Data/level0 filter=lfs diff=lfs merge=lfs -text
+Builds/Heist.app/Contents/Frameworks/UnityPlayer.dylib filter=lfs diff=lfs merge=lfs -text
+Builds/SolidRally.app/Contents/Resources/Data/resources.assets filter=lfs diff=lfs merge=lfs -text
+Builds/SolidRally.app/Contents/Resources/Data/sharedassets0.assets.resS filter=lfs diff=lfs merge=lfs -text
+Builds/SolidRally.app/Contents/Resources/Data/level0 filter=lfs diff=lfs merge=lfs -text
+Builds/MS_SolidRally/Racing_Data/resources.assets filter=lfs diff=lfs merge=lfs -text
+Builds/MS_SolidRally/Racing_Data/sharedassets0.assets.resS filter=lfs diff=lfs merge=lfs -text
+Builds/MS_SolidRally/Racing_Data/level0 filter=lfs diff=lfs merge=lfs -text
+.git/lfs/objects/fd/ab/fdab88b16e95bf626918c09a6f0b3a73062cf871bf9342681d18c46a1ab2d0fd filter=lfs diff=lfs merge=lfs -text
+.git/lfs/objects/42/ff/42ffeda5006878724d2c366ef5bbcb897dc7aab2443a013e54882dcb316940f9 filter=lfs diff=lfs merge=lfs -text
+.git/lfs/objects/17/f8/17f84ce2a0e174b1941ee4d38af9d8fb8a9c3b21229099e30c8b973b62529729 filter=lfs diff=lfs merge=lfs -text
+.git/lfs/objects/00/56/0056ede87089d29c815881292d3c33339e9363dcbe92f9d2001129ffd9cc54f5 filter=lfs diff=lfs merge=lfs -text
+.git/lfs/objects/e7/91/e79100e76dec9ebaf65830ff6be2d6d3103702751ca1cb0882b792b59dc6f9cb filter=lfs diff=lfs merge=lfs -text
+.git/lfs/objects/4f/c2/4fc276a353aac2603ee7cc849e83f1a70a20a8f4094b0af92f3fca655c1233f1 filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,11 @@
+gym==0.20.0
+gym_unity==0.28.0
+mlagents_envs==0.28.0
+numpy==1.21.2
+pandas==2.0.2
+scikit_learn==1.2.2
+scipy==1.13.1
+stable_baselines3==1.8.0
+tensorboardX==2.6.2.2
+tensorboardX==2.6.2.2
+torch==2.1.0
