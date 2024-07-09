@@ -1,4 +1,4 @@
 Builds
 __pycache__
-Tensorboard/*
+/Tensorboard/*
 .idea
