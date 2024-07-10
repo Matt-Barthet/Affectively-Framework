@@ -2,3 +2,4 @@ Builds
 __pycache__
 /Tensorboard/*
 .idea
+affectively_environments.egg-info/

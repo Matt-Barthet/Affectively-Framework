@@ -19,3 +19,19 @@ Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
+
+# Documentation
+A "nice" documentation of the project is available in `docs\build\html\index.html`.
+
+You can rebuild the documentation by first making sure you have `sphinx` installed:
+```bash
+pip install -r docs\requirements.txt
+```
+Then simply run
+```bash
+sh build_docs.sh
+```
+to update the `index.html` page.
+
+# Check out examples
+_TODO :)_

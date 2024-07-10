@@ -3,6 +3,7 @@ gym_unity==0.26.0
 mlagents_envs==0.26.0
 numpy==1.22.4
 pandas==2.2.2
+protobuf==3.20.0
 scikit_learn==1.3.0
 scipy==1.11.4
 stable_baselines3==2.2.1
