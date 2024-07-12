@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>affectively_environments.utils package &mdash; Affectively Environments  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Affectively Environments
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">affectively_environments.utils package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-affectively_environments.utils.logging">affectively_environments.utils.logging module</a><ul>
+<li><a class="reference internal" href="#affectively_environments.utils.logging.TensorBoardCallback"><code class="docutils literal notranslate"><span class="pre">TensorBoardCallback</span></code></a><ul>
+<li><a class="reference internal" href="#affectively_environments.utils.logging.TensorBoardCallback.on_episode_end"><code class="docutils literal notranslate"><span class="pre">TensorBoardCallback.on_episode_end()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#affectively_environments.utils.logging.backup"><code class="docutils literal notranslate"><span class="pre">backup()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-affectively_environments.utils.sidechannels">affectively_environments.utils.sidechannels module</a><ul>
+<li><a class="reference internal" href="#affectively_environments.utils.sidechannels.AffectivelySideChannel"><code class="docutils literal notranslate"><span class="pre">AffectivelySideChannel</span></code></a><ul>
+<li><a class="reference internal" href="#affectively_environments.utils.sidechannels.AffectivelySideChannel.on_message_received"><code class="docutils literal notranslate"><span class="pre">AffectivelySideChannel.on_message_received()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-affectively_environments.utils.surrogatemodel">affectively_environments.utils.surrogatemodel module</a><ul>
+<li><a class="reference internal" href="#affectively_environments.utils.surrogatemodel.KNNSurrogateModel"><code class="docutils literal notranslate"><span class="pre">KNNSurrogateModel</span></code></a><ul>
+<li><a class="reference internal" href="#affectively_environments.utils.surrogatemodel.KNNSurrogateModel.load_and_clean"><code class="docutils literal notranslate"><span class="pre">KNNSurrogateModel.load_and_clean()</span></code></a></li>
+<li><a class="reference internal" href="#affectively_environments.utils.surrogatemodel.KNNSurrogateModel.load_data"><code class="docutils literal notranslate"><span class="pre">KNNSurrogateModel.load_data()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-affectively_environments.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Affectively Environments</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">affectively_environments.utils package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/affectively_environments.utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="affectively-environments-utils-package">
+<h1>affectively_environments.utils package<a class="headerlink" href="#affectively-environments-utils-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-affectively_environments.utils.logging">
+<span id="affectively-environments-utils-logging-module"></span><h2>affectively_environments.utils.logging module<a class="headerlink" href="#module-affectively_environments.utils.logging" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="affectively_environments.utils.logging.TensorBoardCallback">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">affectively_environments.utils.logging.</span></span><span class="sig-name descname"><span class="pre">TensorBoardCallback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environment</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/affectively_environments/utils/logging.html#TensorBoardCallback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#affectively_environments.utils.logging.TensorBoardCallback" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="affectively_environments.utils.logging.TensorBoardCallback.on_episode_end">
+<span class="sig-name descname"><span class="pre">on_episode_end</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/affectively_environments/utils/logging.html#TensorBoardCallback.on_episode_end"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#affectively_environments.utils.logging.TensorBoardCallback.on_episode_end" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="affectively_environments.utils.logging.backup">
+<span class="sig-prename descclassname"><span class="pre">affectively_environments.utils.logging.</span></span><span class="sig-name descname"><span class="pre">backup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/affectively_environments/utils/logging.html#backup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#affectively_environments.utils.logging.backup" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-affectively_environments.utils.sidechannels">
+<span id="affectively-environments-utils-sidechannels-module"></span><h2>affectively_environments.utils.sidechannels module<a class="headerlink" href="#module-affectively_environments.utils.sidechannels" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="affectively_environments.utils.sidechannels.AffectivelySideChannel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">affectively_environments.utils.sidechannels.</span></span><span class="sig-name descname"><span class="pre">AffectivelySideChannel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">socket_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">UUID</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/affectively_environments/utils/sidechannels.html#AffectivelySideChannel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#affectively_environments.utils.sidechannels.AffectivelySideChannel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">SideChannel</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Creates an AffectivelySideChannel object.
+:Parameters: <strong>socket_id</strong> – The socket ID of the side channel.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="affectively_environments.utils.sidechannels.AffectivelySideChannel.on_message_received">
+<span class="sig-name descname"><span class="pre">on_message_received</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">IncomingMessage</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/affectively_environments/utils/sidechannels.html#AffectivelySideChannel.on_message_received"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#affectively_environments.utils.sidechannels.AffectivelySideChannel.on_message_received" title="Link to this definition"></a></dt>
+<dd><p>Process the incoming message from the side channel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>msg</strong> – The incoming message from the side channel.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-affectively_environments.utils.surrogatemodel">
+<span id="affectively-environments-utils-surrogatemodel-module"></span><h2>affectively_environments.utils.surrogatemodel module<a class="headerlink" href="#module-affectively_environments.utils.surrogatemodel" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="affectively_environments.utils.surrogatemodel.KNNSurrogateModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">affectively_environments.utils.surrogatemodel.</span></span><span class="sig-name descname"><span class="pre">KNNSurrogateModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">game</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'Heist'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'Pirates'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'Solid'</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/affectively_environments/utils/surrogatemodel.html#KNNSurrogateModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#affectively_environments.utils.surrogatemodel.KNNSurrogateModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Generate a KNN surrogate model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>k</strong> – The number of neighbors.</p></li>
+<li><p><strong>game</strong> – The game name.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="affectively_environments.utils.surrogatemodel.KNNSurrogateModel.load_and_clean">
+<span class="sig-name descname"><span class="pre">load_and_clean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/affectively_environments/utils/surrogatemodel.html#KNNSurrogateModel.load_and_clean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#affectively_environments.utils.surrogatemodel.KNNSurrogateModel.load_and_clean" title="Link to this definition"></a></dt>
+<dd><p>Load affect data and clean the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – The data file name.</p></li>
+<li><p><strong>preference</strong> – ???</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns: Game data and arousal values.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="affectively_environments.utils.surrogatemodel.KNNSurrogateModel.load_data">
+<span class="sig-name descname"><span class="pre">load_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/affectively_environments/utils/surrogatemodel.html#KNNSurrogateModel.load_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#affectively_environments.utils.surrogatemodel.KNNSurrogateModel.load_data" title="Link to this definition"></a></dt>
+<dd><p>Load the arousal data for the selected game.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-affectively_environments.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-affectively_environments.utils" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matthew Barthet.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
