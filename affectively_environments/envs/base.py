@@ -51,7 +51,7 @@ class BaseEnvironment(gym.Env, ABC):
 		
 		args += [f"-socketID", str(socket_id)]
 		
-		# print(args)
+		self.game_obs = []
 		
 		self.engineConfigChannel = EngineConfigurationChannel()
 		self.engineConfigChannel.set_configuration_parameters(capture_frame_rate=capture_fps, time_scale=time_scale)
@@ -61,7 +61,13 @@ class BaseEnvironment(gym.Env, ABC):
 		self.env = UnityToGymWrapper(self.env, allow_multiple_obs=True)
 		
 		self.action_space, self.action_size = self.env.action_space, self.env.action_space.shape
-		self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'])
+
+		try:
+			dtype = obs_space['type']
+		except:
+			dtype = np.float32
+
+		self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'], dtype=dtype)
 		
 		self.model = KNNSurrogateModel(5, game)
 		self.scaler = self.model.scaler

@@ -5,15 +5,17 @@ from affectively_environments.envs.solid import SolidEnvironment
 
 import numpy as np
 
+from affectively_environments.envs.solid_cv import SolidEnvironmentCV
+
 if __name__ == "__main__":
     np.set_printoptions(suppress=True, precision=6)
 
-    run = 1
+    run = 10
     preference_task = True
     classification_task = False
     weight = 0
 
-    env = SolidEnvironment(id_number=run, weight=weight, graphics=True, logging=True, path="../Builds/MS_Solid/Racing.exe")
+    env = SolidEnvironmentCV(id_number=run, weight=weight, graphics=True, logging=True, path="../Builds/MS_Solid/Racing.exe",)
     sideChannel = env.customSideChannel
     env.targetSignal = np.ones
 
@@ -24,6 +26,6 @@ if __name__ == "__main__":
     else:
         label = 'arousal'
 
-    model = PPO("MlpPolicy", env=env, tensorboard_log="./Tensorboard", device='cpu')
+    model = PPO("CnnPolicy", env=env, tensorboard_log="./Tensorboard", device='cuda')
     model.learn(total_timesteps=10000000, progress_bar=True)
     model.save(f"ppo_solid_{label}_{run}")
