@@ -5,11 +5,13 @@ from .base import BaseEnvironment
 
 class SolidEnvironment(BaseEnvironment):
 
-    def __init__(self, id_number, graphics, weight, path, obs, logging=True, frame_buffer=False):
+    def __init__(self, id_number, graphics, weight, path, obs, logging=True, frame_buffer=False, args=None, log_prefix=""):
+        if args is None:
+            args = []
         self.frameBuffer = frame_buffer
-        args = ["-frameBuffer", f"{frame_buffer}"]
+        args += ["-frameBuffer", f"{frame_buffer}"]
         super().__init__(id_number=id_number, game='Solid', graphics=graphics, obs_space=obs, path=path, args=args,
-                         capture_fps=5, time_scale=1, weight=weight, logging=logging)
+                         capture_fps=5, time_scale=1, weight=weight, logging=logging, log_prefix=log_prefix)
 
     def calculate_reward(self):
         self.current_reward = (self.current_score - self.previous_score) / self.game_obs[-1]

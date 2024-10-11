@@ -5,6 +5,8 @@ from affectively_environments.envs.solid import SolidEnvironment
 
 import numpy as np
 
+from affectively_environments.envs.solid_game_obs import SolidEnvironmentGameObs
+
 if __name__ == "__main__":
     np.set_printoptions(suppress=True, precision=6)
 
@@ -13,7 +15,7 @@ if __name__ == "__main__":
     classification_task = False
     weight = 0
 
-    env = SolidEnvironment(id_number=run, weight=weight, graphics=True, logging=True, path="../Builds/MS_Solid/Racing.exe")
+    env = SolidEnvironmentGameObs(id_number=run, weight=weight, graphics=True, logging=True, path="../Builds/MS_Solid/Racing.exe")
     sideChannel = env.customSideChannel
     env.targetSignal = np.ones
 

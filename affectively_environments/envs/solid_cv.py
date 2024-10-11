@@ -9,12 +9,24 @@ from .solid import SolidEnvironment
 
 class SolidEnvironmentCV(SolidEnvironment):
 
-    def __init__(self, id_number, graphics, weight, path, logging=True):
-        super().__init__(id_number=id_number, graphics=graphics,
-                         obs={"low": 0, "high": 255, "shape": (75, 100, 1), "type": np.uint8},
-                         path=path, weight=weight, frame_buffer=True, logging=logging)
+    def __init__(self, id_number, graphics, weight, path, logging=True, grayscale=True, log_prefix=""):
 
-    def construct_state(self, state):
-        visual_buffer = np.asarray(state[0]) * 255
+        width = 128
+        height = 96
+        self.stackNo = 5
+        args = ['-bufferWidth', f"{width}", "-bufferHeight", f"{height}", "-useGrayscale", f"{grayscale}"]
+        super().__init__(id_number=id_number, graphics=graphics,
+                         obs={"low": 0, "high": 255, "shape": (height, width, self.stackNo), "type": np.uint8},
+                         path=path, weight=weight, frame_buffer=True, logging=logging, args=args, log_prefix=log_prefix)
+        self.frame_buffer = []
+
+    def construct_state(self, state) -> np.ndarray:
         self.game_obs = self.tuple_to_vector(state[1])
-        return np.asarray(visual_buffer, dtype=np.uint8)
+        visual_buffer = np.asarray(state[0]) * 255
+        if len(self.frame_buffer) == 0:
+            self.frame_buffer = [np.squeeze(visual_buffer)] * self.stackNo
+        elif len(self.frame_buffer) == self.stackNo:
+            self.frame_buffer.pop(0)
+            self.frame_buffer.append(np.squeeze(visual_buffer))
+        stacked_frames = np.stack(self.frame_buffer, axis=-1)
+        return stacked_frames
