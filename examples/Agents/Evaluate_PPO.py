@@ -2,14 +2,19 @@ import numpy as np
 from stable_baselines3 import PPO
 
 from affectively_environments.envs.base import compute_confidence_interval
-from affectively_environments.envs.pirates import Pirates_Environment
+from affectively_environments.envs.solid_game_obs import SolidEnvironmentGameObs
 
 if __name__ == "__main__":
-    weight = 0
-    model_path = ''
 
-    env = Pirates_Environment(0, graphics=True, weight=weight, logging=False)
-    model = PPO("MlpPolicy", env=env, tensorboard_log="../Tensorboard", device='cpu')
+    run = 0
+    preference_task = True
+    classification_task = False
+    weight = 0
+
+    model_path = './ppo_solid_optimize_1.zip'
+
+    env = SolidEnvironmentGameObs(0, graphics=True, weight=weight, logging=False, path="../Builds/MS_Solid/Racing.exe")
+    model = PPO("MlpPolicy", tensorboard_log="../Tensorboard", device='cpu', env=env)
     model.load(model_path)
     model.set_parameters(model_path)
 
@@ -17,8 +22,8 @@ if __name__ == "__main__":
     for _ in range(30):
         state = env.reset()
         for i in range(600):
-            action, _ = model.predict(state, deterministic=False)
-            _, reward, done, info = env.step(action)
+            action, _ = model.predict(state, deterministic=True)
+            state, reward, done, info = env.step(action)
             if done:
                 state = env.reset()
 

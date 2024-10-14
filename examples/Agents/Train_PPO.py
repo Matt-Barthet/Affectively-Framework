@@ -28,4 +28,4 @@ if __name__ == "__main__":
 
     model = PPO("MlpPolicy", env=env, tensorboard_log="./Tensorboard", device='cpu')
     model.learn(total_timesteps=10000000, progress_bar=True)
-    model.save(f"ppo_solid_{label}_{run}")
+    model.save(f"ppo_solid_{label}_{run}_extended")
