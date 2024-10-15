@@ -14,7 +14,7 @@ class SolidEnvironment(BaseEnvironment):
                          capture_fps=5, time_scale=1, weight=weight, logging=logging, log_prefix=log_prefix)
 
     def calculate_reward(self):
-        self.current_reward = (self.current_score - self.previous_score) / self.game_obs[-1]
+        self.current_reward = (self.current_score - self.previous_score)
 
     def reset_condition(self):
         if self.episode_length > 600:
