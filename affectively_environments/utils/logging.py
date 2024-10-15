@@ -37,3 +37,33 @@ class TensorBoardCallback:
         self.writer.add_scalar('reward/episode_mean_arousal', np.mean(self.environment.arousal_trace), self.episode)
         self.episode += 1
         self.writer.flush()
+
+
+class TensorboardGoExplore:
+    def __init__(self, env, archive):
+        self.env = env
+        self.step_count = 0
+        self.archive = archive
+
+    def size(self):
+        return len(self.archive.archive)
+
+    def best_cell_length(self):
+        return self.archive.bestCell.get_cell_length()
+
+    def best_cell_behavior(self):
+        return self.archive.bestCell.behavior_reward
+
+    def best_cell_affect(self):
+        return self.archive.bestCell.arousal_reward
+
+    def best_cell_lambda(self):
+        return self.archive.bestCell.blended_reward
+
+    def on_step(self):
+        self.env.writer.add_scalar('archive/archive size', self.size(), self.step_count)
+        self.env.writer.add_scalar('best cell/trajectory length', self.best_cell_length(), self.step_count)
+        self.env.writer.add_scalar('best cell/behavior reward', self.best_cell_behavior(), self.step_count)
+        self.env.writer.add_scalar('best cell/affect reward', self.best_cell_affect(), self.step_count)
+        self.env.writer.add_scalar('best cell/blended reward', self.best_cell_lambda(), self.step_count)
+        self.step_count += 1
