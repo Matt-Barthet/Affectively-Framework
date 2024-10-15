@@ -1,6 +1,5 @@
 import numpy as np
 
-from .base import BaseEnvironment
 from .solid import SolidEnvironment
 
 

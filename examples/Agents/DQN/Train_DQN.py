@@ -1,7 +1,7 @@
 import numpy as np
 
 from affectively_environments.envs.solid_game_obs import SolidEnvironmentGameObs
-from examples.Agents.Rainbow_DQN import RainbowAgent, train
+from examples.Agents.DQN.Rainbow_DQN import RainbowAgent, train
 
 if __name__ == "__main__":
     np.set_printoptions(suppress=True, precision=6)
