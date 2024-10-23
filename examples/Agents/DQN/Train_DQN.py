@@ -6,12 +6,12 @@ from examples.Agents.DQN.Rainbow_DQN import RainbowAgent, train
 if __name__ == "__main__":
     np.set_printoptions(suppress=True, precision=6)
 
-    run = 1
+    run = 4
     preference_task = True
     classification_task = False
     weight = 0
 
-    env = SolidEnvironmentGameObs(id_number=run, weight=weight, graphics=True, logging=True, path="../Builds/MS_Solid/Racing.exe", log_prefix="DQN-")
+    env = SolidEnvironmentGameObs(id_number=run, weight=weight, graphics=True, logging=True, path="../Builds/MS_Solid/Racing.exe", log_prefix="DQN/")
     sideChannel = env.customSideChannel
     env.targetSignal = np.ones
 

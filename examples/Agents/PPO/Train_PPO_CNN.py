@@ -25,4 +25,4 @@ if __name__ == "__main__":
 
     model = PPO("CnnPolicy", env=env, tensorboard_log="./Tensorboard/CNN/", device='cuda', )
     model.learn(total_timesteps=10000000, callback=callbacks)
-    model.save(f"ppo_solid_{label}_{run}")
+    model.save(f"./Agents/PPO/cnn_ppo_solid_{label}_{run}_extended")
