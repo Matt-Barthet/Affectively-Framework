@@ -12,7 +12,8 @@ if __name__ == "__main__":
     classification_task = False
     weight = 0
 
-    env = SolidEnvironmentGameObs(id_number=run, weight=weight, graphics=True, logging=True, path="../Builds/MS_Solid/Racing.exe", discretize=False)
+    env = SolidEnvironmentGameObs(id_number=run, weight=weight, graphics=True, logging=True,
+                                  path="../Builds/MS_Solid/Racing.exe", discretize=False, log_prefix="PPO/")
     sideChannel = env.customSideChannel
     env.targetSignal = np.ones
 

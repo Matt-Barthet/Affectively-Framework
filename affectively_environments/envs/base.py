@@ -96,7 +96,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.callback = None
 
         if logging:
-            self.callback = TensorBoardCallback(f'./Tensorboard/{log_prefix}{game}-PPO-{label}-{id_number}', self)
+            self.callback = TensorBoardCallback(f'./Tensorboard/{log_prefix}{game}-{label}-{id_number}', self)
 
     def reset(self, **kwargs):
         if self.callback is not None and len(self.arousal_trace) > 0:
