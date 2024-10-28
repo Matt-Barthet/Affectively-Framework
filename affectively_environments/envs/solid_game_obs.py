@@ -9,7 +9,7 @@ class SolidEnvironmentGameObs(SolidEnvironment):
         self.discretize = discretize
         self.estimated_position = [0, 0, 0]
         super().__init__(id_number=id_number, graphics=graphics,
-                         obs={"low": -np.inf, "high": np.inf, "shape": (51,), "type": np.float32},
+                         obs={"low": -np.inf, "high": np.inf, "shape": (54,), "type": np.float32},
                          path=path, weight=weight, logging=logging, frame_buffer=False, log_prefix=log_prefix)
 
     def construct_state(self, state):

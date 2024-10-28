@@ -22,7 +22,7 @@ if __name__ == "__main__":
     else:
         label = 'arousal'
 
-    agent = RainbowAgent(51, env.action_space.nvec.tolist())
+    agent = RainbowAgent(54, env.action_space.nvec.tolist())
     num_episodes = 16638
     batch_size = 64
     update_target_every = 600
