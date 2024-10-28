@@ -5,33 +5,31 @@ from .solid import SolidEnvironment
 
 def discretize_observations(game_obs):
 
-    velocity = game_obs[0:3]
-    velocity_discretized = [round(v / 20) * 20 for v in velocity]
+    position = game_obs[:3]
+    position_disc = [round(v / 40) * 40 for v in position]
 
-    rotation = game_obs[3:6]
-    rotation_discretized = [int(rot / 45) % 8 for rot in rotation]
+    velocity = game_obs[3:6]
+    velocity_discretized = np.round(np.linalg.norm(velocity) / 30) * 30
 
-    raycast_values = game_obs[6:42]
-    raycast_bins = []
-    for value in raycast_values:
-        if value < 5:
-            bin_value = 0
-        elif value < 15:
-            bin_value = 1
-        elif value < 30:
-            bin_value = 2
-        elif value < 60:
-            bin_value = 3
-        else:
-            bin_value = 4
-        raycast_bins.append(bin_value)
+    # rotation = game_obs[6:9]
+    # rotation_discretized = [int(rot / 45) % 8 for rot in rotation]
 
-    steering = game_obs[42]
-    gas_pedal = game_obs[43]
-    steering_bin = -1 if steering < 0 else (0 if steering == 0 else 1)
-    gas_pedal_bin = -1 if gas_pedal < 0 else (0 if gas_pedal == 0 else 1)
+    # raycast_values = game_obs[9:45]
+    # raycast_bins = []
+    # for idx in range(0, len(raycast_values), 8):
+    #     value = raycast_values[idx]
+    #     if value < 10:
+    #         bin_value = 0
+    #     else:
+    #         bin_value = 1
+    #     raycast_bins.append(bin_value)
 
-    score = game_obs[44]
+    # steering = game_obs[45]
+    # gas_pedal = game_obs[46]
+    # steering_bin = -1 if steering < 0 else (0 if steering == 0 else 1)
+    # gas_pedal_bin = -1 if gas_pedal < 0 else (0 if gas_pedal == 0 else 1)
+
+    score = game_obs[47]
     if score < 8:
         score_bin = 0
     elif score < 16:
@@ -39,51 +37,47 @@ def discretize_observations(game_obs):
     else:
         score_bin = 2
 
-    is_off_road = game_obs[45]
-    is_in_loop_zone = game_obs[46]
-    is_jumping = game_obs[47]
+    is_off_road = game_obs[48]
+    is_in_loop_zone = game_obs[49]
+    # is_jumping = game_obs[50]
 
-    distance_to_checkpoint = game_obs[48]
-    if distance_to_checkpoint < 10:
-        distance_bin = 0
-    elif distance_to_checkpoint < 30:
-        distance_bin = 1
-    elif distance_to_checkpoint < 60:
-        distance_bin = 2
-    elif distance_to_checkpoint < 100:
-        distance_bin = 3
-    else:
-        distance_bin = 4
+    # distance_to_checkpoint = game_obs[51]
+    # if distance_to_checkpoint < 10:
+    #     distance_bin = 0
+    # elif distance_to_checkpoint < 30:
+    #     distance_bin = 1
+    # elif distance_to_checkpoint < 60:
+    #     distance_bin = 2
+    # elif distance_to_checkpoint < 100:
+    #     distance_bin = 3
+    # else:
+    #     distance_bin = 4
 
-    angle = game_obs[49]
-    if angle < 15:
+    angle = game_obs[52]
+    if angle < 90:
         angle_bin = 0
-    elif angle < 45:
-        angle_bin = 1
-    elif angle < 90:
-        angle_bin = 2
     else:
-        angle_bin = 3
+        angle_bin = 1
 
-    standing_state = game_obs[50]
+    # standing_state = game_obs[53]
 
     discretized_obs = (
-        velocity_discretized +
-        rotation_discretized +
-        raycast_bins +
+        position_disc +
+        # rotation_discretized +
+        # raycast_bins +
         [
-            steering_bin,
-            gas_pedal_bin,
+            velocity_discretized,
+            # steering_bin,
+            # gas_pedal_bin,
             score_bin,
             is_off_road,
             is_in_loop_zone,
-            is_jumping,
-            distance_bin,
+            # is_jumping,
+            # distance_bin,
             angle_bin,
-            standing_state
+            # standing_state
         ]
     )
-
     return discretized_obs
 
 
@@ -100,7 +94,6 @@ class SolidEnvironmentGameObs(SolidEnvironment):
             game_obs = state[1]
         else:
             game_obs = state[0]
-
         if self.discretize:
             game_obs = discretize_observations(game_obs)
         else:

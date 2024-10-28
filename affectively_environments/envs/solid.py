@@ -15,6 +15,8 @@ class SolidEnvironment(BaseEnvironment):
 
     def calculate_reward(self):
         self.current_reward = (self.current_score - self.previous_score)
+        self.cumulative_reward += self.current_reward
+        self.best_cumulative_reward = self.current_reward if self.current_reward > self.best_cumulative_reward else self.best_cumulative_reward
 
     def reset_condition(self):
         if self.episode_length > 600:
@@ -31,8 +33,6 @@ class SolidEnvironment(BaseEnvironment):
         state, env_score, arousal, d, info = super().step(transformed_action)
         state = self.construct_state(state)
         self.calculate_reward()
-        self.cumulative_reward += self.current_reward
-        self.best_cumulative_reward = self.current_reward if self.current_reward > self.best_cumulative_reward else self.best_cumulative_reward
         self.reset_condition()
         final_reward = self.current_reward * (1 - self.weight) + (arousal * self.weight)
         return state, final_reward, d, info

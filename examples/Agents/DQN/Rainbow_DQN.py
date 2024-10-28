@@ -10,14 +10,13 @@ from torch import optim
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Noisy Linear Layer for Noisy Nets
+
 class NoisyLinear(nn.Module):
     def __init__(self, in_features, out_features, sigma_init=0.017):
         super(NoisyLinear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
 
-        # Learnable parameters
         self.weight_mu = nn.Parameter(torch.empty(out_features, in_features))
         self.weight_sigma = nn.Parameter(torch.empty(out_features, in_features))
         self.register_buffer('weight_epsilon', torch.empty(out_features, in_features))
@@ -31,7 +30,6 @@ class NoisyLinear(nn.Module):
         self.reset_noise()
 
     def reset_parameters(self):
-        # Initialize mean and sigma
         mu_range = 1 / math.sqrt(self.in_features)
         self.weight_mu.data.uniform_(-mu_range, mu_range)
         self.weight_sigma.data.fill_(self.sigma_init / math.sqrt(self.in_features))
@@ -40,7 +38,6 @@ class NoisyLinear(nn.Module):
         self.bias_sigma.data.fill_(self.sigma_init / math.sqrt(self.out_features))
 
     def reset_noise(self):
-        # Sample noise from a standard normal distribution
         self.weight_epsilon.normal_()
         self.bias_epsilon.normal_()
 
@@ -58,11 +55,10 @@ class MultiDiscreteRainbowDQN(nn.Module):
     def __init__(self, observation_size, action_sizes, atom_size, support):
         super(MultiDiscreteRainbowDQN, self).__init__()
         self.observation_size = observation_size
-        self.action_sizes = action_sizes  # List of action sizes per dimension
+        self.action_sizes = action_sizes
         self.atom_size = atom_size
-        self.support = support  # Tensor of atom values
+        self.support = support
 
-        # Shared layers
         self.feature_layer = nn.Sequential(
             nn.Linear(observation_size, 128),
             nn.ReLU(),
@@ -70,12 +66,10 @@ class MultiDiscreteRainbowDQN(nn.Module):
             nn.ReLU()
         )
 
-        # Separate streams for each action dimension
         self.value_layers = nn.ModuleList()
         self.advantage_layers = nn.ModuleList()
 
         for action_size in action_sizes:
-            # Value stream
             value_layer = nn.Sequential(
                 NoisyLinear(128, 128),
                 nn.ReLU(),
@@ -83,7 +77,6 @@ class MultiDiscreteRainbowDQN(nn.Module):
             )
             self.value_layers.append(value_layer)
 
-            # Advantage stream
             advantage_layer = nn.Sequential(
                 NoisyLinear(128, 128),
                 nn.ReLU(),
@@ -103,14 +96,9 @@ class MultiDiscreteRainbowDQN(nn.Module):
         ):
             value = value_layer(x).view(batch_size, 1, self.atom_size)
             advantage = advantage_layer(x).view(batch_size, action_size, self.atom_size)
-
-            # Combine value and advantage streams
             q_atoms = value + advantage - advantage.mean(dim=1, keepdim=True)
             q_distribution = F.softmax(q_atoms, dim=2)  # Distribution over atoms
-
-            # Expected Q-values
             q_value = torch.sum(q_distribution * self.support, dim=2)
-
             q_values.append(q_value)
             q_distributions.append(q_distribution)
 
@@ -120,6 +108,7 @@ class MultiDiscreteRainbowDQN(nn.Module):
         for m in self.modules():
             if isinstance(m, NoisyLinear):
                 m.reset_noise()
+
 
 class PrioritizedReplayBuffer(object):
     def __init__(self, capacity, alpha):
@@ -131,16 +120,12 @@ class PrioritizedReplayBuffer(object):
 
     def push(self, state, action, reward, next_state, done):
         max_priority = self.priorities.max() if self.buffer else 1.0
-
-        # Ensure that action is a NumPy array of integers
         action = np.array(action, dtype=np.int64)
-
         if len(self.buffer) < self.capacity:
             self.buffer.append((state, action, reward, next_state, done))
         else:
             self.buffer[self.pos] = (state, action, reward, next_state, done)
-
-        self.priorities[self.pos] = max_priority  # New experiences have max priority
+        self.priorities[self.pos] = max_priority
         self.pos = (self.pos + 1) % self.capacity
 
     def sample(self, batch_size, beta):
@@ -149,26 +134,19 @@ class PrioritizedReplayBuffer(object):
         else:
             priorities = self.priorities[:self.pos]
 
-        # Compute probabilities
         probabilities = priorities ** self.alpha
         probabilities /= probabilities.sum()
 
-        # Sample indices
         indices = np.random.choice(len(self.buffer), batch_size, p=probabilities)
         samples = [self.buffer[idx] for idx in indices]
 
-        # Compute importance-sampling weights
         total = len(self.buffer)
         weights = (total * probabilities[indices]) ** (-beta)
         weights /= weights.max()
         weights = torch.tensor(weights, dtype=torch.float32, device=device)
 
-        # Unpack samples
         batch = list(zip(*samples))
-
-        # Convert states and next_states to tensors
         states = torch.tensor(np.array(batch[0]), dtype=torch.float32, device=device)
-        # Stack actions into a 2D NumPy array and ensure they are integers
         actions = np.stack(batch[1], axis=0).astype(np.int64)
         rewards = torch.tensor(batch[2], dtype=torch.float32, device=device)
         next_states = torch.tensor(np.array(batch[3]), dtype=torch.float32, device=device)
