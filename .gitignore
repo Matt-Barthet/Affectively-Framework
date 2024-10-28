@@ -4,3 +4,4 @@ __pycache__
 affectively_environments.egg-info/
 /examples/Tensorboard
 /examples/Results/
+/examples/Results

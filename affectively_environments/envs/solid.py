@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 
 from .base import BaseEnvironment
@@ -12,6 +14,17 @@ class SolidEnvironment(BaseEnvironment):
         args += ["-frameBuffer", f"{frame_buffer}"]
         super().__init__(id_number=id_number, game='Solid', graphics=graphics, obs_space=obs, path=path, args=args,
                          capture_fps=5, time_scale=1, weight=weight, logging=logging, log_prefix=log_prefix)
+
+    def sample_action(self):
+        return self.action_space.sample()
+
+    def sample_weighted_action(self):
+        steering_distribution = [0, 0, 0, 0, 1, 1, 1, -1, -1, -1]
+        pedal_distribution = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1]
+        action = self.action_space.sample()
+        action[0] = random.choice(steering_distribution)
+        action[1] = random.choice(pedal_distribution)
+        return action
 
     def calculate_reward(self):
         self.current_reward = (self.current_score - self.previous_score)

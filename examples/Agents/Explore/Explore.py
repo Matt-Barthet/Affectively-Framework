@@ -33,7 +33,7 @@ class Cell:
         self.arousal_reward = -1000
         self.behavior_reward = -1000
         self.reward = -1000
-
+        self.estimated_position = [0, 0, 0]
         self.age = 0
         self.visited = 1
         self.final = False
@@ -58,23 +58,32 @@ class Explorer:
         self.env.create_and_send_message(f"[Save Dir]:./Results/Go-Explore")
         self.env.create_and_send_message(f"[Save Name]:{name}")
 
-        self.archive = {}
+        self.updates = 0
         self.bestCell = None
 
         self.current_cell = None
-        self.create_cell((1, 0), ['Start'], 0)
-        if self.store_cell(self.current_cell):
-            self.env.create_and_send_message(f"[Save]:{self.current_cell.key}")
+        self.create_cell((1, 0), [0, 0, 0, 'Start'], 0)
+        self.archive = {self.current_cell.key: self.current_cell}
+        self.env.create_and_send_message(f"[Save]:{self.current_cell.key}")
 
     def select_cell(self):
-        key, cell = random.choice(list(self.archive.items()))
-        if cell.final:
-            return self.select_cell()
+        non_final_cells = [(key, cell) for key, cell in self.archive.items() if not cell.final]
+
+        if len(self.archive) > 1:
+            weights = []
+            for key, cell in non_final_cells:
+                cell_length = cell.get_cell_length() if cell.get_cell_length() > 0 else 1  # Avoid division by zero
+                weight = (cell.reward + 1) / cell_length
+                weights.append(weight)
+            chosen_key, chosen_cell = random.choices(non_final_cells, weights=weights, k=1)[0]
         else:
-            self.env.previous_score = cell.score
-            self.env.current_score = cell.score
-            self.env.cumulative_reward = cell.reward
-            return copy.deepcopy(cell)
+            chosen_cell = self.current_cell
+
+        self.env.previous_score = chosen_cell.score
+        self.env.current_score = chosen_cell.score
+        self.env.cumulative_reward = chosen_cell.reward
+        self.env.estimated_position = chosen_cell.estimated_position
+        return copy.deepcopy(chosen_cell)
 
     def store_cell(self, cell):
         if cell is None:
@@ -91,7 +100,10 @@ class Explorer:
             return False
         if cell.reward > self.archive[cell.key].reward:
             return True
-        return cell.get_cell_length() < self.archive[cell.key].get_cell_length()
+        if cell.get_cell_length() < self.archive[cell.key].get_cell_length():
+            self.updates += 1
+            return True
+        return False
 
     def update_best_cell(self, cell):
         if self.bestCell is None or cell.reward > self.bestCell.reward:
@@ -123,17 +135,20 @@ class Explorer:
                                              "score_trajectory": [score]})
         self.current_cell.reward = self.env.cumulative_reward
         self.current_cell.score = self.env.current_score
+        self.current_cell.estimated_position = self.env.estimated_position
 
     def explore_actions(self, explore_length):
         """
         Return to the current cell using a context load.
         Explore a fixed number of random actions from the current cell.
         """
+
         self.current_cell = self.select_cell()
         self.env.episode_length = len(self.current_cell.trajectory_dict['state_trajectory'])
         self.env.create_and_send_message(f"[Cell Name]:{self.current_cell.key}")
         for j in range(explore_length):
             action = self.env.action_space.sample()
+            # action = self.env.sample_weighted_action()
             state, score, d, info = self.env.step((action[0], action[1]))
             self.create_cell(action, state, score)
 

@@ -113,8 +113,9 @@ class BaseEnvironment(gym.Env, ABC):
         self.previous_score = self.current_score
 
         state, env_score, done, info = self.env.step(action)
-        for _ in range(9):
-            _, env_score, done, info = self.env.step(action)
+        # for _ in range(9):
+        #     new_state, env_score, done, info = self.env.step(action)
+        #     state[0:3] = state[0:3] + new_state[0:3]  # sum up position deltas to get final delta
 
         self.current_score = env_score
         self.best_score = np.max([self.current_score, self.best_score])
