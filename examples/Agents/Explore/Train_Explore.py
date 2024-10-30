@@ -14,7 +14,7 @@ from examples.Agents.Explore.Explore import Explorer
 if __name__ == "__main__":
     np.set_printoptions(suppress=True, precision=6)
 
-    run = 1
+    run = 5
     preference_task = True
     classification_task = False
     weight = 0

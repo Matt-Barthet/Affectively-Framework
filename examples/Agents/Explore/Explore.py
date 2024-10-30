@@ -17,12 +17,16 @@ def get_state_hash(state):
 
 class Cell:
 
-    def __init__(self, state, trajectory_dict):
+    def __init__(self, state):
 
         self.key = get_state_hash(state)
-        self.trajectory_dict = trajectory_dict
+        self.trajectory_dict = {"state_trajectory": [],
+                                "behavior_trajectory": [],
+                                "arousal_trajectory": [],
+                                "uncertainty_trajectory": [],
+                                "arousal_vectors": [],
+                                "score_trajectory": []}
 
-        self.state = state
         self.human_vector = []
 
         self.score = 0
@@ -30,9 +34,9 @@ class Cell:
         self.arousal_values = []
         self.uncertainty = 0
 
-        self.arousal_reward = -1000
-        self.behavior_reward = -1000
-        self.reward = -1000
+        self.arousal_reward = 0
+        self.behavior_reward = 0
+        self.reward = 0
         self.estimated_position = [0, 0, 0]
         self.age = 0
         self.visited = 1
@@ -41,8 +45,8 @@ class Cell:
     def get_cell_length(self):
         return len(self.trajectory_dict['state_trajectory'])
 
-    def update_key(self, state):
-        self.key = get_state_hash(state)
+    def update_key(self):
+        self.key = get_state_hash(self.trajectory_dict['state_trajectory'][-1])
 
 
 class Explorer:
@@ -59,30 +63,30 @@ class Explorer:
         self.env.create_and_send_message(f"[Save Name]:{name}")
 
         self.updates = 0
-        self.bestCell = None
 
-        self.current_cell = None
-        self.create_cell((1, 0), [0, 0, 0, 'Start'], 0)
+        self.current_cell = Cell([0, 0, 0, 'Start'])
         self.archive = {self.current_cell.key: self.current_cell}
         self.env.create_and_send_message(f"[Save]:{self.current_cell.key}")
+        self.bestCell = self.current_cell
 
     def select_cell(self):
+        print("Selecting cell...", self.bestCell.get_cell_length(), self.bestCell.reward)
         non_final_cells = [(key, cell) for key, cell in self.archive.items() if not cell.final]
 
-        if len(self.archive) > 1:
-            weights = []
-            for key, cell in non_final_cells:
-                cell_length = cell.get_cell_length() if cell.get_cell_length() > 0 else 1  # Avoid division by zero
-                weight = (cell.reward + 1) / cell_length
-                weights.append(weight)
-            chosen_key, chosen_cell = random.choices(non_final_cells, weights=weights, k=1)[0]
-        else:
-            chosen_cell = self.current_cell
+        weights = []
+        for key, cell in non_final_cells:
+            cell_length = cell.get_cell_length() if cell.get_cell_length() > 0 else 1  # Avoid division by zero
+            weight = cell.reward + 1 / cell_length
+            weights.append(weight)
+        chosen_key, chosen_cell = random.choices(non_final_cells, weights=weights, k=1)[0]
 
+        self.env.episode_length = len(self.current_cell.trajectory_dict['state_trajectory'])
         self.env.previous_score = chosen_cell.score
         self.env.current_score = chosen_cell.score
         self.env.cumulative_reward = chosen_cell.reward
         self.env.estimated_position = chosen_cell.estimated_position
+        print("Selected cell...", self.bestCell.get_cell_length(), self.bestCell.reward)
+
         return copy.deepcopy(chosen_cell)
 
     def store_cell(self, cell):
@@ -106,7 +110,11 @@ class Explorer:
         return False
 
     def update_best_cell(self, cell):
-        if self.bestCell is None or cell.reward > self.bestCell.reward:
+        if self.bestCell is None:
+            self.bestCell = copy.deepcopy(cell)
+        elif cell.reward > self.bestCell.reward:
+            self.bestCell = copy.deepcopy(cell)
+        elif cell.reward == self.bestCell.reward and cell.get_cell_length() < self.bestCell.get_cell_length():
             self.bestCell = copy.deepcopy(cell)
 
     def save_best_cells(self, name):
@@ -119,20 +127,14 @@ class Explorer:
         pickle.dump(best_cell, open(f'./Results/Go-Explore/{name}_Best_Cell.pkl', 'wb'))
         pickle.dump(self.archive, open(f'./Results/Go-Explore/{name}_Archive.pkl', 'wb'))
 
-    def create_cell(self, action, state, score):
-        if self.current_cell is not None:
-            self.current_cell.trajectory_dict['behavior_trajectory'].append(action)
-            self.current_cell.trajectory_dict['state_trajectory'].append(state)
-            # self.current_cell.trajectory_dict['arousal_vectors'].append(arousal_vector)
-            self.current_cell.trajectory_dict['score_trajectory'].append(score)
-            self.current_cell.update_key(state)
-        else:
-            self.current_cell = Cell(state, {"state_trajectory": [state],
-                                             "behavior_trajectory": [action],
-                                             "arousal_trajectory": [],
-                                             "uncertainty_trajectory": [],
-                                             # "arousal_vectors": [arousal_vector],
-                                             "score_trajectory": [score]})
+    def create_cell(self, action, state):
+        self.current_cell.trajectory_dict['behavior_trajectory'].append(action)
+        self.current_cell.trajectory_dict['state_trajectory'].append(state)
+        # self.current_cell.trajectory_dict['arousal_vectors'].append(arousal_vector)
+        self.current_cell.trajectory_dict['score_trajectory'].append(self.env.current_score)
+        self.current_cell.update_key()
+
+        self.current_cell.final = self.current_cell.get_cell_length() >= 600
         self.current_cell.reward = self.env.cumulative_reward
         self.current_cell.score = self.env.current_score
         self.current_cell.estimated_position = self.env.estimated_position
@@ -142,30 +144,25 @@ class Explorer:
         Return to the current cell using a context load.
         Explore a fixed number of random actions from the current cell.
         """
-
         self.current_cell = self.select_cell()
-        self.env.episode_length = len(self.current_cell.trajectory_dict['state_trajectory'])
         self.env.create_and_send_message(f"[Cell Name]:{self.current_cell.key}")
+        self.env.reset()
+
         for j in range(explore_length):
             action = self.env.action_space.sample()
-            # action = self.env.sample_weighted_action()
             state, score, d, info = self.env.step((action[0], action[1]))
-            self.create_cell(action, state, score)
-
+            self.create_cell(action, state)
             if self.current_cell.get_cell_length() >= 600:
                 break
-
             if self.store_cell(self.current_cell):
                 self.env.create_and_send_message(f"[Save States]:{self.current_cell.key}")
 
-        print(len(self.archive), self.env.episode_length)
+        print(len(self.archive), self.bestCell.get_cell_length(), self.bestCell.reward)
 
     def explore(self, name, total_rollouts, explore_length):
         for x in range(total_rollouts):
-            self.explore_actions(explore_length)  # Perform a rollout of random actions
-            if x % 100 == 0:
-                self.callback.on_step()  # Update tensorboard after each rollout
-                self.save_best_cells(name)  # Save archive and best cell to disk
-                self.env.callback.on_episode_end()
-                self.env.create_and_send_message("[Save Saves]")
+            self.explore_actions(explore_length)
+            self.env.callback.on_episode_end()
+            self.callback.on_step()
+        self.save_best_cells(name)
         self.writer.close()

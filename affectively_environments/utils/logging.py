@@ -59,4 +59,4 @@ class TensorboardGoExplore:
         self.env.writer.add_scalar('archive/archive updates', self.archive.updates, self.step_count)
         self.env.writer.add_scalar('best cell/trajectory length', self.best_cell_length(), self.step_count)
         self.env.writer.add_scalar('best cell/blended reward', self.best_cell_lambda(), self.step_count)
-        self.step_count += 1
+        self.step_count += 100 * 20

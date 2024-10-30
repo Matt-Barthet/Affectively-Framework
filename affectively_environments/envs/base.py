@@ -93,10 +93,7 @@ class BaseEnvironment(gym.Env, ABC):
         else:
             label = 'arousal'
 
-        self.callback = None
-
-        if logging:
-            self.callback = TensorBoardCallback(f'./Tensorboard/{log_prefix}{game}-{label}-{id_number}', self)
+        self.callback = TensorBoardCallback(f'./Tensorboard/{log_prefix}{game}-{label}-{id_number}', self) if logging else None
 
     def reset(self, **kwargs):
         if self.callback is not None and len(self.arousal_trace) > 0:
@@ -113,9 +110,6 @@ class BaseEnvironment(gym.Env, ABC):
         self.previous_score = self.current_score
 
         state, env_score, done, info = self.env.step(action)
-        # for _ in range(9):
-        #     new_state, env_score, done, info = self.env.step(action)
-        #     state[0:3] = state[0:3] + new_state[0:3]  # sum up position deltas to get final delta
 
         self.current_score = env_score
         self.best_score = np.max([self.current_score, self.best_score])
@@ -137,7 +131,6 @@ class BaseEnvironment(gym.Env, ABC):
                 tensor = torch.Tensor(np.clip(list(previous_scaler) + list(scaled_obs), 0, 1))
                 self.previous_surrogate = tensor
                 arousal = self.model(tensor)[0]
-                # print(arousal)
                 if not np.isnan(arousal):
                     self.arousal_trace.append(arousal)
                 self.previous_surrogate = self.current_surrogate.copy()

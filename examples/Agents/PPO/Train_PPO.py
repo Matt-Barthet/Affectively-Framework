@@ -3,6 +3,7 @@ from stable_baselines3 import PPO
 import numpy as np
 
 from affectively_environments.envs.solid_game_obs import SolidEnvironmentGameObs
+from affectively_environments.envs.pirates import PiratesEnvironment
 
 if __name__ == "__main__":
     np.set_printoptions(suppress=True, precision=6)
@@ -12,8 +13,8 @@ if __name__ == "__main__":
     classification_task = False
     weight = 0
 
-    env = SolidEnvironmentGameObs(id_number=run, weight=weight, graphics=True, logging=True,
-                                  path="../Builds/MS_Solid/Racing.exe", discretize=False, log_prefix="PPO/")
+    env = PiratesEnvironment(id_number=run, weight=weight, graphics=True, logging=True,
+                                  path="../Builds/MS_Pirates/platform.exe", log_prefix="PPO/")
     sideChannel = env.customSideChannel
     env.targetSignal = np.ones
 
@@ -26,4 +27,4 @@ if __name__ == "__main__":
 
     model = PPO("MlpPolicy", env=env, tensorboard_log="./Tensorboard", device='cpu')
     model.learn(total_timesteps=10000000, progress_bar=True)
-    model.save(f"./Agents/PPO/ppo_solid_{label}_{run}")
+    model.save(f"./Agents/PPO/ppo_pirates_{label}_{run}")

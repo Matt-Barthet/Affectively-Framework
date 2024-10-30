@@ -13,15 +13,12 @@ class SolidEnvironmentGameObs(SolidEnvironment):
                          path=path, weight=weight, logging=logging, frame_buffer=False, log_prefix=log_prefix)
 
     def construct_state(self, state):
-
         if self.frameBuffer:
             game_obs = state[1]
         else:
             game_obs = state[0]
-
         if self.discretize:
             game_obs = self.discretize_observations(game_obs)
-
         self.game_obs = self.tuple_to_vector(game_obs)
         return self.game_obs
 
@@ -37,7 +34,7 @@ class SolidEnvironmentGameObs(SolidEnvironment):
         position_discrete[2] = 0 if position_discrete[2] == -0 else position_discrete[2]
 
         velocity = game_obs[3:6]
-        velocity_discrete = np.round(np.linalg.norm(velocity) / 30) * 30
+        velocity_discrete = np.round(np.linalg.norm(velocity) / 30)
 
         score = game_obs[47]
         if score < 8:
@@ -50,12 +47,6 @@ class SolidEnvironmentGameObs(SolidEnvironment):
         is_off_road = game_obs[48]
         is_in_loop_zone = game_obs[49]
 
-        angle = game_obs[52]
-        if angle < 90:
-            angle_bin = 0
-        else:
-            angle_bin = 1
-
         discrete_obs = (
             list(position_discrete) +
             [
@@ -63,9 +54,7 @@ class SolidEnvironmentGameObs(SolidEnvironment):
                 score_bin,
                 is_off_road,
                 is_in_loop_zone,
-                angle_bin,
             ]
         )
 
-        # print(f"Actual position: {position}, {position_delta}")
         return discrete_obs
