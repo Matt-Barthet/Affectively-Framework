@@ -22,7 +22,7 @@ class PiratesEnvironment(BaseEnvironment):
                          path=path,
                          args=["-gridWidth", f"{self.gridWidth}", "-gridHeight", f"{self.gridHeight}",
                                "-elementSize",
-                               f"{self.elementSize}"], capture_fps=60, time_scale=1, weight=weight, game='Pirates',
+                               f"{self.elementSize}"], capture_fps=60, time_scale=5, weight=weight, game='Pirates',
                          logging=logging, log_prefix=log_prefix)
 
     def calculate_reward(self):
@@ -60,6 +60,5 @@ class PiratesEnvironment(BaseEnvironment):
 
     def handle_level_end(self):
         print("End of level reached, resetting environment.")
-        self.create_and_send_message("[Cell Name]:Seed")
         self.reset()
         self.customSideChannel.levelEnd = False

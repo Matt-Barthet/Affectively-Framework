@@ -8,7 +8,7 @@ from affectively_environments.envs.pirates import PiratesEnvironment
 if __name__ == "__main__":
     np.set_printoptions(suppress=True, precision=6)
 
-    run = 10
+    run = 5
     preference_task = True
     classification_task = False
     weight = 0
@@ -25,6 +25,6 @@ if __name__ == "__main__":
     else:
         label = 'arousal'
 
-    model = PPO("MlpPolicy", env=env, tensorboard_log="./Tensorboard", device='cpu')
+    model = PPO("MlpPolicy", env=env, tensorboard_log="./Tensorboard/", device='cpu')
     model.learn(total_timesteps=10000000, progress_bar=True)
     model.save(f"./Agents/PPO/ppo_pirates_{label}_{run}")

@@ -94,6 +94,7 @@ class BaseEnvironment(gym.Env, ABC):
             label = 'arousal'
 
         self.callback = TensorBoardCallback(f'./Tensorboard/{log_prefix}{game}-{label}-{id_number}', self) if logging else None
+        self.create_and_send_message("[Save States]:Seed")
 
     def reset(self, **kwargs):
         if self.callback is not None and len(self.arousal_trace) > 0:
