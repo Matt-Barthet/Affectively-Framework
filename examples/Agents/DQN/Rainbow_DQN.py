@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
+from tqdm import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -203,6 +204,10 @@ class RainbowAgent:
             return
         reward, next_state, done = self._get_n_step_info()
         state, action = self.n_step_buffer[0][:2]
+
+        state = np.array(state, dtype=np.float32)
+        next_state = np.array(next_state, dtype=np.float32)
+
         self.memory.push(state, action, reward, next_state, done)
 
     def _get_n_step_info(self):
@@ -272,7 +277,7 @@ class RainbowAgent:
             'optimizer_state_dict': self.optimizer.state_dict(),
             'frame_idx': self.frame_idx,
         }, os.path.join(save_path, 'agent_checkpoint.pth'))
-        print(f"Agent saved to {save_path}")
+        # print(f"Agent saved to {save_path}")
 
     def load(self, load_path):
         checkpoint = torch.load(os.path.join(load_path, 'agent_checkpoint.pth'), map_location=device)
@@ -280,19 +285,27 @@ class RainbowAgent:
         self.target_net.load_state_dict(checkpoint['target_net_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.frame_idx = checkpoint.get('frame_idx', 0)
-        print(f"Agent loaded from {load_path}")
+        # print(f"Agent loaded from {load_path}")
 
 
-# Training Loop
+# In the training loop
 def train(agent, env, num_episodes=500, batch_size=64, update_target_every=1000, learning_starts=1000, name=""):
     total_steps = 0
     training_started = False
-    for episode in range(num_episodes):
+    episode_rewards = []
+
+    # Wrap the episodes loop with tqdm
+    for episode in tqdm(range(num_episodes), desc="Training Episodes"):
         state = env.reset()
+        state = np.array(state, dtype=np.float32)
         episode_reward = 0
-        for _ in range(600):
+
+        # Optional: Wrap the steps loop if you want to track progress within episodes
+        for _ in tqdm(range(600), desc=f"Episode {episode+1}/{num_episodes} Steps", leave=False):
+        # for _ in range(600):
             action = agent.select_action(state)
             next_state, reward, done, _ = env.step(action)
+            next_state = np.array(next_state, dtype=np.float32)
             agent.append_sample(state, action, reward, next_state, done)
             state = next_state
             episode_reward += reward
@@ -306,6 +319,9 @@ def train(agent, env, num_episodes=500, batch_size=64, update_target_every=1000,
             if total_steps % update_target_every == 0 and training_started:
                 agent.update_target()
 
+        episode_rewards.append(episode_reward)
+
         if episode % 100 == 0:
-            agent.save(f'DQN_{name}_Checkpoint')
-        print(f"Episode: {episode}, Reward: {episode_reward}")
+            agent.save(f'./Results/DQN/DQN_{name}_Checkpoint')
+
+    print("Training completed.")

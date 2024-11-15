@@ -99,11 +99,13 @@ class BaseEnvironment(gym.Env, ABC):
     def reset(self, **kwargs):
         if self.callback is not None and len(self.arousal_trace) > 0:
             self.callback.on_episode_end()
+
         self.episode_length = 0
         self.current_reward, self.current_score, self.cumulative_reward, self.previous_score = 0, 0, 0, 0
         self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
         self.arousal_trace = []
         state = self.env.reset()
+
         return state
 
     def step(self, action):
