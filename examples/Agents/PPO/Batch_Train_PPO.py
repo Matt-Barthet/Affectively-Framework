@@ -4,7 +4,7 @@ import os
 
 
 if __name__ == "__main__":
-    runs = range(4, 7)
+    runs = range(5)
     weights = [0]
     environments = ["pirates"]
 

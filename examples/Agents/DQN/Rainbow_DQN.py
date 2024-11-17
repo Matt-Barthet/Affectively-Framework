@@ -300,7 +300,6 @@ def train(agent, env, num_episodes=500, batch_size=64, update_target_every=1000,
         state = np.array(state, dtype=np.float32)
         episode_reward = 0
 
-        # Optional: Wrap the steps loop if you want to track progress within episodes
         for _ in tqdm(range(600), desc=f"Episode {episode+1}/{num_episodes} Steps", leave=False):
         # for _ in range(600):
             action = agent.select_action(state)
