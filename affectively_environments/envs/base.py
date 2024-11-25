@@ -64,6 +64,16 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.action_space, self.action_size = self.env.action_space, self.env.action_space.shape
 
+        # Hide actions - not working.
+        if isinstance(self.env.action_space, gym.spaces.MultiDiscrete):
+            # Exclude the last two actions
+            self.action_space = gym.spaces.MultiDiscrete(self.env.action_space.nvec[:-2])
+        elif isinstance(self.env.action_space, gym.spaces.Discrete):
+            # For Discrete spaces, you can only have a single action, so hiding actions might not be applicable
+            pass
+        else:
+            raise NotImplementedError("Action space type not supported")
+
         try:
             dtype = obs_space['type']
         except:
@@ -86,6 +96,8 @@ class BaseEnvironment(gym.Env, ABC):
         self.episode_length = 0
         self.weight = weight
 
+        self.save_digit, self.vector_digit, self.cell_name_digit = 0, 0, 0
+
         if weight == 0:
             label = 'optimize'
         elif weight == 0.5:
@@ -93,7 +105,8 @@ class BaseEnvironment(gym.Env, ABC):
         else:
             label = 'arousal'
 
-        self.callback = TensorBoardCallback(f'./Tensorboard/{log_prefix}{game}-{label}-{id_number}', self) if logging else None
+        self.callback = TensorBoardCallback(f'./Tensorboard/{log_prefix}{game}-{label}-{id_number}',
+                                            self) if logging else None
         self.create_and_send_message("[Save States]:Seed")
 
     def reset(self, **kwargs):
@@ -110,15 +123,17 @@ class BaseEnvironment(gym.Env, ABC):
 
     def step(self, action):
         self.episode_length += 1
+
         self.previous_score = self.current_score
 
-        state, env_score, done, info = self.env.step(action)
+        if self.episode_length % 14 == 0:  # Request the surrogate vector 2 ticks in advanced due to potential delay
+            self.vector_digit = 1
 
+        state, env_score, done, info = self.env.step(list(action[0]) + [self.vector_digit, self.save_digit, self.cell_name_digit])
+
+        self.save_digit, self.vector_digit, self.cell_name_digit = 0, 0, 0
         self.current_score = env_score
         self.best_score = np.max([self.current_score, self.best_score])
-
-        if self.episode_length % 13 == 0:  # Request the surrogate vector 2 ticks in advanced due to potential delay
-            self.create_and_send_message("Send Vector")
 
         arousal = 0
         if self.episode_length % 15 == 0:  # Read the surrogate vector on the 15th tick

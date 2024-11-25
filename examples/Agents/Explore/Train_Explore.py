@@ -32,4 +32,4 @@ if __name__ == "__main__":
         label = 'arousal'
 
     agent = Explorer(env, f"Solid-optimize-{run}-archive")
-    agent.explore(f"run{run}", 500000, 20)
+    agent.explore(f"run{run}", 500000, 50)

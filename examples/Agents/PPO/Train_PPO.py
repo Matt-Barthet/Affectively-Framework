@@ -19,6 +19,8 @@ def main(run, weight, env_type):
     else:
         raise ValueError("Invalid environment type. Choose 'pirates' or 'solid'.")
 
+    env = SolidEnvironmentGameObs(id_number=run, weight=weight, graphics=True, logging=True,
+                                  path="../Builds/MS_Solid/racing.exe", log_prefix="PPO/")
     sideChannel = env.customSideChannel
     env.targetSignal = np.ones
 
