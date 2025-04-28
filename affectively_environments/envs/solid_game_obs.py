@@ -1,6 +1,5 @@
 import numpy as np
-
-from .solid import SolidEnvironment
+from affectively_environments.envs.solid import SolidEnvironment
 
 
 class SolidEnvironmentGameObs(SolidEnvironment):

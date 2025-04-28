@@ -1,8 +1,6 @@
 import random
-
 import numpy as np
-
-from .base import BaseEnvironment
+from affectively_environments.envs.base import BaseEnvironment
 
 
 class SolidEnvironment(BaseEnvironment):

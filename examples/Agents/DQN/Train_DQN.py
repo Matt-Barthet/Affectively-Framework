@@ -1,8 +1,10 @@
 import numpy as np
 import sys
 from affectively_environments.envs.pirates import PiratesEnvironment
+from affectively_environments.envs.solid_cv import SolidEnvironmentCV
 from affectively_environments.envs.solid_game_obs import SolidEnvironmentGameObs
 from examples.Agents.DQN.Rainbow_DQN import RainbowAgent, train
+from examples.Agents.DQN.Rainbow_DQN_Resnet import RainbowResnetAgent
 
 
 def main(run, weight, env_type):
@@ -14,9 +16,12 @@ def main(run, weight, env_type):
     if env_type.lower() == "pirates":
         env = PiratesEnvironment(id_number=run, weight=weight, graphics=True, logging=True,
                                  path="../Builds/MS_Pirates/platform.exe", log_prefix="DQN/")
-    elif env_type.lower() == "solid":
+    elif env_type.lower() == "solid_gameobs":
         env = SolidEnvironmentGameObs(id_number=run, weight=weight, graphics=True, logging=True,
-                                      path="../Builds/MS_Solid/platform.exe", log_prefix="DQN/")
+                                      path="../Builds/MS_Solid/racing.exe", log_prefix="DQN/")
+    elif env_type.lower() == "solid_cv":
+        env = SolidEnvironmentCV(id_number=run, weight=weight, graphics=True, logging=True,
+                                      path="../Builds/MS_Solid/racing.exe", log_prefix="DQN/")
     else:
         raise ValueError("Invalid environment type. Choose 'pirates' or 'solid'.")
 
@@ -30,7 +35,7 @@ def main(run, weight, env_type):
     else:
         label = 'arousal'
 
-    agent = RainbowAgent(env.observation_space.shape[0], env.action_space.nvec.tolist())
+    agent = RainbowResnetAgent(env.observation_space.shape[0], env.action_space.nvec.tolist())
     num_episodes = 16638
     batch_size = 64
     update_target_every = 600
@@ -40,7 +45,6 @@ def main(run, weight, env_type):
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         print("Usage: python script.py <run-number> <weight> <environment>")
-        sys.exit(1)
 
     try:
         run = int(sys.argv[1])
@@ -48,7 +52,9 @@ if __name__ == "__main__":
         env_type = sys.argv[3]
     except ValueError as e:
         print(f"Error in argument parsing: {e}")
-        sys.exit(1)
+        run = 1
+        weight = 0
+        env_type = "solid_cv"
 
     main(run, weight, env_type)
 

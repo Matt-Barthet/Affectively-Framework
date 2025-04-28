@@ -1,10 +1,5 @@
 import numpy as np
-from matplotlib import pyplot as plt
-
-from .base import BaseEnvironment
-from gym import spaces
-
-from .solid import SolidEnvironment
+from affectively_environments.envs.solid import SolidEnvironment
 
 
 class SolidEnvironmentCV(SolidEnvironment):

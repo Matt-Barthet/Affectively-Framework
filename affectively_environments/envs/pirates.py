@@ -1,11 +1,10 @@
 import numpy as np
-
-from .base import BaseEnvironment
+from affectively_environments.envs.base import BaseEnvironment
 
 
 class PiratesEnvironment(BaseEnvironment):
 
-    def __init__(self, id_number, graphics, weight, path, logging=True, log_prefix=""):
+    def __init__(self, id_number, graphics, weight, logging=True, log_prefix="", targetArousal=0, cluster=0, period_ra=False):
 
         """ ---- Pirates! specific code ---- """
         self.gridWidth = 11
@@ -15,20 +14,15 @@ class PiratesEnvironment(BaseEnvironment):
         self.last_x = -np.inf
         self.max_x = -np.inf
         self.death_applied = False
-        self.previous_score = 0  # maximum possible score of 460
-
+        self.previous_score = 0
+        self.surrogate_length = 33
         super().__init__(id_number=id_number, graphics=graphics,
-                         obs_space={"low": -np.inf, "high": np.inf, "shape": (852,)},
-                         path=path,
+                         obs_space={"low": -np.inf, "high": np.inf, "shape": (887,)},
                          args=["-gridWidth", f"{self.gridWidth}", "-gridHeight", f"{self.gridHeight}",
-                               "-elementSize",
-                               f"{self.elementSize}"], capture_fps=60, time_scale=5, weight=weight, game='Pirates',
-                         logging=logging, log_prefix=log_prefix)
+                               "-elementSize", f"{self.elementSize}"], capture_fps=60, time_scale=5,
+                         weight=weight, game='Pirates', logging=logging, log_prefix=log_prefix,
+                         target_arousal=targetArousal, cluster=cluster, period_ra=period_ra)
 
-    def calculate_reward(self):
-        self.current_reward = np.clip((self.current_score - self.previous_score), 0, 1)
-        self.cumulative_reward += self.current_reward
-        self.best_cumulative_reward = self.current_reward if self.current_reward > self.best_cumulative_reward else self.best_cumulative_reward
 
     def reset_condition(self):
         if self.customSideChannel.levelEnd:
@@ -46,16 +40,36 @@ class PiratesEnvironment(BaseEnvironment):
         state = state[1]
         one_hot = self.one_hot_encode(grid, 7)
         flattened_matrix_obs = [vector for sublist in one_hot for item in sublist for vector in item]
-        combined_observations = list(state[2:]) + list(flattened_matrix_obs)
-        return combined_observations
+        combined_observations = list(state) + list(flattened_matrix_obs)
+        # print(combined_observations)
+        return np.asarray(combined_observations)
 
     def step(self, action):
         transformed_action = (action[0] - 1, action[1])
-        state, env_score, arousal, d, info = super().step(transformed_action)
+        state, env_score, d, info = super().step(transformed_action)
+
+        self.surrogate_list.append(state[1][-self.surrogate_length:])
         state = self.construct_state(state)
-        self.calculate_reward()
+        arousal, final_reward = 0, 0
+
+        if self.arousal_episode_length % 15 == 0:
+            self.generate_arousal()
+            self.arousal_episode_length = 0
+            self.surrogate_list.clear()
+
+        if self.period_ra and (len(self.episode_arousal_trace) > 0):
+            print("assigning reward asynchronously!")
+            final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
+
+        elif not self.period_ra and self.score_change:
+            print("assigning reward synchronously based on score change!")
+            final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
+
+
+        self.cumulative_rl += final_reward
+        self.best_rl = np.max([self.best_rl, final_reward])
         self.reset_condition()
-        final_reward = self.current_reward * (1 - self.weight) + (arousal * self.weight)
+
         return state, final_reward, d, info
 
     def handle_level_end(self):

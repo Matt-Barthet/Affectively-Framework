@@ -1,25 +1,23 @@
+import platform
 import uuid
 from abc import ABC
-from typing import Tuple
 
 import gym
 import numpy as np
 import torch
 from gym_unity.envs import UnityToGymWrapper
 from mlagents_envs.environment import UnityEnvironment
-from mlagents_envs.exception import UnityEnvironmentException
 from mlagents_envs.side_channel import OutgoingMessage
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
 from scipy import stats
 
-from ..utils.logging import TensorBoardCallback
-from ..utils.sidechannels import AffectivelySideChannel
-from ..utils.surrogatemodel import KNNSurrogateModel
+from affectively_environments.utils.logging import TensorBoardCallback
+from affectively_environments.utils.sidechannels import AffectivelySideChannel
+from affectively_environments.utils.surrogatemodel import KNNSurrogateModel
 
 
-# TODO: data dtype?
 def compute_confidence_interval(data,
-                                confidence: float = 0.95) -> Tuple[float, float]:
+                                confidence: float = 0.95):
     """
 	Compute the confidence interval of some data.
 	
@@ -43,8 +41,8 @@ class BaseEnvironment(gym.Env, ABC):
 	communicating between our python scripts and unity's update loop.
 	"""
 
-    def __init__(self, id_number, graphics, obs_space, path, weight, game, capture_fps=5, time_scale=1, args=None,
-                 logging=True, log_prefix=""):
+    def __init__(self, id_number, graphics, obs_space, weight, game, capture_fps=5, time_scale=1, args=None,
+                 logging=True, log_prefix="", target_arousal=1, cluster=0, period_ra=False):
 
         super(BaseEnvironment, self).__init__()
         if args is None:
@@ -54,11 +52,11 @@ class BaseEnvironment(gym.Env, ABC):
         args += [f"-socketID", str(socket_id)]
 
         self.game_obs = []
-
+        self.game = game
         self.engineConfigChannel = EngineConfigurationChannel()
         self.engineConfigChannel.set_configuration_parameters(capture_frame_rate=capture_fps, time_scale=time_scale)
         self.customSideChannel = AffectivelySideChannel(socket_id)
-        self.env = self.load_environment(path, id_number, graphics, args)
+        self.env = self.load_environment(id_number, graphics, args)
 
         self.env = UnityToGymWrapper(self.env, allow_multiple_obs=True)
 
@@ -66,11 +64,14 @@ class BaseEnvironment(gym.Env, ABC):
 
         # Hide actions - not working.
         if isinstance(self.env.action_space, gym.spaces.MultiDiscrete):
-            # Exclude the last two actions
-            self.action_space = gym.spaces.MultiDiscrete(self.env.action_space.nvec[:-2])
-        elif isinstance(self.env.action_space, gym.spaces.Discrete):
-            # For Discrete spaces, you can only have a single action, so hiding actions might not be applicable
+            # self.action_space = gym.spaces.MultiDiscrete(self.env.action_space.nvec[:-2])
             pass
+        elif isinstance(self.env.action_space, gym.spaces.Box):
+            # Exclude the last two actions for Box
+            # low = self.env.action_space.low[:-2] # Exclude the last two elements of low bounds
+            # high = self.env.action_space.high[:-2] # Exclude the last two elements of high bounds
+            # self.action_space = gym.spaces.Box(low=np.array(low), high=np.array(high), dtype=self.env.action_space.dtype)
+            print(self.action_space)
         else:
             raise NotImplementedError("Action space type not supported")
 
@@ -81,7 +82,6 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'],
                                                 dtype=dtype)
-
         self.model = KNNSurrogateModel(5, game)
         self.scaler = self.model.scaler
 
@@ -98,61 +98,98 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.save_digit, self.vector_digit, self.cell_name_digit = 0, 0, 0
 
-        if weight == 0:
-            label = 'optimize'
-        elif weight == 0.5:
-            label = 'blended'
-        else:
-            label = 'arousal'
+        self.current_score, self.previous_score, = 0, 0
+        self.best_rb, self.cumulative_rb = 0, 0
+        self.best_ra, self.cumulative_ra = 0, 0
+        self.best_rl, self.cumulative_rl = 0, 0
 
-        self.callback = TensorBoardCallback(f'./Tensorboard/{log_prefix}{game}-{label}-{id_number}',
-                                            self) if logging else None
+        self.surrogate_list = []
+        self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
+        self.episode_arousal_trace, self.period_arousal_trace = [], []
+        self.behavior_ticks = 0
+        self.score_change = False
+        self.period_ra = period_ra
+
+        self.episode_length, self.arousal_episode_length = 0, 0
+        self.target_arousal = target_arousal
+
+        self.callback = TensorBoardCallback(f'../../tensorboard/{log_prefix}ppo-{cluster}-{weight}λ-target{self.target_arousal}-run{id_number}', self) if logging else None
         self.create_and_send_message("[Save States]:Seed")
 
     def reset(self, **kwargs):
-        if self.callback is not None and len(self.arousal_trace) > 0:
+        if self.callback is not None and len(self.episode_arousal_trace) > 0:
             self.callback.on_episode_end()
-
-        self.episode_length = 0
-        self.current_reward, self.current_score, self.cumulative_reward, self.previous_score = 0, 0, 0, 0
-        self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
-        self.arousal_trace = []
         state = self.env.reset()
-
+        self.cumulative_ra, self.cumulative_rb, self.cumulative_rl = 0, 0, 0
+        self.current_score, self.previous_score = 0, 0
+        self.episode_length, self.arousal_episode_length = 0, 0
+        self.behavior_ticks = 0
+        self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
+        self.episode_arousal_trace.clear()
+        self.period_arousal_trace.clear()
         return state
+
+    def reward_behavior(self):
+        # Using reward from the environment as behavior reward (i.e., optimize env score)
+        r_b = 1 if self.score_change else 0
+        self.behavior_ticks += 1 if self.score_change else 0
+        self.score_change = False
+        self.best_rb = np.max([r_b, self.best_rb])
+        self.cumulative_rb += r_b
+        return r_b
+
+
+    def reward_affect(self):
+        # Reward similarity of mean arousal this period to target arousal (0 = minimize, 1 = maximize)
+        mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0 # Arousal range [0, 1]
+        r_a = 1 - np.abs(self.target_arousal - mean_arousal)
+        self.best_ra = np.max([self.best_ra, r_a])
+        self.cumulative_ra += r_a
+        self.period_arousal_trace.clear()
+        return r_a
+
+
+    def generate_arousal(self):
+        arousal = 0
+        stacked_surrogates = np.asarray(self.surrogate_list)
+        stacked_surrogates = np.stack(stacked_surrogates, axis=-1) # stack the surrogates vertically
+        self.current_surrogate = np.mean(stacked_surrogates, axis=1) # calculate the mean of each feature across the stack
+        if self.current_surrogate.size != 0:
+            scaled_obs = np.array(self.scaler.transform(self.current_surrogate.reshape(1, -1))[0])
+            if self.previous_surrogate.size == 0:
+                self.previous_surrogate = np.zeros(len(self.current_surrogate))
+            previous_scaler = np.array(self.scaler.transform(self.previous_surrogate.reshape(1, -1))[0])
+            unclipped_tensor = np.array(list(previous_scaler) + list(scaled_obs))
+            # if np.min(scaled_obs) < 0 or np.max(scaled_obs) > 1:
+                # print(f"Values outside of range: Max={np.max(scaled_obs)}@{np.where(scaled_obs > 1)[0]}, Min={np.min(scaled_obs)}@{np.where(scaled_obs < 0)[0]}")
+            tensor = torch.Tensor(np.clip(unclipped_tensor, 0, 1))
+            tensor= torch.nan_to_num(tensor, nan=0)
+            self.previous_surrogate = previous_scaler
+            arousal = self.model(tensor)[0]
+            if not np.isnan(arousal):
+                self.episode_arousal_trace.append(arousal)
+                self.period_arousal_trace.append(arousal)
+            self.previous_surrogate = self.current_surrogate.copy()
+            self.customSideChannel.arousal_vector.clear()
+        return arousal
 
     def step(self, action):
         self.episode_length += 1
+        self.arousal_episode_length += 1
+
+        change_in_score = (self.current_score - self.previous_score)
+        self.score_change = self.score_change or change_in_score > 0
 
         self.previous_score = self.current_score
-
-        if self.episode_length % 14 == 0:  # Request the surrogate vector 2 ticks in advanced due to potential delay
-            self.vector_digit = 1
-
-        state, env_score, done, info = self.env.step(list(action[0]) + [self.vector_digit, self.save_digit, self.cell_name_digit])
+        try:
+            state, env_score, done, info = self.env.step(list(action)) # + [self.vector_digit, self.save_digit, self.cell_name_digit])
+        except:
+            print("Caught step error, trying again to bypass double agent error on reset...")
+            state, env_score, done, info = self.env.step(list(action))
 
         self.save_digit, self.vector_digit, self.cell_name_digit = 0, 0, 0
         self.current_score = env_score
-        self.best_score = np.max([self.current_score, self.best_score])
-
-        arousal = 0
-        if self.episode_length % 15 == 0:  # Read the surrogate vector on the 15th tick
-            self.current_surrogate = np.array(self.customSideChannel.arousal_vector.copy(), dtype=np.float32)
-            if self.current_surrogate.size != 0:
-                try:
-                    scaled_obs = np.array(self.scaler.transform(self.current_surrogate.reshape(1, -1))[0])
-                except:
-                    scaled_obs = np.zeros((len(self.previous_surrogate)))
-                if self.previous_surrogate.size == 0:
-                    self.previous_surrogate = np.zeros(len(self.current_surrogate))
-                previous_scaler = np.array(self.scaler.transform(self.previous_surrogate.reshape(1, -1))[0])
-                tensor = torch.Tensor(np.clip(list(previous_scaler) + list(scaled_obs), 0, 1))
-                self.previous_surrogate = tensor
-                arousal = self.model(tensor)[0]
-                if not np.isnan(arousal):
-                    self.arousal_trace.append(arousal)
-                self.previous_surrogate = self.current_surrogate.copy()
-        return state, env_score, arousal, done, info
+        return state, env_score, done, info
 
     def handle_level_end(self):
         """
@@ -171,29 +208,23 @@ class BaseEnvironment(gym.Env, ABC):
         message.write_string(contents)
         self.customSideChannel.queue_message_to_send(message)
 
-    def load_environment(self, path, identifier, graphics, args):
+    def load_environment(self, identifier, graphics, args):
+        system = platform.system()
+        if system == "Darwin":
+            game_suffix = "app"
+        else:
+            game_suffix = "exe"
+        system="Mac" if system == "Darwin" else system
         try:
-            env = UnityEnvironment(f"{path}",
+            env = UnityEnvironment(f"../../../Builds/{self.game}/{system}/{self.game}.{game_suffix}",
                                    side_channels=[self.engineConfigChannel, self.customSideChannel],
                                    worker_id=identifier,
                                    no_graphics=not graphics,
-                                   args=args)
-        except UnityEnvironmentException:
-            print("Path not found! Please specify the right environment path.")
-            raise
-        except TypeError:
-            try:
-                env = UnityEnvironment(f"{path}",
-                                       side_channels=[self.engineConfigChannel, self.customSideChannel],
-                                       worker_id=identifier,
-                                       no_graphics=not graphics,
-                                       additional_args=args)
-            except:
-                print("Checking next ID!")
-                return self.load_environment(path, identifier + 1, graphics, args)
+                                   additional_args=args)
         except:
             print("Checking next ID!")
-            return self.load_environment(path, identifier + 1, graphics, args)
+            return self.load_environment(identifier + 1, graphics, args)
+
         return env
 
     @staticmethod
