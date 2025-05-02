@@ -41,7 +41,8 @@ class SolidEnvironment(BaseEnvironment):
 
     def step(self, action):
         transformed_action = np.asarray([tuple([action[0] - 1, action[1] - 1])])
-        state, env_score, arousal, d, info = super().step(transformed_action)
+        state, env_score, d, info = super().step(transformed_action)
+        arousal = 0
         state = self.construct_state(state)
         self.calculate_reward()
         self.reset_condition()

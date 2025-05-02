@@ -71,10 +71,12 @@ class BaseEnvironment(gym.Env, ABC):
             # low = self.env.action_space.low[:-2] # Exclude the last two elements of low bounds
             # high = self.env.action_space.high[:-2] # Exclude the last two elements of high bounds
             # self.action_space = gym.spaces.Box(low=np.array(low), high=np.array(high), dtype=self.env.action_space.dtype)
-            print(self.action_space)
+            pass
         else:
+
             raise NotImplementedError("Action space type not supported")
 
+        print(self.action_space)
         try:
             dtype = obs_space['type']
         except:
@@ -130,7 +132,6 @@ class BaseEnvironment(gym.Env, ABC):
         return state
 
     def reward_behavior(self):
-        # Using reward from the environment as behavior reward (i.e., optimize env score)
         r_b = 1 if self.score_change else 0
         self.behavior_ticks += 1 if self.score_change else 0
         self.score_change = False
@@ -181,6 +182,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.score_change = self.score_change or change_in_score > 0
 
         self.previous_score = self.current_score
+        
         try:
             state, env_score, done, info = self.env.step(list(action)) # + [self.vector_digit, self.save_digit, self.cell_name_digit])
         except:

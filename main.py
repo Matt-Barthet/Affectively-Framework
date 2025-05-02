@@ -3,12 +3,13 @@ from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.callbacks import ProgressBarCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
 from affectively.environments.pirates_cv import PiratesEnvironmentCV
+from affectively.environments.heist_cv import HeistEnvironmentCV
 
 if __name__ == "__main__":
     run = 2
     weight = 0
 
-    env = PiratesEnvironmentCV(
+    env = HeistEnvironmentCV(
         id_number=run,
         weight=weight,
         graphics=True,
