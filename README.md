@@ -20,6 +20,11 @@ Install dependencies
 pip install -r requirements.txt
 ```
 
+If on MacOS (Tested on an Apple Silicon machine)
+```
+pip install stable_baselines3==1.8.0 sb3_contrib==1.8.0 --no-deps
+```
+
 ## Documentation
 A "nice" documentation of the project is available in `docs\build\html\index.html`.
 

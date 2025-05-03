@@ -55,7 +55,7 @@ class PiratesEnvironment(BaseEnvironment):
     #     return np.asarray(combined_observations)
 
     def step(self, action):
-        transformed_action = (action[0] - 1, action[1])
+        transformed_action = (action[0] - 1, action[1], 0, 0)
         state, env_score, d, info = super().step(transformed_action)
 
         self.surrogate_list.append(state[2][-self.surrogate_length:])

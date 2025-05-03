@@ -1,4 +1,4 @@
-Library: D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
+Library: /Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/BurstOutput/Data/Plugins/lib_burst_generated
 --platform=Linux
 --backend=burst-llvm-16
 --target=X64_SSE2
@@ -7,11 +7,12 @@ Library: D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
 --dump=Function
 --float-precision=Standard
 --target-framework=NetFramework
---generate-link-xml=Temp\burst.link.xml
---temp-folder=D:\Pirates-Gym\Temp\Burst
---key-folder=D:/Unity/2022.3.56f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport
---decode-folder=D:\Pirates-Gym\Library\Burst
---output=D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
+--generate-link-xml=Temp/burst.link.xml
+--temp-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/Burst
+--debug=Full
+--key-folder=/Applications/Unity/Hub/Editor/2022.3.56f1/PlaybackEngines/LinuxStandaloneSupport
+--decode-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Library/Burst
+--output=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/BurstOutput/Data/Plugins/lib_burst_generated
 --pdb-search-paths=Temp/ManagedSymbols/
 
 --method=Unity.Jobs.IJobParallelForExtensions+ParallelForJobStruct`1[[Unity.Barracuda.BurstCPUOps+ElementwiseMinJob_Full_Half, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null]], UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null::Execute(Unity.Barracuda.BurstCPUOps+ElementwiseMinJob_Full_Half&, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|Unity.Jobs.LowLevel.Unsafe.JobRanges&, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null|System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089)--29c9a32da97e10019f953470978e130e
@@ -80,11 +81,12 @@ Library: D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
 --dump=Function
 --float-precision=Standard
 --target-framework=NetFramework
---generate-link-xml=Temp\burst.link.xml
---temp-folder=D:\Pirates-Gym\Temp\Burst
---key-folder=D:/Unity/2022.3.56f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport
---decode-folder=D:\Pirates-Gym\Library\Burst
---output=D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
+--generate-link-xml=Temp/burst.link.xml
+--temp-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/Burst
+--debug=Full
+--key-folder=/Applications/Unity/Hub/Editor/2022.3.56f1/PlaybackEngines/LinuxStandaloneSupport
+--decode-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Library/Burst
+--output=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/BurstOutput/Data/Plugins/lib_burst_generated
 --pdb-search-paths=Temp/ManagedSymbols/
 
 --method=Unity.Jobs.IJobParallelForExtensions+ParallelForJobStruct`1[[Unity.Barracuda.BurstCPUOps+ElementwiseMinJob_Full_Half, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null]], UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null::Execute(Unity.Barracuda.BurstCPUOps+ElementwiseMinJob_Full_Half&, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|Unity.Jobs.LowLevel.Unsafe.JobRanges&, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null|System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089)--29c9a32da97e10019f953470978e130e
@@ -154,11 +156,12 @@ Library: D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
 --float-precision=Low
 --target-framework=NetFramework
 --float-mode=Fast
---generate-link-xml=Temp\burst.link.xml
---temp-folder=D:\Pirates-Gym\Temp\Burst
---key-folder=D:/Unity/2022.3.56f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport
---decode-folder=D:\Pirates-Gym\Library\Burst
---output=D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
+--generate-link-xml=Temp/burst.link.xml
+--temp-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/Burst
+--debug=Full
+--key-folder=/Applications/Unity/Hub/Editor/2022.3.56f1/PlaybackEngines/LinuxStandaloneSupport
+--decode-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Library/Burst
+--output=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/BurstOutput/Data/Plugins/lib_burst_generated
 --pdb-search-paths=Temp/ManagedSymbols/
 
 --method=Unity.Jobs.IJobParallelForExtensions+ParallelForJobStruct`1[[Unity.Barracuda.BurstCPUOps+ExpBiasReduceJob_Full_Half, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null]], UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null::Execute(Unity.Barracuda.BurstCPUOps+ExpBiasReduceJob_Full_Half&, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|Unity.Jobs.LowLevel.Unsafe.JobRanges&, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null|System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089)--270ed1e9cc63181baf35e9074fbf6e3e
@@ -204,11 +207,12 @@ Library: D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
 --float-precision=Low
 --target-framework=NetFramework
 --float-mode=Fast
---generate-link-xml=Temp\burst.link.xml
---temp-folder=D:\Pirates-Gym\Temp\Burst
---key-folder=D:/Unity/2022.3.56f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport
---decode-folder=D:\Pirates-Gym\Library\Burst
---output=D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
+--generate-link-xml=Temp/burst.link.xml
+--temp-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/Burst
+--debug=Full
+--key-folder=/Applications/Unity/Hub/Editor/2022.3.56f1/PlaybackEngines/LinuxStandaloneSupport
+--decode-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Library/Burst
+--output=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/BurstOutput/Data/Plugins/lib_burst_generated
 --pdb-search-paths=Temp/ManagedSymbols/
 
 --method=Unity.Jobs.IJobParallelForExtensions+ParallelForJobStruct`1[[Unity.Barracuda.BurstCPUOps+ExpBiasReduceJob_Full_Half, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null]], UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null::Execute(Unity.Barracuda.BurstCPUOps+ExpBiasReduceJob_Full_Half&, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|Unity.Jobs.LowLevel.Unsafe.JobRanges&, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null|System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089)--270ed1e9cc63181baf35e9074fbf6e3e
@@ -253,11 +257,12 @@ Library: D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
 --dump=Function
 --float-precision=Standard
 --target-framework=NetFramework
---generate-link-xml=Temp\burst.link.xml
---temp-folder=D:\Pirates-Gym\Temp\Burst
---key-folder=D:/Unity/2022.3.56f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport
---decode-folder=D:\Pirates-Gym\Library\Burst
---output=D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
+--generate-link-xml=Temp/burst.link.xml
+--temp-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/Burst
+--debug=Full
+--key-folder=/Applications/Unity/Hub/Editor/2022.3.56f1/PlaybackEngines/LinuxStandaloneSupport
+--decode-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Library/Burst
+--output=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/BurstOutput/Data/Plugins/lib_burst_generated
 --pdb-search-paths=Temp/ManagedSymbols/
 
 --method=Unity.Jobs.IJobParallelForExtensions+ParallelForJobStruct`1[[Unity.Barracuda.BurstCPUOps+Relu6Job_Full_Float, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null]], UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null::Execute(Unity.Barracuda.BurstCPUOps+Relu6Job_Full_Float&, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|Unity.Jobs.LowLevel.Unsafe.JobRanges&, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null|System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089)--db5dc6c8ea53410100f79e66afceabda
@@ -368,11 +373,12 @@ Library: D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
 --dump=Function
 --float-precision=Standard
 --target-framework=NetFramework
---generate-link-xml=Temp\burst.link.xml
---temp-folder=D:\Pirates-Gym\Temp\Burst
---key-folder=D:/Unity/2022.3.56f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport
---decode-folder=D:\Pirates-Gym\Library\Burst
---output=D:\Pirates-Gym\Temp\BurstOutput\Data\Plugins\lib_burst_generated
+--generate-link-xml=Temp/burst.link.xml
+--temp-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/Burst
+--debug=Full
+--key-folder=/Applications/Unity/Hub/Editor/2022.3.56f1/PlaybackEngines/LinuxStandaloneSupport
+--decode-folder=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Library/Burst
+--output=/Volumes/Matts SSD/University Work/RL + Affect/Pirates-Gym/Temp/BurstOutput/Data/Plugins/lib_burst_generated
 --pdb-search-paths=Temp/ManagedSymbols/
 
 --method=Unity.Jobs.IJobParallelForExtensions+ParallelForJobStruct`1[[Unity.Barracuda.BurstCPUOps+Relu6Job_Full_Float, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null]], UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null::Execute(Unity.Barracuda.BurstCPUOps+Relu6Job_Full_Float&, Unity.Barracuda, Version=3.0.0.0, Culture=neutral, PublicKeyToken=null|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|System.IntPtr, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089|Unity.Jobs.LowLevel.Unsafe.JobRanges&, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null|System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089)--db5dc6c8ea53410100f79e66afceabda
