@@ -34,6 +34,6 @@ class PiratesEnvironmentCV(PiratesEnvironment):
             stacked_frames = np.stack(self.frame_buffer, axis=-1)
         else:
             stacked_frames = visual_buffer
-            # plt.imshow(visual_buffer)
-            # plt.show()
+            plt.imshow(visual_buffer)
+            plt.show()
         return stacked_frames

@@ -7,8 +7,8 @@ class HeistEnvironmentCV(HeistEnvironment):
 
     def __init__(self, id_number, graphics, weight, logging=True, grayscale=True, log_prefix=""):
 
-        width = 128
-        height = 96
+        width = 128 * 5
+        height = 96 * 5
         self.stackNo = 1
         self.grayscale = grayscale
         if grayscale:
@@ -34,6 +34,6 @@ class HeistEnvironmentCV(HeistEnvironment):
             stacked_frames = np.stack(self.frame_buffer, axis=-1)
         else:
             stacked_frames = visual_buffer
-            # plt.imshow(visual_buffer)
-            # plt.show()
+            plt.imshow(visual_buffer)
+            plt.show()
         return stacked_frames

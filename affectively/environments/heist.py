@@ -10,6 +10,7 @@ class HeistEnvironment(BaseEnvironment):
         # self.gridWidth = 9
         # self.gridHeight = 9
         # self.elementSize = 0.5
+
         self.death_applied = False
         self.previous_health = 0
 
@@ -56,6 +57,7 @@ class HeistEnvironment(BaseEnvironment):
             np.round(action[3]+1),
             np.round(action[4]/2 + 0.5),
         ]
+
         state, env_score, d, info = super().step(transformed_action)
         arousal = 0
         state = self.construct_state(state)
