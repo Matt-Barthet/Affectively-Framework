@@ -7,8 +7,8 @@ class HeistEnvironmentCV(HeistEnvironment):
 
     def __init__(self, id_number, graphics, weight, logging=True, grayscale=True, log_prefix=""):
 
-        width = 128 * 5
-        height = 96 * 5
+        width = 128 
+        height = 96 
         self.stackNo = 1
         self.grayscale = grayscale
         if grayscale:
@@ -18,7 +18,7 @@ class HeistEnvironmentCV(HeistEnvironment):
         args = ['-bufferWidth', f"{width}", "-bufferHeight", f"{height}", "-useGrayscale", f"{grayscale}"]
         super().__init__(id_number=id_number, graphics=graphics,
                          obs={"low": 0, "high": 255, "shape": shape, "type": np.uint8},
-                         weight=weight, frame_buffer=False, logging=logging, args=args, log_prefix=log_prefix)
+                         weight=weight, frame_buffer=True, logging=logging, args=args, log_prefix=log_prefix)
         self.frame_buffer = []
 
     def construct_state(self, state) -> np.ndarray:
@@ -34,6 +34,6 @@ class HeistEnvironmentCV(HeistEnvironment):
             stacked_frames = np.stack(self.frame_buffer, axis=-1)
         else:
             stacked_frames = visual_buffer
-            plt.imshow(visual_buffer)
-            plt.show()
+            # plt.imshow(visual_buffer)
+            # plt.show()
         return stacked_frames

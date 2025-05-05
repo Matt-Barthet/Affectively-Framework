@@ -39,6 +39,7 @@ class KNNSurrogateModel:
         self.game = game
         self.cluster = cluster
         self.target_behavior, self.target_arousal = [], []
+        self.surrogate_length = 0
         self.load_data()
 
     def __call__(self, state):
@@ -99,6 +100,10 @@ class KNNSurrogateModel:
         data = data[data.columns[~data.columns.str.startswith("Time_Index")]]
         data = data[data.columns[~data.columns.str.contains("arousal")]]
 
+        if not preference:
+            self.surrogate_length = len(data.columns) 
+
+        print(f"Data shape: {self.surrogate_length}")
         print(data)
         return data, arousals
 

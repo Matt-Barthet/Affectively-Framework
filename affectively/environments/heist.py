@@ -6,11 +6,6 @@ class HeistEnvironment(BaseEnvironment):
 
     def __init__(self, id_number, graphics, weight, obs, logging=True, log_prefix="", targetArousal=0, frame_buffer=False, cluster=0, period_ra=False, args=None):
 
-        """ ---- Heist! specific code ---- """
-        # self.gridWidth = 9
-        # self.gridHeight = 9
-        # self.elementSize = 0.5
-
         self.death_applied = False
         self.previous_health = 0
 
@@ -24,7 +19,7 @@ class HeistEnvironment(BaseEnvironment):
         self.frameBuffer = frame_buffer
         args += ["-frameBuffer", f"{frame_buffer}"]
         super().__init__(id_number=id_number, game='fps', graphics=graphics, obs_space=obs, args=args,
-                         capture_fps=15, time_scale=1, weight=weight, logging=logging, log_prefix=log_prefix)
+                         capture_fps=15, time_scale=3, weight=weight, logging=logging, log_prefix=log_prefix)
 
     def calculate_reward(self):
         self.current_reward = np.clip((self.current_score - self.previous_score), 0, 1)
@@ -41,14 +36,6 @@ class HeistEnvironment(BaseEnvironment):
         state = super().reset()
         return self.construct_state(state)
 
-    # def construct_state(self, state):
-    #     grid = np.asarray(state[0])
-    #     state = np.asarray(state[1])
-    #     one_hot = self.one_hot_encode(grid, 4)
-    #     flattened_matrix_obs = [vector for sublist in one_hot for item in sublist for vector in item]
-    #     combined_observations = list(flattened_matrix_obs) + list(state[3:])
-    #     return combined_observations
-
     def step(self, action):
         transformed_action = [
             action[0] * 4,
@@ -56,10 +43,11 @@ class HeistEnvironment(BaseEnvironment):
             np.round(action[2]+1),
             np.round(action[3]+1),
             np.round(action[4]/2 + 0.5),
+            0
         ]
 
-        state, env_score, d, info = super().step(transformed_action)
-        arousal = 0
+        state, env_score, arousal, d, info = super().step(transformed_action)
+
         state = self.construct_state(state)
         self.calculate_reward()
         self.reset_condition()

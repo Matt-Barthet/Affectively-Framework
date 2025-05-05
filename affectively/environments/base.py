@@ -114,7 +114,7 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.episode_length, self.arousal_episode_length = 0, 0
         self.target_arousal = target_arousal
-
+        self.surrogate_length = self.model.surrogate_length
         self.callback = TensorBoardCallback(f'../../tensorboard/{log_prefix}ppo-{cluster}-{weight}λ-target{self.target_arousal}-run{id_number}', self) if logging else None
         self.create_and_send_message("[Save States]:Seed")
 
@@ -153,9 +153,14 @@ class BaseEnvironment(gym.Env, ABC):
     def generate_arousal(self):
         arousal = 0
         stacked_surrogates = np.asarray(self.surrogate_list)
+        print(stacked_surrogates.shape)
         stacked_surrogates = np.stack(stacked_surrogates, axis=-1) # stack the surrogates vertically
+
+        print(stacked_surrogates.shape)
         self.current_surrogate = np.mean(stacked_surrogates, axis=1) # calculate the mean of each feature across the stack
+
         if self.current_surrogate.size != 0:
+            print(self.current_surrogate.shape)
             scaled_obs = np.array(self.scaler.transform(self.current_surrogate.reshape(1, -1))[0])
             if self.previous_surrogate.size == 0:
                 self.previous_surrogate = np.zeros(len(self.current_surrogate))
@@ -180,18 +185,28 @@ class BaseEnvironment(gym.Env, ABC):
 
         change_in_score = (self.current_score - self.previous_score)
         self.score_change = self.score_change or change_in_score > 0
-
         self.previous_score = self.current_score
-        
+                
         try:
             state, env_score, done, info = self.env.step(list(action)) # + [self.vector_digit, self.save_digit, self.cell_name_digit])
         except:
             print("Caught step error, trying again to bypass double agent error on reset...")
             state, env_score, done, info = self.env.step(list(action))
 
+        if len(state) <= 3:
+            surrogate = state[1][-self.surrogate_length:]
+        else:
+            surrogate = state[-self.surrogate_length:]
+        self.surrogate_list.append(surrogate)
+        arousal = 0
+        if self.arousal_episode_length % 15 == 0:  # Read the surrogate vector on the 15th tick
+            arousal = self.generate_arousal()
+            self.arousal_episode_length = 0
+            self.surrogate_list.clear()
+
         self.save_digit, self.vector_digit, self.cell_name_digit = 0, 0, 0
         self.current_score = env_score
-        return state, env_score, done, info
+        return state, env_score, arousal, done, info
 
     def handle_level_end(self):
         """
