@@ -5,7 +5,6 @@ import numpy as np
 class HeistEnvironmentGameObs(HeistEnvironment):
 
     def __init__(self, id_number, graphics, weight, logging=True, log_prefix="", discretize=False):
-        """ ---- Heist! specific code ---- """
         self.gridWidth = 9
         self.gridHeight = 9
         self.elementSize = 0.5

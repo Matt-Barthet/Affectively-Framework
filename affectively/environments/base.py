@@ -18,15 +18,6 @@ from affectively.utils.surrogatemodel import KNNSurrogateModel
 
 def compute_confidence_interval(data,
                                 confidence: float = 0.95):
-    """
-	Compute the confidence interval of some data.
-	
-	Args:
-		data: The data.
-		confidence: The confidence interval percentile.
-
-	Returns: The confidence interval.
-	"""
     data = np.array(data)
     mean = np.mean(data)
     sem = stats.sem(data)
@@ -76,7 +67,6 @@ class BaseEnvironment(gym.Env, ABC):
 
             raise NotImplementedError("Action space type not supported")
 
-        print(self.action_space)
         try:
             dtype = obs_space['type']
         except:
@@ -198,15 +188,29 @@ class BaseEnvironment(gym.Env, ABC):
         else:
             surrogate = state[-self.surrogate_length:]
         self.surrogate_list.append(surrogate)
-        arousal = 0
+
         if self.arousal_episode_length % 15 == 0:  # Read the surrogate vector on the 15th tick
-            arousal = self.generate_arousal()
+            self.generate_arousal()
             self.arousal_episode_length = 0
             self.surrogate_list.clear()
 
-        self.save_digit, self.vector_digit, self.cell_name_digit = 0, 0, 0
+        final_reward = 0
+
+        if self.period_ra and (len(self.episode_arousal_trace) > 0):
+            print("assigning reward asynchronously!")
+            final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
+
+        elif not self.period_ra and self.score_change:
+            print("assigning reward synchronously based on score change!")
+            final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
+
+
+        self.cumulative_rl += final_reward
+        self.best_rl = np.max([self.best_rl, final_reward])
+
         self.current_score = env_score
-        return state, env_score, arousal, done, info
+
+        return state, final_reward, done, info
 
     def handle_level_end(self):
         """
@@ -241,10 +245,9 @@ class BaseEnvironment(gym.Env, ABC):
                                    no_graphics=not graphics,
                                    additional_args=args)
         except:
-            print("Checking next ID!")
-            raise
+            print("Checking next ID!") 
+            # Raise # the error if you get a stack overflow
             return self.load_environment(identifier + 1, graphics, args)
-
         return env
 
     @staticmethod

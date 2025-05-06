@@ -8,6 +8,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from affectively.environments.pirates_cv import PiratesEnvironmentCV
 from affectively.environments.heist_cv import HeistEnvironmentCV
 from affectively.environments.heist_game_obs import HeistEnvironmentGameObs
+from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 
 if __name__ == "__main__":
     run = 1

@@ -1,5 +1,5 @@
 import numpy as np
-from affectively_environments.envs.solid import SolidEnvironment
+from affectively.environments.solid import SolidEnvironment
 
 
 class SolidEnvironmentGameObs(SolidEnvironment):
@@ -12,10 +12,7 @@ class SolidEnvironmentGameObs(SolidEnvironment):
                          path=path, weight=weight, logging=logging, frame_buffer=False, log_prefix=log_prefix)
 
     def construct_state(self, state):
-        if self.frameBuffer:
-            game_obs = state[1]
-        else:
-            game_obs = state[0]
+        game_obs = state[0]
         if self.discretize:
             game_obs = self.discretize_observations(game_obs)
         self.game_obs = self.tuple_to_vector(game_obs)
