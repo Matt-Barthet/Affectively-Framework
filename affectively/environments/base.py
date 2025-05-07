@@ -179,10 +179,11 @@ class BaseEnvironment(gym.Env, ABC):
             print("Caught step error, trying again to bypass double agent error on reset...")
             state, env_score, done, info = self.env.step(list(action))
 
-        if len(state) > 1:
-            surrogate = state[1][-self.surrogate_length:]
-        else:
-            surrogate = state[0][-self.surrogate_length:]
+        for modality in state:
+            if len(np.asarray(modality).shape) == 1:
+                surrogate = modality[-self.surrogate_length:]
+                break
+
         self.surrogate_list.append(surrogate)
 
         if self.arousal_episode_length % 15 == 0:  # Read the surrogate vector on the 15th tick

@@ -7,19 +7,19 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 
 from affectively.environments.pirates_cv import PiratesEnvironmentCV
 from affectively.environments.heist_cv import HeistEnvironmentCV
+from affectively.environments.solid_cv import SolidEnvironmentCV
 from affectively.environments.heist_game_obs import HeistEnvironmentGameObs
 from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
-from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 
 if __name__ == "__main__":
     run = 1
     weight = 0
 
-    env = PiratesEnvironmentGameObs(
+    env = HeistEnvironmentGameObs(
         id_number=run,
         weight=weight,
-        graphics=False,
+        graphics=True,
         logging=True,
         log_prefix="LSTM/",
         cluster=0
