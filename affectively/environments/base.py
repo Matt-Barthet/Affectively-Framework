@@ -74,7 +74,7 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'],
                                                 dtype=dtype)
-        self.model = KNNSurrogateModel(5, game)
+        self.model = KNNSurrogateModel(5, game, cluster=cluster)
         self.scaler = self.model.scaler
 
         self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
@@ -143,21 +143,17 @@ class BaseEnvironment(gym.Env, ABC):
     def generate_arousal(self):
         arousal = 0
         stacked_surrogates = np.asarray(self.surrogate_list)
-        print(stacked_surrogates.shape)
         stacked_surrogates = np.stack(stacked_surrogates, axis=-1) # stack the surrogates vertically
-
-        print(stacked_surrogates.shape)
         self.current_surrogate = np.mean(stacked_surrogates, axis=1) # calculate the mean of each feature across the stack
 
         if self.current_surrogate.size != 0:
-            print(self.current_surrogate.shape)
             scaled_obs = np.array(self.scaler.transform(self.current_surrogate.reshape(1, -1))[0])
             if self.previous_surrogate.size == 0:
                 self.previous_surrogate = np.zeros(len(self.current_surrogate))
             previous_scaler = np.array(self.scaler.transform(self.previous_surrogate.reshape(1, -1))[0])
             unclipped_tensor = np.array(list(previous_scaler) + list(scaled_obs))
-            # if np.min(scaled_obs) < 0 or np.max(scaled_obs) > 1:
-                # print(f"Values outside of range: Max={np.max(scaled_obs)}@{np.where(scaled_obs > 1)[0]}, Min={np.min(scaled_obs)}@{np.where(scaled_obs < 0)[0]}")
+            if np.min(scaled_obs) < 0 or np.max(scaled_obs) > 1:
+                print(f"Values outside of range: Max={np.round(np.max(scaled_obs), 3)}@{self.model.columns[np.argmax(scaled_obs)]}, Min={np.round(np.min(scaled_obs), 3)}@{self.model.columns[np.argmin(scaled_obs)]}")
             tensor = torch.Tensor(np.clip(unclipped_tensor, 0, 1))
             tensor= torch.nan_to_num(tensor, nan=0)
             self.previous_surrogate = previous_scaler
@@ -178,15 +174,15 @@ class BaseEnvironment(gym.Env, ABC):
         self.previous_score = self.current_score
                 
         try:
-            state, env_score, done, info = self.env.step(list(action)) # + [self.vector_digit, self.save_digit, self.cell_name_digit])
+            state, env_score, done, info = self.env.step(list(action)) 
         except:
             print("Caught step error, trying again to bypass double agent error on reset...")
             state, env_score, done, info = self.env.step(list(action))
 
-        if len(state) <= 3:
+        if len(state) > 1:
             surrogate = state[1][-self.surrogate_length:]
         else:
-            surrogate = state[-self.surrogate_length:]
+            surrogate = state[0][-self.surrogate_length:]
         self.surrogate_list.append(surrogate)
 
         if self.arousal_episode_length % 15 == 0:  # Read the surrogate vector on the 15th tick
@@ -246,7 +242,7 @@ class BaseEnvironment(gym.Env, ABC):
                                    additional_args=args)
         except:
             print("Checking next ID!") 
-            # Raise # the error if you get a stack overflow
+            raise # the error if you get a stack overflow
             return self.load_environment(identifier + 1, graphics, args)
         return env
 

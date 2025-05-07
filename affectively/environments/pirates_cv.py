@@ -1,11 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from affectively.environments.pirates import PiratesEnvironment
 
 
 class PiratesEnvironmentCV(PiratesEnvironment):
 
-    def __init__(self, id_number, graphics, weight, logging=True, grayscale=True, log_prefix=""):
+    def __init__(self, id_number, graphics, weight, logging=True, grayscale=True, log_prefix="", cluster=0):
         self.width, self.height, self.stackNo = 128, 96, 1
         self.grayscale = grayscale
         if grayscale:
@@ -15,7 +14,7 @@ class PiratesEnvironmentCV(PiratesEnvironment):
         args = ['-bufferWidth', f"{self.width}", "-bufferHeight", f"{self.height}", "-useGrayscale", f"{grayscale}"]
         super().__init__(id_number=id_number, graphics=graphics,
                          obs={"low": 0, "high": 255, "shape": shape, "type": np.uint8},
-                         weight=weight, frame_buffer=True, logging=logging, args=args, log_prefix=log_prefix)
+                         weight=weight, frame_buffer=True, logging=logging, args=args, log_prefix=log_prefix, cluster=cluster)
         self.frame_buffer = []
 
     def construct_state(self, state) -> np.ndarray:
@@ -30,6 +29,4 @@ class PiratesEnvironmentCV(PiratesEnvironment):
             stacked_frames = np.stack(self.frame_buffer, axis=-1)
         else:
             stacked_frames = visual_buffer
-            # plt.imshow(visual_buffer)
-            # plt.show()
         return stacked_frames

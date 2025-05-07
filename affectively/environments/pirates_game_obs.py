@@ -3,15 +3,15 @@ from affectively.environments.pirates import PiratesEnvironment
 
 class PiratesEnvironmentGameObs(PiratesEnvironment):
 
-    def __init__(self, id_number, graphics, weight, logging=True, log_prefix="", discretize=False):
+    def __init__(self, id_number, graphics, weight, logging=True, log_prefix="", discretize=False, cluster=0):
 
         """ ---- Pirates! specific code ---- """
         self.gridWidth = 11
         self.gridHeight = 11
         self.elementSize = 1
         super().__init__(id_number=id_number, graphics=graphics, 
-                         obs={"low": -np.inf, "high": np.inf, "shape": (383,), "type": np.float32},
-                         weight=weight, logging=logging, log_prefix=log_prefix, frame_buffer=False)
+                         obs={"low": -np.inf, "high": np.inf, "shape": (381,), "type": np.float32},
+                         weight=weight, logging=logging, log_prefix=log_prefix, frame_buffer=False, cluster=cluster)
 
     def construct_state(self, state):
         grid = state[0]

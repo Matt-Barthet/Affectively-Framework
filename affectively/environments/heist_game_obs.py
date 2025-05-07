@@ -4,14 +4,13 @@ import numpy as np
 
 class HeistEnvironmentGameObs(HeistEnvironment):
 
-    def __init__(self, id_number, graphics, weight, logging=True, log_prefix="", discretize=False):
+    def __init__(self, id_number, graphics, weight, logging=True, log_prefix="", discretize=False, cluster=0):
         self.gridWidth = 9
         self.gridHeight = 9
         self.elementSize = 0.5
         super().__init__(id_number=id_number, graphics=graphics, 
-                         obs={"low": -np.inf, "high": np.inf, "shape": (951,), "type": np.float32},
-                         weight=weight, logging=logging, log_prefix=log_prefix, frame_buffer=False)
-
+                         obs={"low": -np.inf, "high": np.inf, "shape": (947,), "type": np.float32},
+                         weight=weight, logging=logging, log_prefix=log_prefix, frame_buffer=False, cluster=cluster)
 
     def construct_state(self, state):
         grid = np.asarray(state[0])

@@ -3,11 +3,11 @@ from affectively.environments.base import BaseEnvironment
 
 class PiratesEnvironment(BaseEnvironment):
 
-    def __init__(self, id_number, graphics, weight, obs, logging=True, log_prefix="", frame_buffer=False, args=None):
+    def __init__(self, id_number, graphics, weight, obs, logging=True, log_prefix="", frame_buffer=False, args=None, cluster=0):
         args = ["-frameBuffer", f"{frame_buffer}"] if args is None else args +  ["-frameBuffer", f"{frame_buffer}"]
         self.frameBuffer = frame_buffer
         super().__init__(id_number=id_number, game='platform', graphics=graphics, obs_space=obs, args=args,
-                         capture_fps=60, time_scale=5, weight=weight, logging=logging, log_prefix=log_prefix)
+                         capture_fps=60, time_scale=5, weight=weight, logging=logging, log_prefix=log_prefix, cluster=cluster)
 
     def reset_condition(self):
         if self.customSideChannel.levelEnd:
@@ -22,7 +22,7 @@ class PiratesEnvironment(BaseEnvironment):
         return state
 
     def step(self, action):
-        transformed_action = (action[0] - 1, action[1], 0, 0)
+        transformed_action = (action[0] - 1, action[1], 0,)
         state, reward, d, info = super().step(transformed_action)
         state = self.construct_state(state)
         self.reset_condition()

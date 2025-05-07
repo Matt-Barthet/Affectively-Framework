@@ -8,7 +8,7 @@ class HeistEnvironment(BaseEnvironment):
         args = ["-frameBuffer", f"{frame_buffer}"] if args is None else args +  ["-frameBuffer", f"{frame_buffer}"]
         self.frameBuffer = frame_buffer
         super().__init__(id_number=id_number, game='fps', graphics=graphics, obs_space=obs, args=args,
-                         capture_fps=15, time_scale=3, weight=weight, logging=logging, log_prefix=log_prefix)
+                         capture_fps=10, time_scale=1, weight=weight, logging=logging, log_prefix=log_prefix, cluster=cluster)
 
     def reset_condition(self):
         if self.episode_length > 600:
