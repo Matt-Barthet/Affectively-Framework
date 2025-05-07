@@ -4,6 +4,7 @@ from stable_baselines3.ppo import PPO
 from stable_baselines3.common.callbacks import ProgressBarCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
 
+import argparse
 
 from affectively.environments.pirates_cv import PiratesEnvironmentCV
 from affectively.environments.heist_cv import HeistEnvironmentCV
@@ -13,16 +14,25 @@ from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
 
 if __name__ == "__main__":
-    run = 1
-    weight = 0
+
+    parser = argparse.ArgumentParser(description="Train a PPO model for Solid Rally Rally Single Objective RL.")
+    parser.add_argument("--run", type=int, required=True, help="Run ID")
+    parser.add_argument("--weight", type=float, required=True, help="Weight value for SORL reward")
+    parser.add_argument("--game", required=True, help="Name of environment")
+    parser.add_argument("--target_arousal", type=float, required=True, help="Target Arousal")
+    parser.add_argument("--cluster", type=int, required=True, help="Cluster index for Arousal Persona")
+    parser.add_argument("--periodic_ra", type=int, required=True, help="Assign arousal rewards every 3 seconds, instead of synchronised with behavior.")
+    args = parser.parse_args()
 
     env = HeistEnvironmentGameObs(
-        id_number=run,
-        weight=weight,
-        graphics=True,
+        id_number=args.run,
+        weight=args.weight,
+        graphics=False,
         logging=True,
-        log_prefix="LSTM/",
-        cluster=0
+        log_prefix="PPO/",
+        cluster=args.cluster,
+        target_arousal=args.target_arousal,
+        period_ra=args.periodic_ra
     )
 
     env = DummyVecEnv([lambda: env])
@@ -41,7 +51,7 @@ if __name__ == "__main__":
     #     normalize_images=False,
     # )
 
-    label = 'optimize' if weight == 0 else 'arousal' if weight == 1 else 'blended'
+    label = 'optimize' if args.weight == 0 else 'arousal' if args.weight == 1 else 'blended'
     callbacks = ProgressBarCallback()
 
     model = PPO(
@@ -50,15 +60,5 @@ if __name__ == "__main__":
         env=env,
     )
 
-    # model = RecurrentPPO(
-    #     policy="CnnLstmPolicy",
-    #     policy_kwargs=policy_kwargs,
-    #     env=env,
-    #     tensorboard_log=".results/tensorboard/LSTM/",
-    #     device='cuda',
-    #     n_steps=600,
-    #     clip_range=0.1,
-    #     learning_rate=1e-4,
-    # )
     model.learn(total_timesteps=10_000_000, callback=callbacks)
     model.save(f"./agents/PPO/cnn_ppo_solid_{label}_{run}_extended")
