@@ -27,7 +27,7 @@ if __name__ == "__main__":
     env = HeistEnvironmentGameObs(
         id_number=args.run,
         weight=args.weight,
-        graphics=False,
+        graphics=True,
         logging=True,
         log_prefix="PPO/",
         cluster=args.cluster,
@@ -56,9 +56,9 @@ if __name__ == "__main__":
 
     model = PPO(
         policy="MlpPolicy",
-        device='cuda',
+        device='cpu',
         env=env,
     )
 
     model.learn(total_timesteps=10_000_000, callback=callbacks)
-    model.save(f"./agents/PPO/cnn_ppo_solid_{label}_{run}_extended")
+    model.save(f"./agents/PPO/cnn_ppo_solid_{label}_{args.run}_extended")

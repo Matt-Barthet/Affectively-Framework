@@ -6,7 +6,7 @@ import time
 import platform
 
 # Define parameters
-runs = [1,2,3,4,5]  # Example run IDs
+runs = [1,2,3]  # Example run IDs
 weights = [0]  # Example weight values
 clusters = [0]  # Cluster indices
 targetArousals = [1]
@@ -45,4 +45,4 @@ for run, weight, cluster, targetArousal in itertools.product(runs, weights, clus
         subprocess.Popen(
             ["osascript", "-e", f'tell app "Terminal" to do script "{command}"']
         )
-    time.sleep(1)
+    time.sleep(10)
