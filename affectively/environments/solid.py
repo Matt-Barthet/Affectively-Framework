@@ -5,11 +5,12 @@ from affectively.environments.base import BaseEnvironment
 
 class SolidEnvironment(BaseEnvironment):
 
-    def __init__(self, id_number, graphics, weight, obs, logging=True, frame_buffer=False, args=None, log_prefix="", cluster=0):
+    def __init__(self, id_number, graphics, weight, obs, logging=True, frame_buffer=False, args=None, log_prefix="", cluster=0, target_arousal=1, period_ra=False):
         args = ["-frameBuffer", f"{frame_buffer}"] if args is None else args +  ["-frameBuffer", f"{frame_buffer}"]
         self.frameBuffer = frame_buffer
         super().__init__(id_number=id_number, game='Solid', graphics=graphics, obs_space=obs, args=args,
-                         capture_fps=5, time_scale=1, weight=weight, logging=logging, log_prefix=log_prefix, cluster=cluster)
+                         capture_fps=5, time_scale=1, weight=weight, logging=logging, log_prefix=log_prefix, cluster=cluster,
+                         target_arousal=target_arousal, period_ra=period_ra)
 
     def sample_action(self):
         return self.action_space.sample()
@@ -38,7 +39,7 @@ class SolidEnvironment(BaseEnvironment):
         return state
 
     def step(self, action):
-        transformed_action = np.asarray([tuple([action[0] - 1, action[1] - 1, 0])])
+        transformed_action = np.asarray([tuple([action[0], action[1], 0])])
         state, reward, d, info = super().step(transformed_action)
         state = self.construct_state(state)
         self.reset_condition()

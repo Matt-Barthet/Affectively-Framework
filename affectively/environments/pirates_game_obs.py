@@ -3,7 +3,7 @@ from affectively.environments.pirates import PiratesEnvironment
 
 class PiratesEnvironmentGameObs(PiratesEnvironment):
 
-    def __init__(self, id_number, graphics, weight, logging=True, log_prefix="", discretize=False, cluster=0):
+    def __init__(self, id_number, graphics, weight, logging=True, log_prefix="", discretize=False, cluster=0, period_ra=False, target_arousal=1):
 
         """ ---- Pirates! specific code ---- """
         self.gridWidth = 11
@@ -11,7 +11,8 @@ class PiratesEnvironmentGameObs(PiratesEnvironment):
         self.elementSize = 1
         super().__init__(id_number=id_number, graphics=graphics, 
                          obs={"low": -np.inf, "high": np.inf, "shape": (381,), "type": np.float32},
-                         weight=weight, logging=logging, log_prefix=log_prefix, frame_buffer=False, cluster=cluster)
+                         weight=weight, logging=logging, log_prefix=log_prefix, frame_buffer=False, cluster=cluster,
+                         period_ra=period_ra, target_arousal=target_arousal)
 
     def construct_state(self, state):
         grid = state[0]

@@ -24,18 +24,30 @@ if __name__ == "__main__":
     parser.add_argument("--periodic_ra", type=int, required=True, help="Assign arousal rewards every 3 seconds, instead of synchronised with behavior.")
     args = parser.parse_args()
 
-    env = HeistEnvironmentGameObs(
-        id_number=args.run,
-        weight=args.weight,
-        graphics=True,
-        logging=True,
-        log_prefix="PPO/",
-        cluster=args.cluster,
-        target_arousal=args.target_arousal,
-        period_ra=args.periodic_ra
-    )
-
-    env = DummyVecEnv([lambda: env])
+    if args.game == "fps":
+        env = HeistEnvironmentGameObs(
+            id_number=args.run,
+            weight=args.weight,
+            graphics=True,
+            logging=True,
+            log_prefix="PPO/",
+            cluster=args.cluster,
+            target_arousal=args.target_arousal,
+            period_ra=args.periodic_ra
+        )
+    elif args.game == "solid":
+        env = SolidEnvironmentGameObs(
+            id_number=args.run,
+            weight=args.weight,
+            graphics=True,
+            logging=True,
+            log_prefix="PPO/",
+            cluster=args.cluster,
+            target_arousal=args.target_arousal,
+            period_ra=args.periodic_ra
+        )
+        
+        env = DummyVecEnv([lambda: env])
     # env = VecNormalize(env, norm_obs=True, norm_reward=True)
     # env = VecTransposeImage(env)  # Fix channel order
 

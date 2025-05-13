@@ -4,12 +4,13 @@ from affectively.environments.solid import SolidEnvironment
 
 class SolidEnvironmentGameObs(SolidEnvironment):
 
-    def __init__(self, id_number, graphics, weight, logging=True, log_prefix="", discretize=False, cluster=0):
+    def __init__(self, id_number, graphics, weight, logging=True, log_prefix="", discretize=False, cluster=0, target_arousal=1, period_ra=False):
         self.discretize = discretize
         self.estimated_position = [0, 0, 0]
         super().__init__(id_number=id_number, graphics=graphics,
                          obs={"low": -np.inf, "high": np.inf, "shape": (81,), "type": np.float32},
-                        weight=weight, logging=logging, frame_buffer=False, log_prefix=log_prefix, cluster=cluster)
+                        weight=weight, logging=logging, frame_buffer=False, log_prefix=log_prefix, cluster=cluster, 
+                        target_arousal=target_arousal, period_ra=period_ra)
 
     def construct_state(self, state):
         game_obs = state[0]
