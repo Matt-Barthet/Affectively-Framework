@@ -6,7 +6,7 @@ import time
 import platform
 
 # Define parameters
-runs = [1,2,3]  # Example run IDs
+runs = [2]  # Example run IDs
 weights = [0]  # Example weight values
 clusters = [0]  # Cluster indices
 targetArousals = [1]
@@ -17,12 +17,13 @@ cwd = os.getcwd()
 script_path = "./Main.py"
 conda_env = "affect-envs"
 system = platform.system()
+cv = 0
 
 # Iterate over all combinations of parameters
 for run, weight, cluster, targetArousal in itertools.product(runs, weights, clusters, targetArousals):
     command = (
         f"cd {cwd} && conda activate {conda_env} && "
-        f"python {script_path} --run={run} --weight={weight} --cluster={cluster} --target_arousal={targetArousal} --game={game} --periodic_ra={period_ra}"
+        f"python {script_path} --run={run} --weight={weight} --cluster={cluster} --target_arousal={targetArousal} --game={game} --periodic_ra={period_ra} --cv={cv}"
     )
 
     if system == "Linux":

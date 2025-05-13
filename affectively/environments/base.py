@@ -152,8 +152,11 @@ class BaseEnvironment(gym.Env, ABC):
                 self.previous_surrogate = np.zeros(len(self.current_surrogate))
             previous_scaler = np.array(self.scaler.transform(self.previous_surrogate.reshape(1, -1))[0])
             unclipped_tensor = np.array(list(previous_scaler) + list(scaled_obs))
+            
             if np.min(scaled_obs) < 0 or np.max(scaled_obs) > 1:
-                print(f"Values outside of range: Max={np.round(np.max(scaled_obs), 3)}@{self.model.columns[np.argmax(scaled_obs)]}, Min={np.round(np.min(scaled_obs), 3)}@{self.model.columns[np.argmin(scaled_obs)]}")
+                print(f"Values outside of range: Max={np.max(scaled_obs):.3f}@{self.model.columns[np.argmax(scaled_obs)]}(other={np.where(scaled_obs > 1)[0]})", end=", ")
+                print(f"Min={np.min(scaled_obs):.3f}@{self.model.columns[np.argmin(scaled_obs)]}(other={np.where(scaled_obs < 0)[0]})")
+            
             tensor = torch.Tensor(np.clip(unclipped_tensor, 0, 1))
             tensor= torch.nan_to_num(tensor, nan=0)
             self.previous_surrogate = previous_scaler
