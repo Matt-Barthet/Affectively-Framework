@@ -11,7 +11,7 @@ weights = [0]  # Example weight values
 clusters = [0]  # Cluster indices
 targetArousals = [1]
 period_ra = 0
-game = "solid"
+game = "platform"
 
 cwd = os.getcwd()
 script_path = "./Main.py"

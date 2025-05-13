@@ -23,11 +23,6 @@ class SolidEnvironment(BaseEnvironment):
         action[1] = random.choice(pedal_distribution)
         return action
 
-    def calculate_reward(self):
-        self.current_reward = np.clip((self.current_score - self.previous_score), 0, 1)
-        self.cumulative_reward += self.current_reward
-        self.best_cumulative_reward = self.current_reward if self.current_reward > self.best_cumulative_reward else self.best_cumulative_reward
-
     def reset_condition(self):
         if self.episode_length > 600:
             self.episode_length = 0

@@ -41,7 +41,7 @@ if __name__ == "__main__":
             env = SolidEnvironmentGameObs(
                 id_number=args.run,
                 weight=args.weight,
-                graphics=False,
+                graphics=True,
                 logging=True,
                 log_prefix="PPO/",
                 cluster=args.cluster,
