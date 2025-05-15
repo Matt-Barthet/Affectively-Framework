@@ -23,6 +23,8 @@ if __name__ == "__main__":
     parser.add_argument("--cluster", type=int, required=True, help="Cluster index for Arousal Persona")
     parser.add_argument("--periodic_ra", type=int, required=True, help="Assign arousal rewards every 3 seconds, instead of synchronised with behavior.")
     parser.add_argument("--cv", required=True, type=int, default=0)
+    parser.add_argument("--headless", required=True, default=0, type=int)
+    parser.add_argument("--logdir", required=True, default="/")
     args = parser.parse_args()
 
     if args.cv == 0:
@@ -30,9 +32,9 @@ if __name__ == "__main__":
             env = HeistEnvironmentGameObs(
                 id_number=args.run,
                 weight=args.weight,
-                graphics=True,
+                graphics=args.headless==0,
                 logging=True,
-                log_prefix="PPO/",
+                log_prefix=args.logdir,
                 cluster=args.cluster,
                 target_arousal=args.target_arousal,
                 period_ra=args.periodic_ra
@@ -43,7 +45,7 @@ if __name__ == "__main__":
                 weight=args.weight,
                 graphics=True,
                 logging=True,
-                log_prefix="PPO/",
+                log_prefix=args.logdir,
                 cluster=args.cluster,
                 target_arousal=args.target_arousal,
                 period_ra=args.periodic_ra
@@ -54,24 +56,19 @@ if __name__ == "__main__":
                 weight=args.weight,
                 graphics=True,
                 logging=True,
-                log_prefix="PPO/",
+                log_prefix=args.logdir,
                 cluster=args.cluster,
                 target_arousal=args.target_arousal,
                 period_ra=args.periodic_ra
             )
-        model = PPO(
-            policy="MlpPolicy",
-            device='cpu',
-            env=env,
-        )
-    elif args.cv == 1:
-        # Note that CV builds cannot run in headless mode - the unity renderer must be switched on to produce frames.
+        model = PPO(policy="MlpPolicy", device='cpu', env=env) # Define model that trains using game states here.
+    elif args.cv == 1:  # CV builds cannot run in headless mode - the unity renderer must be switched on to produce frames.
         if args.game == "fps":
             env = HeistEnvironmentCV(
                 id_number=args.run,
                 weight=args.weight,
                 logging=True,
-                log_prefix="PPO/",
+                log_prefix=args.logdir,
                 cluster=args.cluster,
                 target_arousal=args.target_arousal,
                 period_ra=args.periodic_ra
@@ -81,7 +78,7 @@ if __name__ == "__main__":
                 id_number=args.run,
                 weight=args.weight,
                 logging=True,
-                log_prefix="PPO/",
+                log_prefix=args.logdir,
                 cluster=args.cluster,
                 target_arousal=args.target_arousal,
                 period_ra=args.periodic_ra
@@ -91,12 +88,13 @@ if __name__ == "__main__":
                 id_number=args.run,
                 weight=args.weight,
                 logging=True,
-                log_prefix="PPO/",
+                log_prefix=args.logdir,
                 cluster=args.cluster,
                 target_arousal=args.target_arousal,
                 period_ra=args.periodic_ra
             )
-        model = PPO(policy="CnnPolicy", env = env)
+
+        model = PPO(policy="CnnPolicy", env = env) # define model for training using pixels here
 
     # env = VecNormalize(env, norm_obs=True, norm_reward=True)
     # env = VecTransposeImage(env)  # Fix channel order
@@ -117,4 +115,4 @@ if __name__ == "__main__":
     callbacks = ProgressBarCallback()
 
     model.learn(total_timesteps=5_000_000, callback=callbacks)
-    model.save(f"./agents/PPO/cnn_ppo_solid_{label}_{args.run}_extended")
+    model.save(f"./Agents/PPO/ppo_{args.game.lower()}_{label}_{args.run}")
