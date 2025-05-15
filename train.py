@@ -118,4 +118,4 @@ if __name__ == "__main__":
     callbacks = ProgressBarCallback()
 
     model.learn(total_timesteps=5_000_000, callback=callbacks)
-    model.save(f"{experiment_name}.zip")
+    model.save(f"{experiment_name}.zip") # TODO: make sure custom agents implement this function well.
