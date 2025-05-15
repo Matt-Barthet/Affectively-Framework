@@ -5,7 +5,7 @@ from affectively.environments.heist import HeistEnvironment
 
 class HeistEnvironmentCV(HeistEnvironment):
 
-    def __init__(self, id_number, weight, logging=True, grayscale=True, log_prefix="", cluster=0, target_arousal=0, period_ra=False):
+    def __init__(self, id_number, weight, grayscale, cluster, target_arousal, period_ra):
         self.width, self.height, self.stackNo = 128, 96, 1
         self.grayscale = grayscale
         if grayscale:
@@ -16,7 +16,7 @@ class HeistEnvironmentCV(HeistEnvironment):
         args = ['-bufferWidth', f"{self.width}", "-bufferHeight", f"{self.height}", "-useGrayscale", f"{grayscale}"]
         super().__init__(id_number=id_number, graphics=True,
                          obs={"low": 0, "high": 255, "shape": shape, "type": np.uint8},
-                         weight=weight, frame_buffer=True, logging=logging, args=args, log_prefix=log_prefix, cluster=cluster, period_ra=period_ra, targetArousal=target_arousal)
+                         weight=weight, frame_buffer=True, args=args, cluster=cluster, period_ra=period_ra, targetArousal=target_arousal)
         self.frame_buffer = []
 
     def construct_state(self, state) -> np.ndarray:

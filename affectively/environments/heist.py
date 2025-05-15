@@ -4,11 +4,11 @@ import numpy as np
 
 class HeistEnvironment(BaseEnvironment):
 
-    def __init__(self, id_number, graphics, weight, obs, logging=True, log_prefix="", targetArousal=0, frame_buffer=False, cluster=0, period_ra=False, args=None):
+    def __init__(self, id_number, graphics, weight, obs, targetArousal, frame_buffer, cluster, period_ra, args=None):
         args = ["-frameBuffer", f"{frame_buffer}"] if args is None else args +  ["-frameBuffer", f"{frame_buffer}"]
         self.frameBuffer = frame_buffer
         super().__init__(id_number=id_number, game='fps', graphics=graphics, obs_space=obs, args=args,
-                         capture_fps=10, time_scale=1, weight=weight, logging=logging, log_prefix=log_prefix, cluster=cluster, target_arousal=targetArousal, period_ra=period_ra)
+                         capture_fps=10, time_scale=1, weight=weight, cluster=cluster, target_arousal=targetArousal, period_ra=period_ra)
 
     def reset_condition(self):
         if self.episode_length > 600:

@@ -6,15 +6,22 @@ import time
 import platform
 
 # Define parameters
-runs = [2]  
+runs = [1, 2, 3, 4, 5]  
 weights = [0]  
 clusters = [0] 
 targetArousals = [1]
 period_ra = 0
-game = "platform"
+headless = 1
+output_dir = "./results/tensorboard/"
+grayscale = 0
+discretize = 0
+
+game = "solid"
+algorithm = "PPO"
+policy="MlpPolicy"
 
 cwd = os.getcwd()
-script_path = "./Main.py"
+script_path = "./train.py"
 conda_env = "affect-envs"
 system = platform.system()
 cv = 0
@@ -22,7 +29,7 @@ cv = 0
 for run, weight, cluster, targetArousal in itertools.product(runs, weights, clusters, targetArousals):
     command = (
         f"cd {cwd} && conda activate {conda_env} && "
-        f"python {script_path} --run={run} --weight={weight} --cluster={cluster} --target_arousal={targetArousal} --game={game} --periodic_ra={period_ra} --cv={cv}"
+        f"python {script_path} --run={run} --weight={weight} --cluster={cluster} --target_arousal={targetArousal} --game={game} --periodic_ra={period_ra} --cv={cv} --headless={headless} --discretize={discretize if cv == 0 else 0} --grayscale={grayscale if cv == 1 else 0} --logdir={output_dir} --algorithm={algorithm} --policy={policy}"
     )
 
     if system == "Linux":
@@ -35,9 +42,12 @@ for run, weight, cluster, targetArousal in itertools.product(runs, weights, clus
             "bash", "-c", f"source ~/miniconda3/bin/activate && {command}; exec bash"
         ])
     elif system == "Windows":
+        cwd = os.getcwd()
+        drive, path = os.path.splitdrive(cwd)
+
         subprocess.Popen([
             "wt", "new-tab", "cmd.exe", "/K",
-            f'call {command}'
+            f"{drive} && cd {path} && call {command}"
         ])
     elif system == "Darwin":  # macOS
         subprocess.Popen(

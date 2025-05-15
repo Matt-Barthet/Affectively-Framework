@@ -5,11 +5,11 @@ from affectively.environments.base import BaseEnvironment
 
 class SolidEnvironment(BaseEnvironment):
 
-    def __init__(self, id_number, graphics, weight, obs, logging=True, frame_buffer=False, args=None, log_prefix="", cluster=0, target_arousal=1, period_ra=False):
+    def __init__(self, id_number, graphics, weight, obs, frame_buffer, cluster, target_arousal, period_ra, args=None, ):
         args = ["-frameBuffer", f"{frame_buffer}"] if args is None else args +  ["-frameBuffer", f"{frame_buffer}"]
         self.frameBuffer = frame_buffer
         super().__init__(id_number=id_number, game='Solid', graphics=graphics, obs_space=obs, args=args,
-                         capture_fps=5, time_scale=1, weight=weight, logging=logging, log_prefix=log_prefix, cluster=cluster,
+                         capture_fps=5, time_scale=1, weight=weight, cluster=cluster,
                          target_arousal=target_arousal, period_ra=period_ra)
 
     def sample_action(self):

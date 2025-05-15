@@ -10,8 +10,6 @@ from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.side_channel import OutgoingMessage
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
 from scipy import stats
-
-from affectively.utils.logging import TensorBoardCallback
 from affectively.utils.sidechannels import AffectivelySideChannel
 from affectively.utils.surrogatemodel import KNNSurrogateModel
 
@@ -33,7 +31,7 @@ class BaseEnvironment(gym.Env, ABC):
 	"""
 
     def __init__(self, id_number, graphics, obs_space, weight, game, capture_fps=5, time_scale=1, args=None,
-                 logging=True, log_prefix="", target_arousal=1, cluster=0, period_ra=False):
+                 target_arousal=1, cluster=0, period_ra=False):
 
         super(BaseEnvironment, self).__init__()
         if args is None:
@@ -105,7 +103,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.episode_length, self.arousal_episode_length = 0, 0
         self.target_arousal = target_arousal
         self.surrogate_length = self.model.surrogate_length
-        self.callback = TensorBoardCallback(f'../../tensorboard/{log_prefix}ppo-{cluster}-{weight}λ-target{self.target_arousal}-run{id_number}', self) if logging else None
+        self.callback = None
         self.create_and_send_message("[Save States]:Seed")
 
     def reset(self, **kwargs):
