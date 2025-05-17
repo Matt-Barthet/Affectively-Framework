@@ -1,8 +1,6 @@
-import torch
 from sb3_contrib import RecurrentPPO
 from stable_baselines3.ppo import PPO
 from stable_baselines3.common.callbacks import ProgressBarCallback
-from stable_baselines3.common.vec_env import DummyVecEnv
 
 import argparse
 
@@ -29,8 +27,18 @@ if __name__ == "__main__":
     parser.add_argument("--grayscale", required=True, type=int, help="0 for RGB, 1 for grayscale")
     parser.add_argument("--discretize", required=True, type=int, help="0 for continuous, 1 for discretized observations")
     parser.add_argument("--algorithm", required=True, help="Algorithm to use for training")
-    parser.add_argument("--policy", required=True, help="Policy to use for training")
+    parser.add_argument("--policy", required=False, help="Policy to use for training for PPO agents")
     args = parser.parse_args()
+
+
+    if args.algorithm.lower() == "ppo":
+        if "lstm" in args.policy.lower():
+            model_class = RecurrentPPO
+        else:
+            model_class = PPO
+    elif args.algorithm.lower() == "dqn":
+
+
 
     if args.cv == 0:
         if args.game == "fps":
@@ -57,13 +65,13 @@ if __name__ == "__main__":
             env = PiratesEnvironmentGameObs(
                 id_number=args.run,
                 weight=args.weight,
-                graphics=args.headless==0,
+                graphics=True, # Pirates is bugged in headless, prevent it manually for now
                 cluster=args.cluster,
                 target_arousal=args.target_arousal,
                 period_ra=args.periodic_ra,
                 discretize=args.discretize
             )
-        model = PPO(policy=args.policy, device='cpu', env=env) # Define model that trains using game states here.
+        model = model_class(policy=args.policy, device='cpu', env=env) # Define model that trains using game states here.
     elif args.cv == 1:  # CV builds cannot run in headless mode - the unity renderer must be switched on to produce frames.
         if args.game == "fps":
             env = HeistEnvironmentCV(
@@ -93,7 +101,7 @@ if __name__ == "__main__":
                 grayscale=args.grayscale
             )
 
-        model = PPO(policy=args.policy, env = env) # define model for training using pixels here
+        model = model_class(policy=args.policy, env = env) # define model for training using pixels here
 
 
     experiment_name = f'{args.logdir}/{args.game}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{args.run}'
