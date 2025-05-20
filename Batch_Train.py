@@ -6,17 +6,17 @@ import time
 import platform
 
 # Define parameters
-runs = [1, 2, 3, 4, 5]  
+runs = [1]  
 weights = [0]  
 clusters = [0] 
 targetArousals = [1]
 period_ra = 0
-headless = 1
+headless = 0
 output_dir = "./results/tensorboard/"
 grayscale = 0
 discretize = 0
 
-game = "solid"
+game = "fps"
 algorithm = "PPO"
 policy="MlpPolicy"
 

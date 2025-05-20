@@ -144,6 +144,8 @@ class BaseEnvironment(gym.Env, ABC):
         stacked_surrogates = np.stack(stacked_surrogates, axis=-1) # stack the surrogates vertically
         self.current_surrogate = np.mean(stacked_surrogates, axis=1) # calculate the mean of each feature across the stack
 
+        print(list(self.current_surrogate))
+
         if self.current_surrogate.size != 0:
             scaled_obs = np.array(self.scaler.transform(self.current_surrogate.reshape(1, -1))[0])
             if self.previous_surrogate.size == 0:
@@ -184,7 +186,7 @@ class BaseEnvironment(gym.Env, ABC):
             if len(np.asarray(modality).shape) == 1:
                 surrogate = modality[-self.surrogate_length:]
                 break
-
+        
         self.surrogate_list.append(surrogate)
 
         if self.arousal_episode_length % 15 == 0:  # Read the surrogate vector on the 15th tick

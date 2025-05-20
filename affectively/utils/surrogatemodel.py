@@ -40,7 +40,7 @@ class KNNSurrogateModel:
             weighted_sum = np.sum(weights * k_labels)
             total_weights = np.sum(weights)
             predicted_class = weighted_sum / total_weights
-        # print(k_labels, predicted_class)
+        print(k_labels, k_indices, predicted_class)
         return predicted_class, k_indices
 
     def load_and_clean(self, filename: str, preference: bool):
@@ -64,11 +64,25 @@ class KNNSurrogateModel:
 
         self.columns = list(data.columns)
         print(f"-- After cleaning {len(data)}")
+        print(data)
         return data, arousals
 
     def load_data(self):
         fname = f'./affectively/datasets/{self.game}_3000ms.csv'
         fname_train = f'./affectively/datasets/{self.game}_3000ms_downsampled_pairs.csv'
+
+        # Load original narrow data (27 columns)
         unscaled_data, _ = self.load_and_clean(fname, False)
-        self.x_train, self.y_train = self.load_and_clean(fname_train, True)
         self.scaler.fit(unscaled_data.values)
+        base_columns = unscaled_data.columns.tolist()
+
+        # Load pairwise wider data (54 columns: _L and _R)
+        self.x_train, self.y_train = self.load_and_clean(fname_train, True)
+
+        # Apply scaling to _L and _R columns using fitted scaler
+        for suffix in ["_L", "_R"]:
+            cols = [col + suffix for col in base_columns]
+            subset = self.x_train[cols].values
+            scaled_subset = self.scaler.transform(subset)
+            self.x_train[cols] = scaled_subset
+

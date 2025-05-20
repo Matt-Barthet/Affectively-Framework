@@ -37,8 +37,7 @@ if __name__ == "__main__":
         else:
             model_class = PPO
     elif args.algorithm.lower() == "dqn":
-
-
+        pass #TODO: Fix DQN to work with new codebase.
 
     if args.cv == 0:
         if args.game == "fps":
@@ -105,25 +104,9 @@ if __name__ == "__main__":
 
 
     experiment_name = f'{args.logdir}/{args.game}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{args.run}'
-    env.callback =  TensorBoardCallback(experiment_name, env)
-
-    # env = VecNormalize(env, norm_obs=True, norm_reward=True)
-    # env = VecTransposeImage(env)  # Fix channel order
-
-    # policy_kwargs = dict(
-        # features_extractor_class=CustomResNetExtractor,
-        # features_extractor_kwargs=dict(features_dim=256),
-    #     net_arch = dict(pi=[256, 256], vf=[256, 256]),
-    #     activation_fn = torch.nn.ReLU,
-    #     lstm_hidden_size=256,
-    #     n_lstm_layers=1,
-    #     shared_lstm=True,
-    #     enable_critic_lstm=False,
-    #     normalize_images=False,
-    # )
-
+    env.callback =  TensorBoardCallback(experiment_name, env, model)
     label = 'optimize' if args.weight == 0 else 'arousal' if args.weight == 1 else 'blended'
     callbacks = ProgressBarCallback()
 
-    model.learn(total_timesteps=5_000_000, callback=callbacks)
-    model.save(f"{experiment_name}.zip") # TODO: make sure custom agents implement this function well.
+    model.learn(total_timesteps=10_000_000, callback=callbacks, reset_num_timesteps=False)
+    # TODO: make sure custom agents implement save function well.

@@ -19,13 +19,13 @@ def backup(log_dir):
 
 
 class TensorBoardCallback:
-    def __init__(self, log_dir, environment):
+    def __init__(self, log_dir, environment, model):
         self.log_dir = log_dir
         self.environment = environment
         backup(log_dir)
         self.writer = SummaryWriter(log_dir)
         self.episode = 0
-
+        self.model = model
         self.best_cumulative_rb = 0
         self.best_env_score = 0
         self.best_cumulative_ra = 0
@@ -69,6 +69,9 @@ class TensorBoardCallback:
         self.writer.add_scalar('overall_reward/cumulative_r_lambda', self.environment.cumulative_rl, self.episode)
         self.writer.add_scalar('overall_reward/best_cumulative_r_lambda', self.best_cumulative_rl, self.episode)
         self.writer.add_scalar('overall_reward/mean_r_lambda', mean_rl, self.episode)
+
+        if self.episode % 1000 == 0:
+            self.model.save(f"{self.log_dir}.zip")
 
         self.episode += 1
         self.writer.flush()
