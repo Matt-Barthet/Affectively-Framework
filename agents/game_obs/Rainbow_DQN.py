@@ -164,9 +164,13 @@ class PrioritizedReplayBuffer(object):
 
 
 class RainbowAgent:
-    def __init__(self, observation_size, action_sizes, atom_size=51, v_min=-10, v_max=10,
+
+    def __init__(self, env, policy=None, device=None, atom_size=51, v_min=-10, v_max=10,
                  n_step=3, gamma=0.99, lr=1e-4, alpha=0.6, beta_start=0.4, beta_frames=100000):
-        self.action_sizes = action_sizes
+        
+        self.env = env
+        self.action_sizes = env.action_space.nvec
+        self.observation_size = env.obs_size[0]
         self.atom_size = atom_size
         self.v_min = v_min
         self.v_max = v_max
@@ -176,8 +180,8 @@ class RainbowAgent:
         self.support = torch.linspace(self.v_min, self.v_max, self.atom_size).to(device)
         self.delta_z = (self.v_max - self.v_min) / (self.atom_size - 1)
 
-        self.policy_net = MultiDiscreteRainbowDQN(observation_size, action_sizes, atom_size, self.support).to(device)
-        self.target_net = MultiDiscreteRainbowDQN(observation_size, action_sizes, atom_size, self.support).to(device)
+        self.policy_net = MultiDiscreteRainbowDQN(self.observation_size, self.action_sizes, atom_size, self.support).to(device)
+        self.target_net = MultiDiscreteRainbowDQN(self.observation_size, self.action_sizes, atom_size, self.support).to(device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
@@ -277,7 +281,6 @@ class RainbowAgent:
             'optimizer_state_dict': self.optimizer.state_dict(),
             'frame_idx': self.frame_idx,
         }, os.path.join(save_path, 'agent_checkpoint.pth'))
-        # print(f"Agent saved to {save_path}")
 
     def load(self, load_path):
         checkpoint = torch.load(os.path.join(load_path, 'agent_checkpoint.pth'), map_location=device)
@@ -285,65 +288,37 @@ class RainbowAgent:
         self.target_net.load_state_dict(checkpoint['target_net_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.frame_idx = checkpoint.get('frame_idx', 0)
-        # print(f"Agent loaded from {load_path}")
 
+    def learn(self, total_timesteps, callback = None, batch_size=64, update_target_every=1000, learning_starts=1000, name="", reset_num_timesteps=False):
+        training_started = False
+        episode_rewards = []
 
-# In the training loop
-def train(agent, env, num_episodes=500, batch_size=64, update_target_every=1000, learning_starts=1000, name=""):
-    total_steps = 0
-    training_started = False
-    episode_rewards = []
-
-    # Wrap the episodes loop with tqdm
-    for episode in tqdm(range(num_episodes), desc="Training Episodes"):
-        state = env.reset()
+        state = self.env.reset()
         state = np.array(state, dtype=np.float32)
         episode_reward = 0
 
-        for _ in tqdm(range(600), desc=f"Episode {episode+1}/{num_episodes} Steps", leave=False):
-        # for _ in range(600):
-            action = agent.select_action(state)
-            next_state, reward, done, _ = env.step(action)
+        for timestep in tqdm(range(1, total_timesteps), desc="Training Timesteps"):
+
+            if timestep % 600 == 0:
+                state = self.env.reset()
+
+                state = np.array(state, dtype=np.float32)
+                episode_reward = 0
+                episode_rewards.append(episode_reward)
+
+            action = self.select_action(state)
+            next_state, reward, done, _ = self.env.step(action)
             next_state = np.array(next_state, dtype=np.float32)
-            agent.append_sample(state, action, reward, next_state, done)
+            self.append_sample(state, action, reward, next_state, done)
             state = next_state
             episode_reward += reward
-            total_steps += 1
 
-            if len(agent.memory) >= learning_starts:
+            if len(self.memory) >= learning_starts:
                 if not training_started:
                     training_started = True
-                _ = agent.compute_td_loss(batch_size)
+                _ = self.compute_td_loss(batch_size)
 
-            if total_steps % update_target_every == 0 and training_started:
-                agent.update_target()
+            if timestep % update_target_every == 0 and training_started:
+                self.update_target()
 
-        episode_rewards.append(episode_reward)
-
-        if episode % 100 == 0:
-            agent.save(f'./Results/DQN/DQN_{name}_Checkpoint')
-
-    print("Training completed.")
-
-# TODO: Fix this script to work with updated framework
-def main(run, weight, env_type):
-    np.set_printoptions(suppress=True, precision=6)
-
-    preference_task = True
-    classification_task = False
-
-    sideChannel = env.customSideChannel
-    env.targetSignal = np.ones
-
-    if weight == 0:
-        label = 'optimize'
-    elif weight == 0.5:
-        label = 'blended'
-    else:
-        label = 'arousal'
-
-    agent = RainbowResnetAgent(env.observation_space.shape[0], env.action_space.nvec.tolist())
-    num_episodes = 16638
-    batch_size = 64
-    update_target_every = 600
-    train(agent, env, num_episodes, batch_size, update_target_every, name=f"run{run}")
+        print("Training completed.")

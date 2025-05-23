@@ -11,6 +11,7 @@ from affectively.environments.heist_game_obs import HeistEnvironmentGameObs
 from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
 from affectively.utils.logging import TensorBoardCallback
+from agents.game_obs.Rainbow_DQN import RainbowAgent
 
 if __name__ == "__main__":
 
@@ -37,7 +38,8 @@ if __name__ == "__main__":
         else:
             model_class = PPO
     elif args.algorithm.lower() == "dqn":
-        pass #TODO: Fix DQN to work with new codebase.
+        if args.cv == 0:
+            model_class = RainbowAgent
 
     if args.cv == 0:
         if args.game == "fps":
@@ -110,3 +112,4 @@ if __name__ == "__main__":
 
     model.learn(total_timesteps=10_000_000, callback=callbacks, reset_num_timesteps=False)
     # TODO: make sure custom agents implement save function well.
+    model.save(f"{experiment_name}.zip")

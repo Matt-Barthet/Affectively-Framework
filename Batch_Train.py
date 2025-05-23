@@ -11,13 +11,13 @@ weights = [0]
 clusters = [0] 
 targetArousals = [1]
 period_ra = 0
-headless = 0
-output_dir = "./results/tensorboard/"
+headless = 1
+output_dir = "./results/"
 grayscale = 0
 discretize = 0
 
-game = "fps"
-algorithm = "PPO"
+game = "solid"
+algorithm = "DQN"
 policy="MlpPolicy"
 
 cwd = os.getcwd()

@@ -70,6 +70,7 @@ class BaseEnvironment(gym.Env, ABC):
         except:
             dtype = np.float32
 
+        self.obs_size = obs_space['shape']
         self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'],
                                                 dtype=dtype)
         self.model = KNNSurrogateModel(5, game, cluster=cluster)
