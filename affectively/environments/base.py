@@ -145,7 +145,7 @@ class BaseEnvironment(gym.Env, ABC):
         stacked_surrogates = np.stack(stacked_surrogates, axis=-1) # stack the surrogates vertically
         self.current_surrogate = np.mean(stacked_surrogates, axis=1) # calculate the mean of each feature across the stack
 
-        print(list(self.current_surrogate))
+        # print(list(self.current_surrogate))
 
         if self.current_surrogate.size != 0:
             scaled_obs = np.array(self.scaler.transform(self.current_surrogate.reshape(1, -1))[0])
@@ -155,8 +155,9 @@ class BaseEnvironment(gym.Env, ABC):
             unclipped_tensor = np.array(list(previous_scaler) + list(scaled_obs))
             
             if np.min(scaled_obs) < 0 or np.max(scaled_obs) > 1:
-                print(f"Values outside of range: Max={np.max(scaled_obs):.3f}@{self.model.columns[np.argmax(scaled_obs)]}(other={np.where(scaled_obs > 1)[0]})", end=", ")
-                print(f"Min={np.min(scaled_obs):.3f}@{self.model.columns[np.argmin(scaled_obs)]}(other={np.where(scaled_obs < 0)[0]})")
+                # print(f"Values outside of range: Max={np.max(scaled_obs):.3f}@{self.model.columns[np.argmax(scaled_obs)]}(other={np.where(scaled_obs > 1)[0]})", end=", ")
+                # print(f"Min={np.min(scaled_obs):.3f}@{self.model.columns[np.argmin(scaled_obs)]}(other={np.where(scaled_obs < 0)[0]})")
+                pass
             
             tensor = torch.Tensor(np.clip(unclipped_tensor, 0, 1))
             tensor= torch.nan_to_num(tensor, nan=0)
@@ -247,7 +248,7 @@ class BaseEnvironment(gym.Env, ABC):
                                    additional_args=args)
         except:
             print("Checking next ID!") 
-            raise # the error if you get a stack overflow
+            # raise # the error if you get a stack overflow
             return self.load_environment(identifier + 1, graphics, args)
         return env
 

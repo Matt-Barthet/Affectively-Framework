@@ -9,8 +9,6 @@ import torch.nn.functional as F
 from torch import optim
 from tqdm import tqdm
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 class NoisyLinear(nn.Module):
     def __init__(self, in_features, out_features, sigma_init=0.017):
@@ -64,7 +62,7 @@ class MultiDiscreteRainbowDQN(nn.Module):
             nn.Linear(observation_size, 128),
             nn.ReLU(),
             nn.Linear(128, 128),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
         self.value_layers = nn.ModuleList()
@@ -112,12 +110,13 @@ class MultiDiscreteRainbowDQN(nn.Module):
 
 
 class PrioritizedReplayBuffer(object):
-    def __init__(self, capacity, alpha):
+    def __init__(self, capacity, alpha, device):
         self.capacity = capacity
         self.alpha = alpha  # Controls the level of prioritization (0 - uniform, 1 - full prioritization)
         self.buffer = []
         self.pos = 0
         self.priorities = np.zeros((capacity,), dtype=np.float32)
+        self.device=device
 
     def push(self, state, action, reward, next_state, done):
         max_priority = self.priorities.max() if self.buffer else 1.0
@@ -144,14 +143,14 @@ class PrioritizedReplayBuffer(object):
         total = len(self.buffer)
         weights = (total * probabilities[indices]) ** (-beta)
         weights /= weights.max()
-        weights = torch.tensor(weights, dtype=torch.float32, device=device)
+        weights = torch.tensor(weights, dtype=torch.float32, device=self.device)
 
         batch = list(zip(*samples))
-        states = torch.tensor(np.array(batch[0]), dtype=torch.float32, device=device)
+        states = torch.tensor(np.array(batch[0]), dtype=torch.float32, device=self.device)
         actions = np.stack(batch[1], axis=0).astype(np.int64)
-        rewards = torch.tensor(batch[2], dtype=torch.float32, device=device)
-        next_states = torch.tensor(np.array(batch[3]), dtype=torch.float32, device=device)
-        dones = torch.tensor(batch[4], dtype=torch.float32, device=device)
+        rewards = torch.tensor(batch[2], dtype=torch.float32, device=self.device)
+        next_states = torch.tensor(np.array(batch[3]), dtype=torch.float32, device=self.device)
+        dones = torch.tensor(batch[4], dtype=torch.float32, device=self.device)
 
         return states, actions, rewards, next_states, dones, indices, weights
 
@@ -168,6 +167,7 @@ class RainbowAgent:
     def __init__(self, env, policy=None, device=None, atom_size=51, v_min=-10, v_max=10,
                  n_step=3, gamma=0.99, lr=1e-4, alpha=0.6, beta_start=0.4, beta_frames=100000):
         
+        self.device = device
         self.env = env
         self.action_sizes = env.action_space.nvec
         self.observation_size = env.obs_size[0]
@@ -187,7 +187,7 @@ class RainbowAgent:
 
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
 
-        self.memory = PrioritizedReplayBuffer(100000, alpha)
+        self.memory = PrioritizedReplayBuffer(100000, alpha, device)
         self.beta_start = beta_start
         self.beta_frames = beta_frames
         self.frame_idx = 0
@@ -195,7 +195,7 @@ class RainbowAgent:
         self.n_step_buffer = deque(maxlen=n_step)
 
     def select_action(self, state):
-        state = torch.FloatTensor(state).unsqueeze(0).to(device)
+        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         self.policy_net.reset_noise()
         with torch.no_grad():
             q_values, _ = self.policy_net(state)
@@ -230,7 +230,7 @@ class RainbowAgent:
 
         losses = []
         for dim in range(len(self.action_sizes)):
-            actions_dim = torch.tensor(actions[:, dim], dtype=torch.long, device=device).unsqueeze(1)
+            actions_dim = torch.tensor(actions[:, dim], dtype=torch.long, device=self.device).unsqueeze(1)
 
             with torch.no_grad():
                 next_q_values, next_q_distributions = self.target_net(next_states)
@@ -244,8 +244,8 @@ class RainbowAgent:
                 l = b.floor().long()
                 u = b.ceil().long()
 
-                offset = (torch.arange(0, batch_size) * self.atom_size).unsqueeze(1).to(device)
-                m = torch.zeros(batch_size, self.atom_size, device=device)
+                offset = (torch.arange(0, batch_size) * self.atom_size).unsqueeze(1).to(self.device)
+                m = torch.zeros(batch_size, self.atom_size, device=self.device)
                 m.view(-1).index_add_(0, (l + offset).view(-1), (next_q_distribution * (u.float() - b)).view(-1))
                 m.view(-1).index_add_(0, (u + offset).view(-1), (next_q_distribution * (b - l.float())).view(-1))
 
@@ -259,7 +259,7 @@ class RainbowAgent:
         loss = sum(losses)
         loss = loss * weights
         loss_mean = loss.mean()
-        priorities = loss.detach().cpu().numpy() + 1e-6
+        priorities = loss.detach() + 1e-6
 
         self.memory.update_priorities(indices, priorities)
 
@@ -283,13 +283,13 @@ class RainbowAgent:
         }, os.path.join(save_path, 'agent_checkpoint.pth'))
 
     def load(self, load_path):
-        checkpoint = torch.load(os.path.join(load_path, 'agent_checkpoint.pth'), map_location=device)
+        checkpoint = torch.load(os.path.join(load_path, 'agent_checkpoint.pth'), map_location=self.device)
         self.policy_net.load_state_dict(checkpoint['policy_net_state_dict'])
         self.target_net.load_state_dict(checkpoint['target_net_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.frame_idx = checkpoint.get('frame_idx', 0)
 
-    def learn(self, total_timesteps, callback = None, batch_size=64, update_target_every=1000, learning_starts=1000, name="", reset_num_timesteps=False):
+    def learn(self, total_timesteps, callback = None, batch_size=32, update_target_every=1000, learning_starts=1000, name="", reset_num_timesteps=False):
         training_started = False
         episode_rewards = []
 
@@ -297,7 +297,7 @@ class RainbowAgent:
         state = np.array(state, dtype=np.float32)
         episode_reward = 0
 
-        for timestep in tqdm(range(1, total_timesteps), desc="Training Timesteps"):
+        for timestep in tqdm(range(1, total_timesteps+1), desc="Training Timesteps"):
 
             if timestep % 600 == 0:
                 state = self.env.reset()
@@ -316,7 +316,8 @@ class RainbowAgent:
             if len(self.memory) >= learning_starts:
                 if not training_started:
                     training_started = True
-                _ = self.compute_td_loss(batch_size)
+                if timestep % 10 == 0:
+                    _ = self.compute_td_loss(batch_size)
 
             if timestep % update_target_every == 0 and training_started:
                 self.update_target()

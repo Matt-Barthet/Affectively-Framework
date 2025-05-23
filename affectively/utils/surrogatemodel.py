@@ -40,12 +40,12 @@ class KNNSurrogateModel:
             weighted_sum = np.sum(weights * k_labels)
             total_weights = np.sum(weights)
             predicted_class = weighted_sum / total_weights
-        print(k_labels, k_indices, predicted_class)
+        # print(k_labels, k_indices, predicted_class)
         return predicted_class, k_indices
 
     def load_and_clean(self, filename: str, preference: bool):
         data = pd.read_csv(filename)
-        print(f"Before cleaning {len(data)}", end=" ")
+        # print(f"Before cleaning {len(data)}", end=" ")
 
         if self.cluster > 0:
             cluster_members = pd.read_csv(f"./affectively/datasets/{self.game}_cluster_book.csv")
@@ -63,8 +63,8 @@ class KNNSurrogateModel:
             self.surrogate_length = len(data.columns) 
 
         self.columns = list(data.columns)
-        print(f"-- After cleaning {len(data)}")
-        print(data)
+        # print(f"-- After cleaning {len(data)}")
+        # print(data)
         return data, arousals
 
     def load_data(self):

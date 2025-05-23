@@ -6,7 +6,7 @@ import time
 import platform
 
 # Define parameters
-runs = [1]  
+runs = [1, 2, 3, 4, 5]  
 weights = [0]  
 clusters = [0] 
 targetArousals = [1]
@@ -15,6 +15,7 @@ headless = 1
 output_dir = "./results/"
 grayscale = 0
 discretize = 0
+use_gpu = 1
 
 game = "solid"
 algorithm = "DQN"
@@ -29,7 +30,7 @@ cv = 0
 for run, weight, cluster, targetArousal in itertools.product(runs, weights, clusters, targetArousals):
     command = (
         f"cd {cwd} && conda activate {conda_env} && "
-        f"python {script_path} --run={run} --weight={weight} --cluster={cluster} --target_arousal={targetArousal} --game={game} --periodic_ra={period_ra} --cv={cv} --headless={headless} --discretize={discretize if cv == 0 else 0} --grayscale={grayscale if cv == 1 else 0} --logdir={output_dir} --algorithm={algorithm} --policy={policy}"
+        f"python {script_path} --run={run} --use_gpu={use_gpu} --weight={weight} --cluster={cluster} --target_arousal={targetArousal} --game={game} --periodic_ra={period_ra} --cv={cv} --headless={headless} --discretize={discretize if cv == 0 else 0} --grayscale={grayscale if cv == 1 else 0} --logdir={output_dir} --algorithm={algorithm} --policy={policy}"
     )
 
     if system == "Linux":
