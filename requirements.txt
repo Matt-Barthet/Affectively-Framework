@@ -1,7 +1,7 @@
 gym==0.26.2
 gym_unity==0.26.0
 mlagents_envs==0.26.0
-numpy==1.23.3
+numpy==1.23.1
 pandas==2.2.2
 protobuf==3.20.0
 scikit_learn==1.3.0

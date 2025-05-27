@@ -52,75 +52,75 @@ if __name__ == "__main__":
             print("Model not implemented yet! Aborting...")
             exit()
 
-    if args.cv == 0:
-        if args.game == "fps":
-            env = HeistEnvironmentGameObs(
-                id_number=args.run,
-                weight=args.weight,
-                graphics=args.headless==0,
-                cluster=args.cluster,
-                target_arousal=args.target_arousal,
-                period_ra=args.periodic_ra,
-                discretize=args.discretize,
-            )
-        elif args.game == "solid":
-            env = SolidEnvironmentGameObs(
-                id_number=args.run,
-                weight=args.weight,
-                graphics=args.headless==0,
-                cluster=args.cluster,
-                target_arousal=args.target_arousal,
-                period_ra=args.periodic_ra,
-                discretize=args.discretize
-            )
-        elif args.game == "platform":
-            env = PiratesEnvironmentGameObs(
-                id_number=args.run,
-                weight=args.weight,
-                graphics=True, # Pirates is bugged in headless, prevent it manually for now
-                cluster=args.cluster,
-                target_arousal=args.target_arousal,
-                period_ra=args.periodic_ra,
-                discretize=args.discretize
-            )
-        model = model_class(policy=args.policy, device=device, env=env) # Define model that trains using game states here.
-    elif args.cv == 1:  # CV builds cannot run in headless mode - the unity renderer must be switched on to produce frames.
-        if args.game == "fps":
-            env = HeistEnvironmentCV(
-                id_number=args.run,
-                weight=args.weight,
-                cluster=args.cluster,
-                target_arousal=args.target_arousal,
-                period_ra=args.periodic_ra,
-                grayscale=args.grayscale
-            )
-        elif args.game == "solid":
-            env = SolidEnvironmentCV(
-                id_number=args.run,
-                weight=args.weight,
-                cluster=args.cluster,
-                target_arousal=args.target_arousal,
-                period_ra=args.periodic_ra,
-                grayscale=args.grayscale
-            )
-        elif args.game == "platform":
-            env = PiratesEnvironmentCV(
-                id_number=args.run,
-                weight=args.weight,
-                cluster=args.cluster,
-                target_arousal=args.target_arousal,
-                period_ra=args.periodic_ra,
-                grayscale=args.grayscale
-            )
+
+    for run in range(args.run):
+        if args.cv == 0:
+            if args.game == "fps":
+                env = HeistEnvironmentGameObs(
+                    id_number=run,
+                    weight=args.weight,
+                    graphics=args.headless==0,
+                    cluster=args.cluster,
+                    target_arousal=args.target_arousal,
+                    period_ra=args.periodic_ra,
+                    discretize=args.discretize,
+                )
+            elif args.game == "solid":
+                env = SolidEnvironmentGameObs(
+                    id_number=run,
+                    weight=args.weight,
+                    graphics=args.headless==0,
+                    cluster=args.cluster,
+                    target_arousal=args.target_arousal,
+                    period_ra=args.periodic_ra,
+                    discretize=args.discretize
+                )
+            elif args.game == "platform":
+                env = PiratesEnvironmentGameObs(
+                    id_number=run,
+                    weight=args.weight,
+                    graphics=True, # Pirates is bugged in headless, prevent it manually for now
+                    cluster=args.cluster,
+                    target_arousal=args.target_arousal,
+                    period_ra=args.periodic_ra,
+                    discretize=args.discretize
+                )
+        elif args.cv == 1:  # CV builds cannot run in headless mode - the unity renderer must be switched on to produce frames.
+            if args.game == "fps":
+                env = HeistEnvironmentCV(
+                    id_number=run,
+                    weight=args.weight,
+                    cluster=args.cluster,
+                    target_arousal=args.target_arousal,
+                    period_ra=args.periodic_ra,
+                    grayscale=args.grayscale
+                )
+            elif args.game == "solid":
+                env = SolidEnvironmentCV(
+                    id_number=run,
+                    weight=args.weight,
+                    cluster=args.cluster,
+                    target_arousal=args.target_arousal,
+                    period_ra=args.periodic_ra,
+                    grayscale=args.grayscale
+                )
+            elif args.game == "platform":
+                env = PiratesEnvironmentCV(
+                    id_number=run,
+                    weight=args.weight,
+                    cluster=args.cluster,
+                    target_arousal=args.target_arousal,
+                    period_ra=args.periodic_ra,
+                    grayscale=args.grayscale
+                )
 
         model = model_class(policy=args.policy, env = env, device=device) # define model for training using pixels here
+        experiment_name = f'{args.logdir}/{args.game}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
+        env.callback =  TensorBoardCallback(experiment_name, env, model)
+        label = 'optimize' if args.weight == 0 else 'arousal' if args.weight == 1 else 'blended'
+        callbacks = ProgressBarCallback()
 
-
-    experiment_name = f'{args.logdir}/{args.game}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{args.run}'
-    env.callback =  TensorBoardCallback(experiment_name, env, model)
-    label = 'optimize' if args.weight == 0 else 'arousal' if args.weight == 1 else 'blended'
-    callbacks = ProgressBarCallback()
-
-    model.learn(total_timesteps=10_000_000, callback=callbacks, reset_num_timesteps=False)
-    # TODO: make sure custom agents implement save function well.
-    model.save(f"{experiment_name}.zip")
+        model.learn(total_timesteps=10_000, callback=callbacks, reset_num_timesteps=False)
+        model.save(f"{experiment_name}.zip")
+        print(f"Finished run {run}")
+        env.env.close()

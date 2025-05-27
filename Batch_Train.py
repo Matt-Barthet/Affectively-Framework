@@ -6,7 +6,7 @@ import time
 import platform
 
 # Define parameters
-runs = [1, 2, 3, 4, 5]  
+runs = 5  
 weights = [0]  
 clusters = [0] 
 targetArousals = [1]
@@ -18,7 +18,7 @@ discretize = 0
 use_gpu = 1
 
 game = "solid"
-algorithm = "DQN"
+algorithm = "PPO"
 policy="MlpPolicy"
 
 cwd = os.getcwd()
@@ -27,10 +27,10 @@ conda_env = "affect-envs"
 system = platform.system()
 cv = 0
 
-for run, weight, cluster, targetArousal in itertools.product(runs, weights, clusters, targetArousals):
+for weight, cluster, targetArousal in itertools.product(weights, clusters, targetArousals):
     command = (
         f"cd {cwd} && conda activate {conda_env} && "
-        f"python {script_path} --run={run} --use_gpu={use_gpu} --weight={weight} --cluster={cluster} --target_arousal={targetArousal} --game={game} --periodic_ra={period_ra} --cv={cv} --headless={headless} --discretize={discretize if cv == 0 else 0} --grayscale={grayscale if cv == 1 else 0} --logdir={output_dir} --algorithm={algorithm} --policy={policy}"
+        f"python {script_path} --run={runs} --use_gpu={use_gpu} --weight={weight} --cluster={cluster} --target_arousal={targetArousal} --game={game} --periodic_ra={period_ra} --cv={cv} --headless={headless} --discretize={discretize if cv == 0 else 0} --grayscale={grayscale if cv == 1 else 0} --logdir={output_dir} --algorithm={algorithm} --policy={policy}"
     )
 
     if system == "Linux":
