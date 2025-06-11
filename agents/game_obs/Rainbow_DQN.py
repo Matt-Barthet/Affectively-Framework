@@ -49,7 +49,6 @@ class NoisyLinear(nn.Module):
             bias = self.bias_mu
         return F.linear(x, weight, bias)
 
-
 class MultiDiscreteRainbowDQN(nn.Module):
     def __init__(self, observation_size, action_sizes, atom_size, support):
         super(MultiDiscreteRainbowDQN, self).__init__()
@@ -169,7 +168,8 @@ class RainbowAgent:
         
         self.device = device
         self.env = env
-        self.action_sizes = env.action_space.nvec
+
+
         self.observation_size = env.obs_size[0]
         self.atom_size = atom_size
         self.v_min = v_min
@@ -180,6 +180,7 @@ class RainbowAgent:
         self.support = torch.linspace(self.v_min, self.v_max, self.atom_size).to(device)
         self.delta_z = (self.v_max - self.v_min) / (self.atom_size - 1)
 
+        self.action_sizes = env.action_space.nvec
         self.policy_net = MultiDiscreteRainbowDQN(self.observation_size, self.action_sizes, atom_size, self.support).to(device)
         self.target_net = MultiDiscreteRainbowDQN(self.observation_size, self.action_sizes, atom_size, self.support).to(device)
         self.target_net.load_state_dict(self.policy_net.state_dict())

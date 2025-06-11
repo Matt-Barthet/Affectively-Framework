@@ -22,17 +22,17 @@ class HeistEnvironment(BaseEnvironment):
 
     def step(self, action):
         transformed_action = [
-            action[0] * 4,
-            action[1] * 2,
-            np.round(action[2]+1),
-            np.round(action[3]+1),
-            np.round(action[4]/2 + 0.5),
+            action[0],
+            action[1],
+            action[2] - 1,
+            action[3]- 1,
+            action[4],
             0
         ]
-        state, reward, d, info = super().step(transformed_action)
+        state, reward, done, info = super().step(transformed_action)
         state = self.construct_state(state)
         self.reset_condition()
-        return state, reward, d, info
+        return state, reward, done, info
 
     def handle_level_end(self):
         print("End of level reached, resetting environment.")

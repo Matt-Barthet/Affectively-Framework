@@ -177,19 +177,14 @@ class BaseEnvironment(gym.Env, ABC):
         change_in_score = (self.current_score - self.previous_score)
         self.score_change = self.score_change or change_in_score > 0
         self.previous_score = self.current_score
-                
-        try:
-            state, env_score, done, info = self.env.step(list(action)) 
-        except:
-            print("Caught step error, trying again to bypass double agent error on reset...")
-            state, env_score, done, info = self.env.step(list(action))
 
+        state, env_score, done, info = self.env.step(list(action)) 
         for modality in state:
             if len(np.asarray(modality).shape) == 1:
                 surrogate = modality[-self.surrogate_length:]
                 break
-        
         self.surrogate_list.append(surrogate)
+        self.current_score = env_score  
 
         if self.arousal_episode_length % 15 == 0:  # Read the surrogate vector on the 15th tick
             self.generate_arousal()
@@ -209,8 +204,6 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.cumulative_rl += final_reward
         self.best_rl = np.max([self.best_rl, final_reward])
-
-        self.current_score = env_score
 
         return state, final_reward, done, info
 
