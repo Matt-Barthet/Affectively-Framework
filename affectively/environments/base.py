@@ -11,7 +11,7 @@ from mlagents_envs.side_channel import OutgoingMessage
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
 from scipy import stats
 from affectively.utils.sidechannels import AffectivelySideChannel
-from affectively.utils.surrogatemodel import KNNSurrogateModel
+from affectively.models.knn_model import KNNSurrogateModel
 
 
 def compute_confidence_interval(data,
