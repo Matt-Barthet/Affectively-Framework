@@ -11,7 +11,7 @@ from torch.optim import Adam
 import matplotlib.pyplot as plt
 import copy 
 from scipy.stats import pearsonr
-from affectively.models import Classifier, Regressor
+from models import Classifier, Regressor
 
 class MLPSurrogateModel:
 
@@ -26,7 +26,7 @@ class MLPSurrogateModel:
 
         classifier_suff = 'classifier' if self.classifier else 'regressor'
         pref_suff = 'preferences' if self.preference else ''
-        self.model_path = f'./affectively/models/{game}/best_model_{game}_cluster_{self.cluster}_{classifier_suff}_{pref_suff}.pth'
+        self.model_path = f'./affectively/models/{game}/{classifier_suff}/best_model_{game}_cluster_{self.cluster}_{classifier_suff}_{pref_suff}.pth'
 
         # Data loading
         self.data, self.x_train, self.y_train = None, None, None
@@ -354,7 +354,7 @@ class MLPSurrogateModel:
                     criterion = nn.MSELoss()
                 
                 loss, model, (train_losses, val_losses, train_accuracies, val_accuracies) = self.training_run(criterion, x_train, y_train, x_val, y_val, model, lr)
-                cv_scores.append(loss)
+                cv_scores.append(loss.cpu().numpy())
                 models.append(copy.deepcopy(model))
                 scalers.append(copy.deepcopy(self.scaler))
 
