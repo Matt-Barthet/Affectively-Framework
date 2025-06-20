@@ -53,6 +53,8 @@ class RFSurrogateModel(AbstractSurrogateModel):
     def _load_single_model(self, path, scaler_path):
         with open(path, 'rb') as f:
             model = pickle.load(f)
+        print(f"Model loaded to {path}")
+
         return model, None
     
     def get_hyperparameter_space(self):

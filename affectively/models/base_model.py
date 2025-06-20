@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 
 
 class AbstractSurrogateModel(ABC):
+
     def __init__(self, game, cluster, classifier, preference):
         self.target_behavior, self.target_arousal, self.columns, self.players, self.arousals = [], [], [], [], []
         self.game = game
@@ -61,6 +62,7 @@ class AbstractSurrogateModel(ABC):
     def get_hyperparameter_space(self):
         pass
     
+
     def __call__(self, state, leave_out=-1):
         if len(self.models) == 0:
             return 0
@@ -79,7 +81,6 @@ class AbstractSurrogateModel(ABC):
         else:
             return avg_prediction[0] if len(avg_prediction.shape) == 1 else avg_prediction[0][0]
     
-    from sklearn.preprocessing import MinMaxScaler
 
     def load_data(self):
         pref_suff = '_downsampled_pairs' if self.preference else ''
@@ -169,13 +170,15 @@ class AbstractSurrogateModel(ABC):
             
             counter += 1
     
+
     def save_models(self):
         os.makedirs(f"affectively/models/{self.game}", exist_ok=True)
-        
         for i in range(len(self.models)):
             self._save_single_model(self.models[i], self.scalers[i], i)
     
+
     def evaluate_ensemble(self):
+
         group_kfold = GroupKFold(n_splits=5)
         accuracies, cccs = [], []
         baseline_scores = []

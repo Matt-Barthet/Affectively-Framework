@@ -1,8 +1,6 @@
 from base_model import AbstractSurrogateModel
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-import numpy as np
 import pickle
-import copy
 
 
 class KNNSurrogateModel(AbstractSurrogateModel):
