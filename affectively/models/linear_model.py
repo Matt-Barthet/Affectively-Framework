@@ -1,4 +1,4 @@
-from base_model import AbstractSurrogateModel
+from affectively.models.base_model import AbstractSurrogateModel
 from sklearn.linear_model import LogisticRegression, LinearRegression
 import numpy as np
 import pickle
@@ -22,7 +22,6 @@ class LinearSurrogateModel(AbstractSurrogateModel):
     def _train_single_model(self, x_train, y_train, x_val, y_val, **hyperparams):
         model = self._create_model(**hyperparams)
         model.fit(x_train, y_train)
-        
         val_pred = model.predict(x_val)
         if self.classifier:
             val_pred = np.round(val_pred)
@@ -33,12 +32,11 @@ class LinearSurrogateModel(AbstractSurrogateModel):
         return val_score, model
     
     def _predict_single(self, model, scaler, state):
-        state_scaled = scaler.transform(state)
         
         if self.classifier:
-            return model.predict_proba(state_scaled)
+            return model.predict_proba(state)
         else:
-            pred = model.predict(state_scaled)
+            pred = model.predict(state)
             return pred.reshape(1, -1)
     
     def _save_single_model(self, model, scaler, index):

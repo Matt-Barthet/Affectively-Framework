@@ -1,6 +1,7 @@
-from sb3_contrib import RecurrentPPO
+# fro÷ßm sb3_contrib import RecurrentPPO
 from stable_baselines3.ppo import PPO
 from stable_baselines3.common.callbacks import ProgressBarCallback
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 import argparse
 
@@ -114,7 +115,7 @@ if __name__ == "__main__":
                     grayscale=args.grayscale
                 )
 
-        model = model_class(policy=args.policy, env = env, device=device) # define model for training using pixels here
+        model = model_class(policy=args.policy, env = DummyVecEnv([lambda: env]), device=device) # define model for training using pixels here
         experiment_name = f'{args.logdir}/{args.game}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
         env.callback =  TensorBoardCallback(experiment_name, env, model)
         label = 'optimize' if args.weight == 0 else 'arousal' if args.weight == 1 else 'blended'

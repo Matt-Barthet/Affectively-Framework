@@ -33,6 +33,7 @@ class AbstractSurrogateModel(ABC):
             self.train_model()
         else:
             self.evaluate_ensemble()
+            # print(self.data.shape)
     
     @abstractmethod
     def _setup_paths(self):
@@ -73,11 +74,20 @@ class AbstractSurrogateModel(ABC):
         for id, (model, scaler) in enumerate(zip(self.models, self.scalers)):
             if id != leave_out != -1:
                 continue
-            predictions.append(self._predict_single(model, scaler, state))
+
+            state_scaled = scaler.transform(state)
+            if np.min(state_scaled) < 0 or np.max(state_scaled) > 1:
+                # print(f"Values outside of range: Max={np.max(state_scaled):.3f}@{self.columns[np.argmax(state_scaled)]}(other={np.where(state_scaled > 1)[0]})", end=", ")
+                # print(f"Min={np.min(state_scaled):.3f}@{self.columns[np.argmin(state_scaled)]}(other={np.where(state_scaled < 0)[0]})")
+                pass
+            
+            state_scaled = np.clip(state_scaled, 0, 1)
+            predictions.append(self._predict_single(model, scaler, state_scaled))
         
         avg_prediction = np.mean(predictions, axis=0)
         if self.classifier:
             return np.argmax(avg_prediction, axis=1)[0]
+            return avg_prediction[0] if len(avg_prediction.shape) == 1 else avg_prediction[0][0]
         else:
             return avg_prediction[0] if len(avg_prediction.shape) == 1 else avg_prediction[0][0]
     
@@ -141,7 +151,11 @@ class AbstractSurrogateModel(ABC):
 
         self.players = self.data['[control]player_id'] # Update players
         self.data.drop(columns=['[control]player_id'], inplace=True)
+
         self.surrogate_length = len(self.data.columns)
+        self.columns = self.data.columns.tolist()
+        if self.preference:
+            self.surrogate_length = int(self.surrogate_length / 2)
         self.arousals = arousals
 
     
@@ -197,6 +211,7 @@ class AbstractSurrogateModel(ABC):
             fold_predictions = np.array(fold_predictions)
             
             if self.classifier:
+                fold_predictions = np.asarray(fold_predictions, dtype=int)
                 accuracy = (fold_predictions == y_val).sum() / len(y_val)
                 accuracies.append(accuracy)
                 y_train = np.array(y_train, dtype=int)
@@ -225,6 +240,7 @@ class AbstractSurrogateModel(ABC):
             }
             print(f"Ensemble CCC: {np.mean(cccs):.4f} vs baseline CCC: {np.mean(baseline_scores):.4f}")
     
+
     def CCC(self, y_true, y_pred):
         mean_true = np.mean(y_true)
         mean_pred = np.mean(y_pred)
@@ -234,6 +250,7 @@ class AbstractSurrogateModel(ABC):
         
         ccc = 2 * cov / (var_true + var_pred + (mean_true - mean_pred) ** 2)
         return ccc
+    
     
     def train_model(self):
         hyperparams = self.get_hyperparameter_space()

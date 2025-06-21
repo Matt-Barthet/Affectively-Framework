@@ -11,7 +11,7 @@ from mlagents_envs.side_channel import OutgoingMessage
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
 from scipy import stats
 from affectively.utils.sidechannels import AffectivelySideChannel
-from affectively.models.knn_model import KNNSurrogateModel
+from affectively.models.linear_model import LinearSurrogateModel
 
 
 def compute_confidence_interval(data,
@@ -73,8 +73,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.obs_size = obs_space['shape']
         self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'],
                                                 dtype=dtype)
-        self.model = KNNSurrogateModel(5, game, cluster=cluster)
-        self.scaler = self.model.scaler
+        self.model = LinearSurrogateModel(game=game, cluster=cluster, classifier=True, preference=True)
 
         self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
         self.arousal_trace = []
@@ -145,24 +144,14 @@ class BaseEnvironment(gym.Env, ABC):
         stacked_surrogates = np.stack(stacked_surrogates, axis=-1) # stack the surrogates vertically
         self.current_surrogate = np.mean(stacked_surrogates, axis=1) # calculate the mean of each feature across the stack
 
-        # print(list(self.current_surrogate))
-
         if self.current_surrogate.size != 0:
-            scaled_obs = np.array(self.scaler.transform(self.current_surrogate.reshape(1, -1))[0])
             if self.previous_surrogate.size == 0:
                 self.previous_surrogate = np.zeros(len(self.current_surrogate))
-            previous_scaler = np.array(self.scaler.transform(self.previous_surrogate.reshape(1, -1))[0])
-            unclipped_tensor = np.array(list(previous_scaler) + list(scaled_obs))
-            
-            if np.min(scaled_obs) < 0 or np.max(scaled_obs) > 1:
-                # print(f"Values outside of range: Max={np.max(scaled_obs):.3f}@{self.model.columns[np.argmax(scaled_obs)]}(other={np.where(scaled_obs > 1)[0]})", end=", ")
-                # print(f"Min={np.min(scaled_obs):.3f}@{self.model.columns[np.argmin(scaled_obs)]}(other={np.where(scaled_obs < 0)[0]})")
-                pass
-            
-            tensor = torch.Tensor(np.clip(unclipped_tensor, 0, 1))
-            tensor= torch.nan_to_num(tensor, nan=0)
-            self.previous_surrogate = previous_scaler
-            arousal = self.model(tensor)[0]
+            previous_scaler = np.array(self.previous_surrogate)
+            tensor = np.array(list(previous_scaler) + list(self.current_surrogate))
+            tensor= np.nan_to_num(torch.tensor(tensor), nan=0)
+            arousal = self.model(tensor)
+            # print(arousal)
             if not np.isnan(arousal):
                 self.episode_arousal_trace.append(arousal)
                 self.period_arousal_trace.append(arousal)

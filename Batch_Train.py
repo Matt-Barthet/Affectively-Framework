@@ -7,15 +7,15 @@ import platform
 
 # Define parameters
 runs = 5  
-weights = [0]  
+weights = [0.5]  
 clusters = [0] 
 targetArousals = [1]
 period_ra = 0
-headless = 0
+headless = 1
 output_dir = "./results/"
 grayscale = 0
 discretize = 0
-use_gpu = 1
+use_gpu = 0
 
 game = "fps"
 algorithm = "PPO"
