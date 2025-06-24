@@ -115,7 +115,7 @@ if __name__ == "__main__":
                     grayscale=args.grayscale
                 )
 
-        model = model_class(policy=args.policy, env = DummyVecEnv([lambda: env]), device=device) # define model for training using pixels here
+        model = model_class(policy=args.policy, env = env), device=device) # define model for training using pixels here
         experiment_name = f'{args.logdir}/{args.game}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
         env.callback =  TensorBoardCallback(experiment_name, env, model)
         label = 'optimize' if args.weight == 0 else 'arousal' if args.weight == 1 else 'blended'
