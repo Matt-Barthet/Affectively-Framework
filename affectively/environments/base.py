@@ -31,7 +31,7 @@ class BaseEnvironment(gym.Env, ABC):
 	"""
 
     def __init__(self, id_number, graphics, obs_space, weight, game, capture_fps=5, time_scale=1, args=None,
-                 target_arousal=1, cluster=0, period_ra=False):
+                 target_arousal=1, cluster=0, period_ra=False, classifier=True, preference=True):
 
         super(BaseEnvironment, self).__init__()
         if args is None:
@@ -73,7 +73,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.obs_size = obs_space['shape']
         self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'],
                                                 dtype=dtype)
-        self.model = LinearSurrogateModel(game=game, cluster=cluster, classifier=True, preference=True)
+        self.model = LinearSurrogateModel(game=game, cluster=cluster, classifier=classifier, preference=preference)
 
         self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
         self.arousal_trace = []
@@ -102,6 +102,8 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.episode_length, self.arousal_episode_length = 0, 0
         self.target_arousal = target_arousal
+        self.preference = preference
+        self.classifier = classifier
         self.surrogate_length = self.model.surrogate_length
         self.callback = None
         self.create_and_send_message("[Save States]:Seed")
@@ -131,7 +133,13 @@ class BaseEnvironment(gym.Env, ABC):
     def reward_affect(self):
         # Reward similarity of mean arousal this period to target arousal (0 = minimize, 1 = maximize)
         mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0 # Arousal range [0, 1]
-        r_a = 1 - np.abs(self.target_arousal - mean_arousal)
+
+        if self.classifier:
+            mean_arousal_label = 0 if mean_arousal < 0.5 else 1
+            r_a = 1 if mean_arousal_label == self.target_arousal else 0 # Binary classification
+        else:
+            r_a = (1 - np.abs(self.target_arousal - mean_arousal))**2 # MSE for regression tasks
+
         self.best_ra = np.max([self.best_ra, r_a])
         self.cumulative_ra += r_a
         self.period_arousal_trace.clear()
@@ -148,7 +156,12 @@ class BaseEnvironment(gym.Env, ABC):
             if self.previous_surrogate.size == 0:
                 self.previous_surrogate = np.zeros(len(self.current_surrogate))
             previous_scaler = np.array(self.previous_surrogate)
-            tensor = np.array(list(previous_scaler) + list(self.current_surrogate))
+
+            if self.preference:
+                tensor = np.array(list(previous_scaler) + list(self.current_surrogate))
+            else:
+                tensor = self.current_surrogate
+
             tensor= np.nan_to_num(torch.tensor(tensor), nan=0)
             arousal = self.model(tensor)
             # print(arousal)

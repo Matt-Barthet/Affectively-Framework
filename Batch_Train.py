@@ -17,7 +17,10 @@ grayscale = 0
 discretize = 0
 use_gpu = 0
 
-game = "fps"
+preferences = [0, 1]
+classifiers = [0, 1]
+
+game = "solid"
 algorithm = "PPO"
 policy="MlpPolicy"
 
@@ -27,10 +30,10 @@ conda_env = "affect-envs"
 system = platform.system()
 cv = 0
 
-for weight, cluster, targetArousal in itertools.product(weights, clusters, targetArousals):
+for weight, cluster, targetArousal, classifier, preference in itertools.product(weights, clusters, targetArousals, classifiers, preferences):
     command = (
         f"cd {cwd} && conda activate {conda_env} && "
-        f"python {script_path} --run={runs} --use_gpu={use_gpu} --weight={weight} --cluster={cluster} --target_arousal={targetArousal} --game={game} --periodic_ra={period_ra} --cv={cv} --headless={headless} --discretize={discretize if cv == 0 else 0} --grayscale={grayscale if cv == 1 else 0} --logdir={output_dir} --algorithm={algorithm} --policy={policy}"
+        f"python {script_path} --run={runs} --use_gpu={use_gpu} --weight={weight} --cluster={cluster} --target_arousal={targetArousal} --preference={preference} --classifier={classifier} --game={game} --periodic_ra={period_ra} --cv={cv} --headless={headless} --discretize={discretize if cv == 0 else 0} --grayscale={grayscale if cv == 1 else 0} --logdir={output_dir} --algorithm={algorithm} --policy={policy}"
     )
 
     if system == "Linux":

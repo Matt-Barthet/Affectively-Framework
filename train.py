@@ -32,6 +32,8 @@ if __name__ == "__main__":
     parser.add_argument("--algorithm", required=True, help="Algorithm to use for training")
     parser.add_argument("--policy", required=False, help="Policy to use for training for PPO agents")
     parser.add_argument("--use_gpu", required=True, help="Use device GPU for models", type=int)
+    parser.add_argument("--classifier", required=True, help="Use classifier model and reward for training", type=int)
+    parser.add_argument("--preference", required=False, help="Use preference model for training", type=int)
     args = parser.parse_args()
 
     if args.use_gpu == 1:
@@ -42,7 +44,8 @@ if __name__ == "__main__":
 
     if args.algorithm.lower() == "ppo":
         if "lstm" in args.policy.lower():
-            model_class = RecurrentPPO
+            # model_class = RecurrentPPO
+            pass
         else:
             model_class = PPO
     elif args.algorithm.lower() == "dqn":
@@ -52,7 +55,6 @@ if __name__ == "__main__":
         else:
             print("Model not implemented yet! Aborting...")
             exit()
-
 
     for run in range(args.run):
         if args.cv == 0:
@@ -65,6 +67,8 @@ if __name__ == "__main__":
                     target_arousal=args.target_arousal,
                     period_ra=args.periodic_ra,
                     discretize=args.discretize,
+                    classifier=args.classifier,
+                    preference=args.preference,
                 )
             elif args.game == "solid":
                 env = SolidEnvironmentGameObs(
@@ -74,7 +78,9 @@ if __name__ == "__main__":
                     cluster=args.cluster,
                     target_arousal=args.target_arousal,
                     period_ra=args.periodic_ra,
-                    discretize=args.discretize
+                    discretize=args.discretize,
+                    classifier=args.classifier,
+                    preference=args.preference,
                 )
             elif args.game == "platform":
                 env = PiratesEnvironmentGameObs(
@@ -84,7 +90,9 @@ if __name__ == "__main__":
                     cluster=args.cluster,
                     target_arousal=args.target_arousal,
                     period_ra=args.periodic_ra,
-                    discretize=args.discretize
+                    discretize=args.discretize,
+                    classifier=args.classifier,
+                    preference=args.preference,
                 )
         elif args.cv == 1:  # CV builds cannot run in headless mode - the unity renderer must be switched on to produce frames.
             if args.game == "fps":
@@ -94,7 +102,9 @@ if __name__ == "__main__":
                     cluster=args.cluster,
                     target_arousal=args.target_arousal,
                     period_ra=args.periodic_ra,
-                    grayscale=args.grayscale
+                    grayscale=args.grayscale,
+                    classifier=args.classifier,
+                    preference=args.preference,
                 )
             elif args.game == "solid":
                 env = SolidEnvironmentCV(
@@ -103,7 +113,9 @@ if __name__ == "__main__":
                     cluster=args.cluster,
                     target_arousal=args.target_arousal,
                     period_ra=args.periodic_ra,
-                    grayscale=args.grayscale
+                    grayscale=args.grayscale,
+                    classifier=args.classifier,
+                    preference=args.preference,
                 )
             elif args.game == "platform":
                 env = PiratesEnvironmentCV(
@@ -112,11 +124,13 @@ if __name__ == "__main__":
                     cluster=args.cluster,
                     target_arousal=args.target_arousal,
                     period_ra=args.periodic_ra,
-                    grayscale=args.grayscale
+                    grayscale=args.grayscale,
+                    classifier=args.classifier,
+                    preference=args.preference,
                 )
 
-        model = model_class(policy=args.policy, env = env), device=device) # define model for training using pixels here
-        experiment_name = f'{args.logdir}/{args.game}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
+        model = model_class(policy=args.policy, env = env, device=device) # define model for training using pixels here
+        experiment_name = f'{args.logdir}/{args.game}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier==1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
         env.callback =  TensorBoardCallback(experiment_name, env, model)
         label = 'optimize' if args.weight == 0 else 'arousal' if args.weight == 1 else 'blended'
         callbacks = ProgressBarCallback()

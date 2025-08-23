@@ -4,7 +4,7 @@ from affectively.environments.solid import SolidEnvironment
 
 class SolidEnvironmentCV(SolidEnvironment):
 
-    def __init__(self, id_number, weight, grayscale, cluster):
+    def __init__(self, id_number, weight, grayscale, cluster, classifier=True, preference=True):
         self.width, self.height, self.stackNo = 128, 96, 1
         self.grayscale = grayscale
         if grayscale:
@@ -14,7 +14,7 @@ class SolidEnvironmentCV(SolidEnvironment):
         args = ['-bufferWidth', f"{self.width}", "-bufferHeight", f"{self.height}", "-useGrayscale", f"{grayscale}"]
         super().__init__(id_number=id_number, graphics=True,
                          obs={"low": 0, "high": 255, "shape": shape, "type": np.uint8},
-                         weight=weight, frame_buffer=True, args=args, cluster=cluster)
+                         weight=weight, frame_buffer=True, args=args, cluster=cluster, classifier=classifier, preference=preference)
         self.frame_buffer = []
 
     def construct_state(self, state) -> np.ndarray:

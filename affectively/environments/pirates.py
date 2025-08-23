@@ -3,12 +3,12 @@ from affectively.environments.base import BaseEnvironment
 
 class PiratesEnvironment(BaseEnvironment):
 
-    def __init__(self, id_number, graphics, weight, obs, frame_buffer, cluster, period_ra, target_arousal, args=None):
+    def __init__(self, id_number, graphics, weight, obs, frame_buffer, cluster, period_ra, target_arousal, args=None, classifier=True, preference=True):
         args = ["-frameBuffer", f"{frame_buffer}"] if args is None else args +  ["-frameBuffer", f"{frame_buffer}"]
         self.frameBuffer = frame_buffer
         super().__init__(id_number=id_number, game='platform', graphics=graphics, obs_space=obs, args=args,
                          capture_fps=60, time_scale=5, weight=weight, cluster=cluster,
-                         period_ra=period_ra, target_arousal=target_arousal)
+                         period_ra=period_ra, target_arousal=target_arousal, classifier=classifier, preference=preference)
 
     def reset_condition(self):
         if self.customSideChannel.levelEnd:
