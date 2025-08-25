@@ -8,7 +8,7 @@ class SolidEnvironmentGameObs(SolidEnvironment):
         self.discretize = discretize
         self.estimated_position = [0, 0, 0]
         super().__init__(id_number=id_number, graphics=graphics,
-                         obs={"low": -np.inf, "high": np.inf, "shape": (81,), "type": np.float32},
+                         obs={"low": -np.inf, "high": np.inf, "shape": (86,), "type": np.float32},
                         weight=weight, frame_buffer=False, cluster=cluster, 
                         target_arousal=target_arousal, period_ra=period_ra, classifier=classifier, preference=preference)
 

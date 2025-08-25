@@ -112,6 +112,12 @@ class BaseEnvironment(gym.Env, ABC):
         if self.callback is not None and len(self.episode_arousal_trace) > 0:
             self.callback.on_episode_end()
         state = self.env.reset()
+        for modality in range(len(state)):
+            if len(np.asarray(state[modality]).shape) == 1:
+                arousal_window = self.episode_arousal_trace[-5:]
+                arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
+                state[modality] = np.concatenate((state[modality], arousal_window))
+                break
         self.cumulative_ra, self.cumulative_rb, self.cumulative_rl = 0, 0, 0
         self.current_score, self.previous_score = 0, 0
         self.episode_length, self.arousal_episode_length = 0, 0
@@ -180,11 +186,16 @@ class BaseEnvironment(gym.Env, ABC):
         self.score_change = self.score_change or change_in_score > 0
         self.previous_score = self.current_score
 
-        state, env_score, done, info = self.env.step(list(action)) 
-        for modality in state:
-            if len(np.asarray(modality).shape) == 1:
-                surrogate = modality[-self.surrogate_length:]
+        state, env_score, done, info = self.env.step(list(action))
+
+        for modality in range(len(state)):
+            if len(np.asarray(state[modality]).shape) == 1:
+                surrogate = state[modality][-self.surrogate_length:]
+                arousal_window = self.episode_arousal_trace[-5:]
+                arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
+                state[modality] = np.concatenate((state[modality], arousal_window))
                 break
+
         self.surrogate_list.append(surrogate)
         self.current_score = env_score  
 
@@ -206,7 +217,6 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.cumulative_rl += final_reward
         self.best_rl = np.max([self.best_rl, final_reward])
-
         return state, final_reward, done, info
 
     def handle_level_end(self):
