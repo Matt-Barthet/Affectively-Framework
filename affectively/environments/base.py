@@ -171,9 +171,11 @@ class BaseEnvironment(gym.Env, ABC):
             tensor= np.nan_to_num(torch.tensor(tensor), nan=0)
             arousal = self.model(tensor)
             # print(arousal)
-            if not np.isnan(arousal):
+            if not np.isnan(arousal) and 0 <= arousal <= 1:
                 self.episode_arousal_trace.append(arousal)
                 self.period_arousal_trace.append(arousal)
+            else:
+                print(arousal)
             self.previous_surrogate = self.current_surrogate.copy()
             self.customSideChannel.arousal_vector.clear()
         return arousal
@@ -203,7 +205,6 @@ class BaseEnvironment(gym.Env, ABC):
             self.generate_arousal()
             self.arousal_episode_length = 0
             self.surrogate_list.clear()
-
         final_reward = 0
 
         if self.period_ra and (len(self.episode_arousal_trace) > 0):
