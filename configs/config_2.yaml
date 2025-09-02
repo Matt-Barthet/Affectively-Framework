@@ -15,9 +15,9 @@ headless: 1
 # Specific game and agent parameters for this run
 weight: 0.5
 cluster: 0
-target_arousal: 0
-classifier: 1
-preference: 0
+target_arousal: 1
+classifier: 0
+preference: 1
 
 # Specific algorithm parameters
 periodic_ra: 0

@@ -81,26 +81,27 @@ class MLResultsAnalyzer:
         combo_name = f"{task_type}_{approach}"
         
         # Create figure with two subplots side by side
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        fig, ax = plt.subplots(1, 1, figsize=(8, 6))
         # fig.suptitle(f'{task_type} + {approach} - Performance Analysis', 
                     #  fontsize=16, fontweight='bold')
         
         # Left plot: Bar chart with standard deviation error bars
-        self._plot_bar_chart_with_std(fig, ax1, subset, metric)
+        self._plot_bar_chart_with_std(plt, ax, subset, metric)
         
         # Right plot: Improvement box plot
-        self._plot_improvement_boxplot(ax2, subset, metric)
+        # self._plot_improvement_boxplot(ax2, subset, metric)
         
-        fig.legend(
-            bbox_to_anchor=(0.5, 1),  # Centered above the plot
+        plt.legend(
+            bbox_to_anchor=(0.5, 1.15),  # Centered above the plot
             loc='upper center',
             ncol=7,            # One column per model
             frameon=True,
             edgecolor='black',
             facecolor='white',
+            fontsize=12
         )
         plt.tight_layout()
-        fig.subplots_adjust(top=0.83)  # Lower this value to reduce top margin
+        # plt.subplots_adjust(top=0.83)  # Lower this value to reduce top margin
         plt.savefig(f'ml_{combo_name}_analysis.png', dpi=300, bbox_inches='tight')
         # plt.show()
         plt.close()
@@ -161,7 +162,7 @@ class MLResultsAnalyzer:
         # Formatting
         ax.set_xlabel('Game')
         ax.set_ylabel(f'{metric}')
-        ax.set_title('Model Performance', pad=10)
+        # ax.set_title('Model Performance', pad=10)
         ax.set_xticks(x)
         ax.set_facecolor('white')
                 # Add black border to all sides of the plot

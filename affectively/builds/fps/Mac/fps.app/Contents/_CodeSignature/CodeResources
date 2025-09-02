@@ -4,13 +4,21 @@
 <dict>
 	<key>files</key>
 	<dict>
+		<key>Resources/Data/Managed/Assembly-CSharp-firstpass.dll</key>
+		<data>
+		hNrgfLSoTQkqXY0k99Gi3n6OnvM=
+		</data>
+		<key>Resources/Data/Managed/Assembly-CSharp-firstpass.pdb</key>
+		<data>
+		pCASyZof8u7gfL9WS+C9F7+S7jw=
+		</data>
 		<key>Resources/Data/Managed/Assembly-CSharp.dll</key>
 		<data>
-		oieS0zACd7q/yP+Z3vKmfM++CoI=
+		DxygIJA3BJ6a7492QmkaVeXxf9Y=
 		</data>
 		<key>Resources/Data/Managed/Assembly-CSharp.pdb</key>
 		<data>
-		0wZISzamqHzhws7z18DfIozU6Ks=
+		ycnSdvvDvtrxsVx5cyu8U5qRk0w=
 		</data>
 		<key>Resources/Data/Managed/Cinemachine.dll</key>
 		<data>
@@ -59,6 +67,38 @@
 		<key>Resources/Data/Managed/Purchasing.Common.pdb</key>
 		<data>
 		UorEEgoQUVASwQLuY0cuzaXAwmo=
+		</data>
+		<key>Resources/Data/Managed/Sirenix.OdinInspector.Attributes.dll</key>
+		<data>
+		1A1x/HvQuuL6sdopLq/TxkISdX0=
+		</data>
+		<key>Resources/Data/Managed/Sirenix.OdinInspector.Attributes.pdb</key>
+		<data>
+		uYbNHHqHPnMyDzd11x1ceOZ14II=
+		</data>
+		<key>Resources/Data/Managed/Sirenix.Serialization.Config.dll</key>
+		<data>
+		DvBEcD06ab8EmEOMNqLWA87TeuQ=
+		</data>
+		<key>Resources/Data/Managed/Sirenix.Serialization.Config.pdb</key>
+		<data>
+		aa8Doom3Ru9729zH369Shd/ZrP0=
+		</data>
+		<key>Resources/Data/Managed/Sirenix.Serialization.dll</key>
+		<data>
+		jLckFr88cwHFzXdt0TwWxgyUcVI=
+		</data>
+		<key>Resources/Data/Managed/Sirenix.Serialization.pdb</key>
+		<data>
+		kAkmih8vbR2OsgvimiFpxzX0KO4=
+		</data>
+		<key>Resources/Data/Managed/Sirenix.Utilities.dll</key>
+		<data>
+		qc3pjJcJeO7/62YBS26drqghYu4=
+		</data>
+		<key>Resources/Data/Managed/Sirenix.Utilities.pdb</key>
+		<data>
+		tzdHEVRFOHYwpsmapbhCeYMOCC8=
 		</data>
 		<key>Resources/Data/Managed/System.ComponentModel.Composition.dll</key>
 		<data>
@@ -1106,11 +1146,11 @@
 		</data>
 		<key>Resources/Data/boot.config</key>
 		<data>
-		QPsr5kPVxo73SAD3/GVS01h6nKg=
+		lEbv9qRpJojApuVn5FNHtgINtdI=
 		</data>
 		<key>Resources/Data/data.unity3d</key>
 		<data>
-		CNSufyGTnZSfE0EapuE7fmfLnBA=
+		5qV1mZcUF7d/kA0LYzdYv/beR7g=
 		</data>
 		<key>Resources/Data/resources.resource</key>
 		<data>
@@ -1187,7 +1227,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			8Savq0b4pyMDGl2nE1PdKQgarNK2pr177Zl1q9w4KJw=
+			X+fIs97mP0uV4BVGqYs4W8sQDFfz8heh6xKZi4BeSHk=
 			</data>
 		</dict>
 		<key>MonoBleedingEdge/etc/mono/2.0/Browsers/Compat.browser</key>
@@ -1343,18 +1383,32 @@
 			<key>requirement</key>
 			<string>cdhash H"020484534a105c689660aa48e1b136ce534673c8" or cdhash H"ced4d34a7abbe91f388a7192eccc0623fffac9c5"</string>
 		</dict>
+		<key>Resources/Data/Managed/Assembly-CSharp-firstpass.dll</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			6fEE5EE08GNBvduxO79Ea3j8h8pp07ObuwzXlAShMSg=
+			</data>
+		</dict>
+		<key>Resources/Data/Managed/Assembly-CSharp-firstpass.pdb</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			DjkbYxG4mO9JfOXasfEqGXKI10an+ZFFBjSGfT8KvqA=
+			</data>
+		</dict>
 		<key>Resources/Data/Managed/Assembly-CSharp.dll</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			uLrQEqeuhbtpiJ6ckXPjv1WEMudTWWHqDN2pq2H51Kg=
+			NfbwVdootplpW9Eikl4hitn68EQwNy5kJR3SKf4IjZs=
 			</data>
 		</dict>
 		<key>Resources/Data/Managed/Assembly-CSharp.pdb</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			EJ08cXzKukkoiYL+wy2cbpGRhWzTyug1tvfyslzT5jY=
+			oJGqLL6Iv6rN3wTNvvnSHt4d9exvppaqRQJArPPbg2M=
 			</data>
 		</dict>
 		<key>Resources/Data/Managed/Cinemachine.dll</key>
@@ -1439,6 +1493,62 @@
 			<key>hash2</key>
 			<data>
 			SnrQyjCmeJV3CuqSidRhgJ2R9pgTfV7pUjn30uI4hKY=
+			</data>
+		</dict>
+		<key>Resources/Data/Managed/Sirenix.OdinInspector.Attributes.dll</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			gfu3oJqUuMaEGxnDy6cCOnN+95evJbHMbb4Ghua7ap4=
+			</data>
+		</dict>
+		<key>Resources/Data/Managed/Sirenix.OdinInspector.Attributes.pdb</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			IMR80IQUXrF5KZvvpfI5t0TsyXKd8pf+BukImz/MtIQ=
+			</data>
+		</dict>
+		<key>Resources/Data/Managed/Sirenix.Serialization.Config.dll</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			NqrClKzZpXJsQLoI9+ezDZnEjew3NEMFLqhRiMqSvAs=
+			</data>
+		</dict>
+		<key>Resources/Data/Managed/Sirenix.Serialization.Config.pdb</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			lpkxLWWFQR3/BXWV+xpxLUYhvvbq1BmAiOYK+zsXINk=
+			</data>
+		</dict>
+		<key>Resources/Data/Managed/Sirenix.Serialization.dll</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			IGpC6OwaQDEcPmNi1nHZJQofCbo1of+XjrqniBsDmlw=
+			</data>
+		</dict>
+		<key>Resources/Data/Managed/Sirenix.Serialization.pdb</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			uuRlnmBPVCoD68jWbTGsoj+xjR1cid80xpm0LRQtwLQ=
+			</data>
+		</dict>
+		<key>Resources/Data/Managed/Sirenix.Utilities.dll</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			GQLeAboh0+7D4WuYlnxeF3NL0AGoVQVxEIUSwyKkR/A=
+			</data>
+		</dict>
+		<key>Resources/Data/Managed/Sirenix.Utilities.pdb</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			1+LzhjH6IVHO+Fr4Rorcsan409qtw6+T8pgwuvV/RHs=
 			</data>
 		</dict>
 		<key>Resources/Data/Managed/System.ComponentModel.Composition.dll</key>
@@ -3272,14 +3382,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			8+FwuP7Aa1hRFHn+r4y867ZkVvS9qU921shSn0B37ZA=
+			ha8IoKWrANAMQdGw8ueFyRgrY0hAzjmJJxxeUd0IfYA=
 			</data>
 		</dict>
 		<key>Resources/Data/data.unity3d</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			65xi48LaCHkxJnYQ8NdsYEFzN3+9csGNgxBujK3kJjQ=
+			4BoWibo8OzpCPTnEX9q5n14NJdeS66CotgxHRB+6Tlg=
 			</data>
 		</dict>
 		<key>Resources/Data/resources.resource</key>

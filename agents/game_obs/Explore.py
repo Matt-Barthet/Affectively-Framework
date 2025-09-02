@@ -6,7 +6,7 @@ import copy
 import numpy as np
 from tensorboardX import SummaryWriter
 
-from affectively_environments.utils.logging import TensorboardGoExplore
+from affectively.utils.logging import TensorboardGoExplore
 
 
 hashmap = {}
