@@ -13,9 +13,9 @@ use_gpu: 0
 headless: 1
 
 # Specific game and agent parameters for this run
-weight: 0.5
+weight: 0
 cluster: 0
-target_arousal: 0
+target_arousal: 1
 classifier: 0
 preference: 1
 
