@@ -70,7 +70,7 @@ if __name__ == "__main__":
     
     results = []
     
-    for classifier in [False, True]:
+    for classifier in [False, ]:
         for pref in [True, False]:
             for game in ['solid', 'fps', 'platform']:
                 pref_suff = 'preferences' if pref else ''
@@ -78,7 +78,7 @@ if __name__ == "__main__":
                 os.makedirs(f'./affectively/models/{game}/{classifier_suff}/Linear/', exist_ok=True)
 
                 for cluster in [0, 1, 2, 3, 4]:
-                    print(f"\nTraining RF for game={game}, cluster={cluster}, classifier={classifier}, preference={pref}")
+                    print(f"\nTraining LM for game={game}, cluster={cluster}, classifier={classifier}, preference={pref}")
                     model = LinearSurrogateModel(game=game, cluster=cluster, classifier=classifier, preference=pref)
                     
                     if model.test_result is not None:

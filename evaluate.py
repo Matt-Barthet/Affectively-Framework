@@ -1,8 +1,8 @@
 import numpy as np
 from stable_baselines3 import PPO
 
-from affectively_environments.envs.base import compute_confidence_interval
-from affectively_environments.envs.solid_game_obs import SolidEnvironmentGameObs
+from affectively.environments.base import compute_confidence_interval
+from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
 
 if __name__ == "__main__":
 

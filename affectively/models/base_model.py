@@ -26,7 +26,7 @@ class AbstractSurrogateModel(ABC):
         self.data, self.x_train, self.y_train = None, None, None
         self.output_size = 2 if self.preference and self.classifier else 3
         self.load_data()
-        
+
         self.load_model()
         
         if len(self.models) == 0:
@@ -107,9 +107,27 @@ class AbstractSurrogateModel(ABC):
         if self.preference and self.classifier:
             arousals = self.data['[output]ranking'].values
             self.data = self.data.drop(columns=['[output]ranking', '[output]delta'])
+
+
         elif self.preference and not self.classifier:
             arousals = self.data['[output]delta'].values
+
+            data_copy = self.data.copy()
+
+            for player in self.players.unique():
+                player_mask = data_copy['[control]player_id'] == player
+                player_arousals = data_copy.loc[player_mask, '[output]delta'].values
+
+                # Normalize arousal values using MinMaxScaler
+                scaler = MinMaxScaler()
+                scaled_arousals = scaler.fit_transform(player_arousals.reshape(-1, 1)).flatten()
+
+                # Store normalized values back
+                data_copy.loc[player_mask, '[output]delta'] = scaled_arousals
+
+            arousals = data_copy['[output]delta'].values
             self.data = self.data.drop(columns=['[output]ranking', '[output]delta'])
+
         elif not self.preference:
             # Work on a copy to normalize per player
             data_copy = self.data.copy()
@@ -143,9 +161,12 @@ class AbstractSurrogateModel(ABC):
                         valid_indices.append(i)
                     # Ignore ambiguous values (in between)
 
-            # Keep only rows with confident labels
-            self.data = data_copy.loc[valid_indices].reset_index(drop=True)
-            arousals = np.array(arousal_labels)
+            if self.classifier:
+                # Keep only rows with confident labels
+                self.data = data_copy.loc[valid_indices].reset_index(drop=True)
+                arousals = np.array(arousal_labels)
+            else:
+                arousals = data_copy['[output]arousal'].values
 
             self.data = self.data.drop(columns=['[output]arousal'])
 
@@ -156,8 +177,9 @@ class AbstractSurrogateModel(ABC):
         self.columns = self.data.columns.tolist()
         if self.preference:
             self.surrogate_length = int(self.surrogate_length / 2)
-        self.arousals = arousals
 
+        self.arousals = arousals
+        print(np.min(self.arousals), np.max(self.arousals))
     
     def load_model(self):
         counter = 0
@@ -186,7 +208,7 @@ class AbstractSurrogateModel(ABC):
     
 
     def save_models(self):
-        os.makedirs(f"affectively/models/{self.game}", exist_ok=True)
+        os.makedirs(f"affectively/models/{self.game}/", exist_ok=True)
         for i in range(len(self.models)):
             self._save_single_model(self.models[i], self.scalers[i], i)
     
@@ -209,7 +231,7 @@ class AbstractSurrogateModel(ABC):
                 fold_predictions.append(prediction)
             
             fold_predictions = np.array(fold_predictions)
-            
+
             if self.classifier:
                 fold_predictions = np.asarray(fold_predictions, dtype=int)
                 accuracy = (fold_predictions == y_val).sum() / len(y_val)
@@ -260,8 +282,7 @@ class AbstractSurrogateModel(ABC):
         
         print(f"Testing {len(param_combinations)} hyperparameter combinations...")
         
-        best_score = float('inf') if not self.classifier else -float('inf')
-        
+        best_score = -float('inf')
         for i, params in enumerate(param_combinations):
             param_dict = dict(zip(param_names, params))
             print(f"  Testing combination {i+1}/{len(param_combinations)}...")
@@ -279,7 +300,6 @@ class AbstractSurrogateModel(ABC):
                 x_val = scaler.transform(x_val)
                 
                 score, model = self._train_single_model(x_train, y_train, x_val, y_val, **param_dict)
-                
                 if score is None:
                     break
                 
@@ -292,7 +312,7 @@ class AbstractSurrogateModel(ABC):
             
             avg_score = np.mean(cv_scores)
             
-            if (not self.classifier and avg_score < best_score) or (self.classifier and avg_score > best_score):
+            if avg_score > best_score:
                 best_score = avg_score
                 self.best_params = param_dict
                 self.models = models.copy()
