@@ -1,11 +1,11 @@
-from base_model import AbstractSurrogateModel
+from affectively.models.base_model import AbstractSurrogateModel
 import torch
 from torch import nn
 from torch.optim import Adam
 import numpy as np
 import pickle
 import copy
-from models import Classifier, Regressor
+from affectively.models.models import Classifier, Regressor
 
 
 class MLPSurrogateModel(AbstractSurrogateModel):
@@ -16,7 +16,7 @@ class MLPSurrogateModel(AbstractSurrogateModel):
     def _setup_paths(self):
         classifier_suff = 'classifier' if self.classifier else 'regressor'
         pref_suff = 'preferences' if self.preference else ''
-        self.model_path = f'./affectively/models/{self.game}/{classifier_suff}/MLP/best_model_{game}_cluster_{self.cluster}_{classifier_suff}_{pref_suff}.pth'
+        self.model_path = f'./affectively/models/{self.game}/{classifier_suff}/MLP/best_model_{self.game}_cluster_{self.cluster}_{classifier_suff}_{pref_suff}.pth'
         self.model_extension = '.pth'
     
     def _create_model(self, input_size, hidden_size, dropout_rate):

@@ -26,7 +26,7 @@ class AbstractSurrogateModel(ABC):
         self.data, self.x_train, self.y_train = None, None, None
         self.output_size = 2 if self.preference and self.classifier else 3
         self.load_data()
-        
+
         self.load_model()
         
         if len(self.models) == 0:
@@ -123,9 +123,9 @@ class AbstractSurrogateModel(ABC):
                 scaled_arousals = scaler.fit_transform(player_arousals.reshape(-1, 1)).flatten()
 
                 # Store normalized values back
-                data_copy.loc[player_mask, '[output]arousal'] = scaled_arousals
+                data_copy.loc[player_mask, '[output]delta'] = scaled_arousals
 
-            
+            arousals = data_copy['[output]delta'].values
             self.data = self.data.drop(columns=['[output]ranking', '[output]delta'])
 
         elif not self.preference:
@@ -166,7 +166,7 @@ class AbstractSurrogateModel(ABC):
                 self.data = data_copy.loc[valid_indices].reset_index(drop=True)
                 arousals = np.array(arousal_labels)
             else:
-                arousals = self.data['[output]arousal'].values
+                arousals = data_copy['[output]arousal'].values
 
             self.data = self.data.drop(columns=['[output]arousal'])
 
@@ -177,8 +177,9 @@ class AbstractSurrogateModel(ABC):
         self.columns = self.data.columns.tolist()
         if self.preference:
             self.surrogate_length = int(self.surrogate_length / 2)
-        self.arousals = arousals
 
+        self.arousals = arousals
+        print(np.min(self.arousals), np.max(self.arousals))
     
     def load_model(self):
         counter = 0
@@ -230,7 +231,7 @@ class AbstractSurrogateModel(ABC):
                 fold_predictions.append(prediction)
             
             fold_predictions = np.array(fold_predictions)
-            
+
             if self.classifier:
                 fold_predictions = np.asarray(fold_predictions, dtype=int)
                 accuracy = (fold_predictions == y_val).sum() / len(y_val)
@@ -281,7 +282,6 @@ class AbstractSurrogateModel(ABC):
         
         print(f"Testing {len(param_combinations)} hyperparameter combinations...")
         
-        # best_score = float('inf') if not self.classifier else -float('inf')
         best_score = -float('inf')
         for i, params in enumerate(param_combinations):
             param_dict = dict(zip(param_names, params))

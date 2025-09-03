@@ -10,6 +10,8 @@ from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.side_channel import OutgoingMessage
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
 from scipy import stats
+
+from affectively.models.mlp_model import MLPSurrogateModel
 from affectively.utils.sidechannels import AffectivelySideChannel
 from affectively.models.linear_model import LinearSurrogateModel
 
