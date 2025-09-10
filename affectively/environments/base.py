@@ -10,12 +10,13 @@ from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.side_channel import OutgoingMessage
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
 from scipy import stats
+
+from affectively.models.mlp_model import MLPSurrogateModel
 from affectively.utils.sidechannels import AffectivelySideChannel
 from affectively.models.linear_model import LinearSurrogateModel
 
 
-def compute_confidence_interval(data,
-                                confidence: float = 0.95):
+def compute_confidence_interval(data, confidence: float = 0.95):
     data = np.array(data)
     mean = np.mean(data)
     sem = stats.sem(data)
@@ -128,6 +129,11 @@ class BaseEnvironment(gym.Env, ABC):
         return state
 
     def reward_behavior(self):
+        """
+        Behavior reward component: optimize behavior and update reward statistics.
+        Assign behavior reward if the environment score increases.
+        Zero rewards otherwise.
+        """
         r_b = 1 if self.score_change else 0
         self.behavior_ticks += 1 if self.score_change else 0
         self.score_change = False
@@ -137,7 +143,11 @@ class BaseEnvironment(gym.Env, ABC):
 
 
     def reward_affect(self):
-        # Reward similarity of mean arousal this period to target arousal (0 = minimize, 1 = maximize)
+        """
+        Affect reward component: optimize behavior and update reward statistics.
+        If environment is in classifier mode, reward based on predicting correct target label.
+        If environment is in regression mode, reward using Mean Squared Error to target value.
+        """
         mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0 # Arousal range [0, 1]
 
         if self.classifier:
@@ -153,6 +163,14 @@ class BaseEnvironment(gym.Env, ABC):
 
 
     def generate_arousal(self):
+        """
+        Generate an arousal value for the previous time window using the following process:
+        1) Take the list of surrogate vectors for this time window and stack them vertically.
+        2) Calculate the mean of each element and normalize using the loaded minmax scaler.
+        3) If the environment is in preference mode, concatenate current mean vector with the last time window's vector.
+        4) Create a tensor with the vector and pass it through the arousal model.
+        Returns: arousal value between 0 and 1.
+        """
         arousal = 0
         stacked_surrogates = np.asarray(self.surrogate_list)
         stacked_surrogates = np.stack(stacked_surrogates, axis=-1) # stack the surrogates vertically

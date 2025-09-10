@@ -24,19 +24,3 @@ If on MacOS (Tested on an Apple Silicon machine)
 ```
 pip install stable_baselines3==1.8.0 sb3_contrib==1.8.0 --no-deps
 ```
-
-## Documentation
-A "nice" documentation of the project is available in `docs\build\html\index.html`.
-
-You can rebuild the documentation by first making sure you have `sphinx` installed:
-```bash
-pip install -r docs\requirements.txt
-```
-Then simply run
-```bash
-sh build_docs.sh
-```
-to update the `index.html` page.
-
-## Check out examples
-_TODO :)_
