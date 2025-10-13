@@ -3,7 +3,7 @@
 # General experiment settings
 runs: 5
 output_dir: "./results/"
-game: "solid"
+game: "platform"
 algorithm: "PPO"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
