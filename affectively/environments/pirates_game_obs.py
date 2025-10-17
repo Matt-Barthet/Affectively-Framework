@@ -10,9 +10,10 @@ class PiratesEnvironmentGameObs(PiratesEnvironment):
         self.gridHeight = 11
         self.elementSize = 1
         super().__init__(id_number=id_number, graphics=graphics, 
-                         obs={"low": -np.inf, "high": np.inf, "shape": (386,), "type": np.float32},
+                         obs={"low": -np.inf, "high": np.inf, "shape": (582,), "type": np.float32},
                          weight=weight, frame_buffer=False, cluster=cluster,
-                         period_ra=period_ra, target_arousal=target_arousal, classifier=classifier, preference=preference)
+                         period_ra=period_ra, target_arousal=target_arousal, classifier=classifier, preference=preference,
+                         args=['gridWidth', f"{self.gridWidth}", '-gridHeight', f"{self.gridHeight}"])
 
     def construct_state(self, state):
         grid = state[0]

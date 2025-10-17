@@ -16,7 +16,7 @@ headless: 1
 weight: 1
 cluster: 0
 target_arousal: 1
-classifier: 0
+classifier: 1
 preference: 1
 
 # Specific algorithm parameters
