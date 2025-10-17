@@ -107,7 +107,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.classifier = classifier
         self.surrogate_length = self.model.surrogate_length
         self.callback = None
-        self.create_and_send_message("[Save States]:Seed")
+        # self.create_and_send_message("[Save States]:Seed")
 
     def reset(self, **kwargs):
         if self.callback is not None and len(self.episode_arousal_trace) > 0:
