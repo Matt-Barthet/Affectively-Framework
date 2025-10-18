@@ -135,7 +135,7 @@ if __name__ == "__main__":
         label = 'optimize' if args.weight == 0 else 'arousal' if args.weight == 1 else 'blended'
         callbacks = ProgressBarCallback()
 
-        model.learn(total_timesteps=10_000_000, callback=callbacks, reset_num_timesteps=False)
+        model.learn(total_timesteps=5_000_000, callback=callbacks, reset_num_timesteps=False)
         model.save(f"{experiment_name}.zip")
         print(f"Finished run {run}")
         env.env.close()

@@ -4,7 +4,7 @@ from affectively.environments.pirates import PiratesEnvironment
 
 class PiratesEnvironmentCV(PiratesEnvironment):
 
-    def __init__(self, id_number, weight, grayscale, cluster, classifier=True, preference=True):
+    def __init__(self, id_number, weight, grayscale, cluster, target_arousal, period_ra, classifier=True, preference=True, ):
         self.width, self.height, self.stackNo = 128, 96, 1
         self.grayscale = grayscale
         if grayscale:
@@ -14,7 +14,8 @@ class PiratesEnvironmentCV(PiratesEnvironment):
         args = ['-bufferWidth', f"{self.width}", "-bufferHeight", f"{self.height}", "-useGrayscale", f"{grayscale}"]
         super().__init__(id_number=id_number, graphics=True,
                          obs={"low": 0, "high": 255, "shape": shape, "type": np.uint8},
-                         weight=weight, frame_buffer=True, args=args, cluster=cluster, classifier=classifier, preference=preference)
+                         weight=weight, frame_buffer=True, args=args, cluster=cluster, classifier=classifier, preference=preference,
+                         target_arousal=target_arousal, period_ra=period_ra)
         self.frame_buffer = []
 
     def construct_state(self, state) -> np.ndarray:
