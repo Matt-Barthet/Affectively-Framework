@@ -14,7 +14,6 @@ class PiratesEnvironment(BaseEnvironment):
         if self.customSideChannel.levelEnd:
             self.handle_level_end()
         if self.episode_length > 600:
-            self.episode_length = 0
             self.reset()
 
     def reset(self, **kwargs):

@@ -11,7 +11,6 @@ from mlagents_envs.side_channel import OutgoingMessage
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
 from scipy import stats
 
-from affectively.models.mlp_model import MLPSurrogateModel
 from affectively.utils.sidechannels import AffectivelySideChannel
 from affectively.models.linear_model import LinearSurrogateModel
 
@@ -82,17 +81,12 @@ class BaseEnvironment(gym.Env, ABC):
         self.current_score, self.current_reward, self.cumulative_reward = 0, 0, 0
         self.best_reward, self.best_score, self.best_cumulative_reward = 0, 0, 0
 
-        self.previous_score = 0
-
         self.episode_length = 0
         self.weight = weight
 
         self.save_digit, self.vector_digit, self.cell_name_digit = 0, 0, 0
-
         self.current_score, self.previous_score, = 0, 0
-        self.best_rb, self.cumulative_rb = 0, 0
-        self.best_ra, self.cumulative_ra = 0, 0
-        self.best_rl, self.cumulative_rl = 0, 0
+        self.cumulative_ra, self.cumulative_rb, self.cumulative_rl = 0, 0, 0
 
         self.surrogate_list = []
         self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
@@ -107,11 +101,12 @@ class BaseEnvironment(gym.Env, ABC):
         self.classifier = classifier
         self.surrogate_length = self.model.surrogate_length
         self.callback = None
-        # self.create_and_send_message("[Save States]:Seed")
 
     def reset(self, **kwargs):
+
         if self.callback is not None and len(self.episode_arousal_trace) > 0:
             self.callback.on_episode_end()
+
         state = self.env.reset()
         for modality in range(len(state)):
             if len(np.asarray(state[modality]).shape) == 1:
@@ -119,8 +114,10 @@ class BaseEnvironment(gym.Env, ABC):
                 arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
                 state[modality] = np.concatenate((state[modality], arousal_window))
                 break
+
         self.cumulative_ra, self.cumulative_rb, self.cumulative_rl = 0, 0, 0
         self.current_score, self.previous_score = 0, 0
+        self.score_change = False
         self.episode_length, self.arousal_episode_length = 0, 0
         self.behavior_ticks = 0
         self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
@@ -137,8 +134,8 @@ class BaseEnvironment(gym.Env, ABC):
         r_b = 1 if self.score_change else 0
         self.behavior_ticks += 1 if self.score_change else 0
         self.score_change = False
-        self.best_rb = np.max([r_b, self.best_rb])
         self.cumulative_rb += r_b
+        print(f"Behavior rewarded, cumulative reward: {self.cumulative_rb}")
         return r_b
 
 
@@ -148,15 +145,13 @@ class BaseEnvironment(gym.Env, ABC):
         If environment is in classifier mode, reward based on predicting correct target label.
         If environment is in regression mode, reward using Mean Squared Error to target value.
         """
-        mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0 # Arousal range [0, 1]
-
+        mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0
         if self.classifier:
             mean_arousal_label = 0 if mean_arousal < 0.5 else 1
             r_a = 1 if mean_arousal_label == self.target_arousal else 0 # Binary classification
         else:
-            r_a = (1 - np.abs(self.target_arousal - mean_arousal))**2 # MSE for regression tasks
+            r_a = (1 - np.abs(self.target_arousal - mean_arousal))**2 # MSE for regression tasks - Inverted to reward proximity
 
-        self.best_ra = np.max([self.best_ra, r_a])
         self.cumulative_ra += r_a
         self.period_arousal_trace.clear()
         return r_a
@@ -188,7 +183,7 @@ class BaseEnvironment(gym.Env, ABC):
 
             tensor= np.nan_to_num(torch.tensor(tensor), nan=0)
             arousal = self.model(tensor)
-            # print(arousal)
+
             if not np.isnan(arousal) and 0 <= arousal <= 1:
                 self.episode_arousal_trace.append(arousal)
                 self.period_arousal_trace.append(arousal)
@@ -223,19 +218,18 @@ class BaseEnvironment(gym.Env, ABC):
             self.generate_arousal()
             self.arousal_episode_length = 0
             self.surrogate_list.clear()
+
         final_reward = 0
 
         if self.period_ra and (len(self.episode_arousal_trace) > 0):
-            print("assigning reward asynchronously!")
+            # print("assigning reward asynchronously!")
             final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
 
         elif not self.period_ra and self.score_change:
-            print("assigning reward synchronously based on score change!")
+            # print("assigning reward synchronously based on score change!")
             final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
 
-
         self.cumulative_rl += final_reward
-        self.best_rl = np.max([self.best_rl, final_reward])
         return state, final_reward, done, info
 
     def handle_level_end(self):

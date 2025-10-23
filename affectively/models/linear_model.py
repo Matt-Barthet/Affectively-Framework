@@ -70,7 +70,7 @@ if __name__ == "__main__":
     
     results = []
     
-    for classifier in [False, ]:
+    for classifier in [False, True]:
         for pref in [True, False]:
             for game in ['solid', 'fps', 'platform']:
                 pref_suff = 'preferences' if pref else ''
