@@ -22,7 +22,16 @@ class PiratesEnvironment(BaseEnvironment):
         return state
 
     def step(self, action):
-        transformed_action = (action[0] - 1, action[1], 0,)
+
+        save_load = 0
+        # Saving and loading:
+        # To save a state, assign an integer with a negative value.
+        # To load that state, use the same integer with a positive value.
+        # For example:
+        # save_load = -12  # to save state 12
+        # save_load = 12   # to load state 12
+
+        transformed_action = (action[0] - 1, action[1], save_load,)
         state, reward, d, info = super().step(transformed_action)
         state = self.construct_state(state)
         self.reset_condition()
