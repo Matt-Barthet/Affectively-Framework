@@ -9,7 +9,6 @@ Library: /Users/matt/Documents/Pirates-Gym/Temp/BurstOutput/platform.app/Content
 --target-framework=NetFramework
 --generate-link-xml=Temp/burst.link.xml
 --temp-folder=/Users/matt/Documents/Pirates-Gym/Temp/Burst
---debug=LineOnly
 --key-folder=/Applications/Unity/Hub/Editor/2022.3.56f1/Unity.app/Contents/PlaybackEngines/MacStandaloneSupport
 --decode-folder=/Users/matt/Documents/Pirates-Gym/Library/Burst
 --output=/Users/matt/Documents/Pirates-Gym/Temp/BurstOutput/platform.app/Contents/Plugins/lib_burst_generated
@@ -84,7 +83,6 @@ Library: /Users/matt/Documents/Pirates-Gym/Temp/BurstOutput/platform.app/Content
 --float-mode=Fast
 --generate-link-xml=Temp/burst.link.xml
 --temp-folder=/Users/matt/Documents/Pirates-Gym/Temp/Burst
---debug=LineOnly
 --key-folder=/Applications/Unity/Hub/Editor/2022.3.56f1/Unity.app/Contents/PlaybackEngines/MacStandaloneSupport
 --decode-folder=/Users/matt/Documents/Pirates-Gym/Library/Burst
 --output=/Users/matt/Documents/Pirates-Gym/Temp/BurstOutput/platform.app/Contents/Plugins/lib_burst_generated
@@ -134,7 +132,6 @@ Library: /Users/matt/Documents/Pirates-Gym/Temp/BurstOutput/platform.app/Content
 --target-framework=NetFramework
 --generate-link-xml=Temp/burst.link.xml
 --temp-folder=/Users/matt/Documents/Pirates-Gym/Temp/Burst
---debug=LineOnly
 --key-folder=/Applications/Unity/Hub/Editor/2022.3.56f1/Unity.app/Contents/PlaybackEngines/MacStandaloneSupport
 --decode-folder=/Users/matt/Documents/Pirates-Gym/Library/Burst
 --output=/Users/matt/Documents/Pirates-Gym/Temp/BurstOutput/platform.app/Contents/Plugins/lib_burst_generated

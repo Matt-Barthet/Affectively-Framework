@@ -92,6 +92,7 @@ def main():
         cv = config.get("cv")
         grayscale = config.get("grayscale")
         discretize = config.get("discretize")
+        decision_period = config.get("decisionPeriod")
 
         # Construct the command using the parameters from the current file
         command = (
@@ -101,7 +102,7 @@ def main():
             f"--classifier={classifier} --game={game} --periodic_ra={period_ra} --cv={cv} "
             f"--headless={headless} --discretize={discretize if cv == 0 else 0} "
             f"--grayscale={grayscale if cv == 1 else 0} --logdir={output_dir} "
-            f"--algorithm={algorithm} --policy={policy}"
+            f"--algorithm={algorithm} --policy={policy} --decision_period={decision_period}"
         )
 
         # Execute the command based on the operating system

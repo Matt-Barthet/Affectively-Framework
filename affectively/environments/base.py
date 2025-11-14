@@ -13,6 +13,7 @@ from scipy import stats
 
 from affectively.utils.sidechannels import AffectivelySideChannel
 from affectively.models.linear_model import LinearSurrogateModel
+from affectively.models.mlp_model import MLPSurrogateModel
 
 
 def compute_confidence_interval(data, confidence: float = 0.95):
@@ -31,19 +32,24 @@ class BaseEnvironment(gym.Env, ABC):
 	"""
 
     def __init__(self, id_number, graphics, obs_space, weight, game, capture_fps=5, time_scale=1, args=None,
-                 target_arousal=1, cluster=0, period_ra=False, classifier=True, preference=True):
+                 target_arousal=1, cluster=0, period_ra=False, classifier=True, preference=True, decision_period=10):
 
         super(BaseEnvironment, self).__init__()
         if args is None:
             args = []
         socket_id = uuid.uuid4()
 
-        args += [f"-socketID", str(socket_id)]
+        self.decision_period = decision_period
+        args += [f"-socketID", str(socket_id), "-decisionPeriod", str(decision_period)]
 
         self.game_obs = []
         self.game = game
         self.engineConfigChannel = EngineConfigurationChannel()
-        self.engineConfigChannel.set_configuration_parameters(capture_frame_rate=capture_fps, time_scale=time_scale)
+
+        if np.sign(capture_fps) == -1:
+            self.engineConfigChannel.set_configuration_parameters(target_frame_rate=-capture_fps, time_scale=time_scale)
+        else:
+            self.engineConfigChannel.set_configuration_parameters(capture_frame_rate=capture_fps, time_scale=time_scale)
         self.customSideChannel = AffectivelySideChannel(socket_id)
         self.env = self.load_environment(id_number, graphics, args)
 
@@ -214,7 +220,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.surrogate_list.append(surrogate)
         self.current_score = env_score  
 
-        if self.arousal_episode_length % 15 == 0:  # Read the surrogate vector on the 15th tick
+        if self.arousal_episode_length * self.decision_period % 150 == 0:  # Read the surrogate vector on the 15th tick
             self.generate_arousal()
             self.arousal_episode_length = 0
             self.surrogate_list.clear()
@@ -230,6 +236,10 @@ class BaseEnvironment(gym.Env, ABC):
             final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
 
         self.cumulative_rl += final_reward
+
+        if self.episode_length % 10 == 0:
+            self.callback.on_step()
+            
         return state, final_reward, done, info
 
     def handle_level_end(self):

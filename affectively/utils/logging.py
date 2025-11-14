@@ -18,6 +18,187 @@ def backup(log_dir):
             counter += 1
 
 
+import matplotlib.pyplot as plt
+from collections import deque
+import time
+
+class InteractiveDashboard:
+
+    def __init__(self, environment=None, max_len=1000, figsize=(8, 4)):
+
+        self.environment = environment if environment is not None else globals().get("environment", None)
+
+        self.max_len = max_len
+        self.times = deque(maxlen=max_len)
+        self.scores = deque(maxlen=max_len)
+        self.arousals = deque(maxlen=max_len)
+
+        self.fig = None
+        self.ax_score = None
+        self.ax_arousal = None
+        self.line_score = None
+        self.line_arousal = None
+        self.cluster_score = None
+        self.cluster_arousal = None
+        self.last_draw = 0.0
+        self.figsize = figsize
+
+        try:
+            plt.ion()
+        except Exception:
+            pass
+
+        self._local_step = 0
+
+    def _get_current_score(self):
+        env = self.environment
+        if env is None:
+            return None
+
+        if hasattr(env, "current_score"):
+            return getattr(env, "current_score")
+
+        for attr in ("score", "get_score", "reward"):
+            if hasattr(env, attr):
+                val = getattr(env, attr)
+                return val() if callable(val) else val
+        return None
+
+    def _get_current_arousal(self):
+        env = self.environment
+        if env is None:
+            return None
+
+        if hasattr(env, "current_arousal"):
+            return getattr(env, "current_arousal")
+
+        for trace_name in ("episode_arousal_trace", "arousal_trace", "arousal_history", "arousal"):
+            if hasattr(env, trace_name):
+                trace = getattr(env, trace_name)
+                try:
+
+                    if len(trace) > 0:
+                        return trace[-1]
+                except Exception:
+
+                    return trace
+
+        if hasattr(env, "cumulative_ra") and hasattr(env, "behavior_ticks") and env.behavior_ticks:
+            return env.cumulative_ra / float(env.behavior_ticks)
+        return None
+
+    def _ensure_fig(self):
+        if self.fig is not None:
+            return
+
+        self.fig, (self.ax_score, self.ax_arousal) = plt.subplots(
+            2, 1, figsize=self.figsize, sharex=True, gridspec_kw={"height_ratios": (1, 1.2)}
+        )
+
+        try:
+            manager = plt.get_current_fig_manager()
+            manager.set_window_title("Interactive Dashboard")
+        except Exception:
+            pass
+
+        self.ax_arousal.set_ylim([0, 1])
+        self.ax_score.set_ylabel("Env score")
+        self.ax_score.grid(True, linestyle=':', linewidth=0.5)
+        self.ax_arousal.set_ylabel("Arousal")
+        self.ax_arousal.set_xlabel("Time / steps")
+        self.ax_arousal.grid(True, linestyle=':', linewidth=0.5)
+
+        (self.line_score,) = self.ax_score.plot([], [], linestyle='-', marker=None, linewidth=2.0, label="You")
+        (self.line_arousal,) = self.ax_arousal.plot([], [], linestyle='-', marker=None, linewidth=2.0, label="You")
+
+        (self.cluster_score, )= self.ax_score.plot([], [], linestyle='-', marker=None, linewidth=2.0, color='orange', label="Experts")
+        (self.cluster_arousal, )= self.ax_arousal.plot([], [], linestyle='-', marker=None, linewidth=2.0, color='orange', label="Experts")
+        self.ax_score.legend(loc='upper left')
+        self.fig.tight_layout()
+
+        try:
+            self.fig.canvas.draw()
+            self.fig.canvas.flush_events()
+        except Exception:
+            pass
+
+
+    def on_step(self):
+        if self.environment is None:
+            self.environment = globals().get("environment", None)
+
+        score = self._get_current_score()
+        arousal = self._get_current_arousal()
+
+        t = None
+        if hasattr(self.environment, "step_count"):
+            try:
+                t = int(getattr(self.environment, "step_count"))
+            except Exception:
+                t = None
+        if t is None and hasattr(self.environment, "tick"):
+            try:
+                t = int(getattr(self.environment, "tick"))
+            except Exception:
+                t = None
+        if t is None:
+            self._local_step += 1
+            t = self._local_step
+
+        self.times.append(t)
+        self.scores.append(np.nan if score is None else score)
+        self.arousals.append(np.nan if arousal is None else arousal)
+
+        self._ensure_fig()
+
+        xs = list(self.times)
+        ys_score = list(self.scores)
+        ys_arousal = list(self.arousals)
+
+        try:
+            self.line_score.set_data(xs, ys_score)
+            self.line_arousal.set_data(xs, ys_arousal)
+
+            self.cluster_score.set_data(xs, self.environment.model.cluster_score[:len(xs)])
+            self.cluster_arousal.set_data(xs, self.environment.model.cluster_arousal[:len(xs)])
+
+            if xs:
+                xmin, xmax = min(xs), max(xs)
+                xpad = max(1, int((xmax - xmin) * 0.02))
+                self.ax_score.set_xlim(xmin - xpad, xmax + xpad)
+                self.ax_arousal.set_xlim(xmin - xpad, xmax + xpad)
+
+            if any([not np.isnan(v) for v in ys_score]):
+                ymin = 0
+                ymax = np.nanmax(np.concatenate([ys_score, self.environment.model.cluster_score[:len(xs)]]))
+                if ymin == ymax:
+                    ymin = 0
+                    ymax = 1
+                ypad = (ymax - ymin) * 0.05
+                self.ax_score.set_ylim(ymin - ypad, ymax + ypad)
+
+            if any([not np.isnan(v) for v in ys_arousal]):
+                ymin = 0
+                ymax = 1
+                ypad = (ymax - ymin) * 0.05
+                self.ax_arousal.set_ylim(ymin - ypad, ymax + ypad)
+
+            now = time.time()
+            self.fig.canvas.draw()
+            try:
+                self.fig.canvas.flush_events()
+            except Exception:
+                plt.pause(0.001)
+            self.last_draw = now
+        except Exception:
+            try:
+                self.fig = None
+                self._ensure_fig()
+            except Exception:
+                pass
+
+
+
 class TensorBoardCallback:
 
     def __init__(self, log_dir, environment, model):

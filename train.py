@@ -34,6 +34,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_gpu", required=True, help="Use device GPU for models", type=int)
     parser.add_argument("--classifier", required=True, help="Use classifier model and reward for training", type=int)
     parser.add_argument("--preference", required=False, help="Use preference model for training", type=int)
+    parser.add_argument("--decision_period", required=False, help="Decision period for environments", type=int, default=10)
     args = parser.parse_args()
 
     if args.use_gpu == 1:
@@ -69,6 +70,7 @@ if __name__ == "__main__":
                     discretize=args.discretize,
                     classifier=args.classifier,
                     preference=args.preference,
+                    decision_period=args.decision_period,
                 )
             elif args.game == "solid":
                 env = SolidEnvironmentGameObs(
@@ -81,6 +83,7 @@ if __name__ == "__main__":
                     discretize=args.discretize,
                     classifier=args.classifier,
                     preference=args.preference,
+                    decision_period=args.decision_period,
                 )
             elif args.game == "platform":
                 env = PiratesEnvironmentGameObs(
@@ -92,7 +95,8 @@ if __name__ == "__main__":
                     period_ra=args.periodic_ra,
                     discretize=args.discretize,
                     classifier=args.classifier,
-                    preference=args.preference,
+                    preference=args.preference,                    
+                    decision_period=args.decision_period,
                 )
         elif args.cv == 1:  # CV builds cannot run in headless mode - the unity renderer must be switched on to produce frames.
             if args.game == "fps":
@@ -105,6 +109,7 @@ if __name__ == "__main__":
                     grayscale=args.grayscale,
                     classifier=args.classifier,
                     preference=args.preference,
+                    decision_period=args.decision_period,
                 )
             elif args.game == "solid":
                 env = SolidEnvironmentCV(
@@ -116,6 +121,7 @@ if __name__ == "__main__":
                     grayscale=args.grayscale,
                     classifier=args.classifier,
                     preference=args.preference,
+                    decision_period=args.decision_period,
                 )
             elif args.game == "platform":
                 env = PiratesEnvironmentCV(
@@ -127,6 +133,7 @@ if __name__ == "__main__":
                     grayscale=args.grayscale,
                     classifier=args.classifier,
                     preference=args.preference,
+                    decision_period=args.decision_period,
                 )
 
         model = model_class(policy=args.policy, env = env, device=device) # define model for training using pixels here
