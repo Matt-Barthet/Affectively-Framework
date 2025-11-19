@@ -25,6 +25,7 @@ class PiratesEnvironment(BaseEnvironment):
     def step(self, action):
 
         save_load = 0
+        
         # Saving and loading:
         # To save a state, assign an integer with a negative value.
         # To load that state, use the same integer with a positive value.

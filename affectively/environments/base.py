@@ -268,6 +268,7 @@ class BaseEnvironment(gym.Env, ABC):
         else:
             game_suffix = "exe"
         system="Mac" if system == "Darwin" else system
+
         try:
             env = UnityEnvironment(f"./affectively/builds/{self.game}/{system}/{self.game}.{game_suffix}",
                                    side_channels=[self.engineConfigChannel, self.customSideChannel],
