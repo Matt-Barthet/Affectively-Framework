@@ -3,7 +3,7 @@
 # General experiment settings
 runs: 5
 output_dir: "./results/"
-game: "solid"
+game: "fps"
 algorithm: "PPO"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
@@ -24,4 +24,4 @@ periodic_ra: 0
 cv: 0
 grayscale: 0
 discretize: 0
-decisionPeriod: 1
+decisionPeriod: 10

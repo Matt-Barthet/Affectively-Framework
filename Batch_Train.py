@@ -6,7 +6,6 @@ import platform
 import yaml
 import sys
 
-
 # --- Helper function to load the configuration file ---
 def load_config(config_file_path):
     """
@@ -29,6 +28,71 @@ def load_config(config_file_path):
         print(f"Error parsing YAML file '{config_file_path}': {exc}")
         return None
 
+def find_conda_sh():
+    """Locate conda.sh dynamically from the conda binary."""
+    try:
+        # Find where the `conda` executable lives
+        conda_path = subprocess.check_output(["which", "conda"], text=True).strip()
+        if not os.path.exists(conda_path):
+            return None
+
+        # Go two levels up and look for conda.sh
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(conda_path), ".."))
+        candidate = os.path.join(base_dir, "etc", "profile.d", "conda.sh")
+
+        if os.path.exists(candidate):
+            return candidate
+
+        # As a fallback, try searching the base dir
+        for root, dirs, files in os.walk(base_dir):
+            if "conda.sh" in files:
+                return os.path.join(root, "conda.sh")
+
+    except Exception as e:
+        print(f"Error locating conda.sh: {e}")
+        return None
+
+    return None
+
+def get_conda_activation_command(conda_env):
+    system = platform.system()
+
+    if system in ["Linux", "Darwin"]:  # macOS = "Darwin"
+        try:
+            # Find conda binary
+            conda_path = subprocess.check_output(["which", "conda"], text=True).strip()
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(conda_path), ".."))
+            conda_sh = os.path.join(base_dir, "etc", "profile.d", "conda.sh")
+
+            if not os.path.exists(conda_sh):
+                # fallback: search for conda.sh
+                for root, _, files in os.walk(base_dir):
+                    if "conda.sh" in files:
+                        conda_sh = os.path.join(root, "conda.sh")
+                        break
+
+            if not os.path.exists(conda_sh):
+                print("❌ Could not find conda.sh; please verify your Conda installation.")
+                sys.exit(1)
+
+            return f"source {conda_sh} && conda activate {conda_env}"
+
+        except subprocess.CalledProcessError:
+            print("❌ Conda not found on PATH.")
+            sys.exit(1)
+
+    elif system == "Windows":
+        # On Windows, conda.bat handles activation
+        conda_exe = subprocess.check_output(["where", "conda"], text=True).splitlines()[0]
+        conda_bat = os.path.join(os.path.dirname(conda_exe), "conda.bat")
+        if not os.path.exists(conda_bat):
+            print("❌ Could not find conda.bat; please check your Conda installation.")
+            sys.exit(1)
+        return f'call "{conda_bat}" activate {conda_env}'
+
+    else:
+        print(f"Unsupported platform: {system}")
+        sys.exit(1)
 
 # --- Main script logic ---
 def main():
@@ -37,6 +101,16 @@ def main():
     """
     # Define the directory containing the configuration files
     configs_directory = "configs"
+
+    conda_sh = find_conda_sh()
+    if not conda_sh:
+        print("❌ Could not find conda.sh. Please check your conda installation.")
+        sys.exit(1)
+
+    conda_sh = find_conda_sh()
+    if not conda_sh:
+        print("❌ Could not find conda.sh. Please check your conda installation.")
+        sys.exit(1)
 
     # Get current working directory and system info
     cwd = os.getcwd()
@@ -96,7 +170,8 @@ def main():
 
         # Construct the command using the parameters from the current file
         command = (
-            f"cd {cwd} && conda activate {conda_env} && "
+            f"cd {cwd} && "
+            f"source {conda_sh} && conda activate {conda_env} && "
             f"python {script_path} --run={runs} --use_gpu={use_gpu} --weight={weight} "
             f"--cluster={cluster} --target_arousal={target_arousal} --preference={preference} "
             f"--classifier={classifier} --game={game} --periodic_ra={period_ra} --cv={cv} "
@@ -108,18 +183,31 @@ def main():
         # Execute the command based on the operating system
         print(f"Starting run from config file: {config_file_name}")
         if system == "Linux":
-            terminals = ["gnome-terminal", "konsole", "xfce4-terminal", "x-terminal-emulator", "lxterminal",
-                         "mate-terminal"]
+            terminals = ["konsole", "xfce4-terminal", "x-terminal-emulator", "lxterminal",
+                         "mate-terminal", "gnome-terminal", ]
             terminal = next((t for t in terminals if shutil.which(t)), None)
+
+
             if terminal:
-                subprocess.Popen([
-                    terminal,
-                    "--",
-                    "bash", "-c", f"source ~/miniconda3/bin/activate && {command}; exec bash"
-                ])
+                # Some terminals (like GNOME Terminal) use different argument styles
+                if terminal == "gnome-terminal":
+                    subprocess.Popen([
+                        terminal,
+                        "--",  # separates gnome-terminal args from the command
+                        "bash", "-c", f"source {command}; exec bash"
+                    ])
+                elif terminal == "konsole":
+                    subprocess.Popen([
+                        terminal,
+                        "-e", f"bash -c 'source {command}; exec bash'"
+                    ])
+                else:
+                    subprocess.Popen([
+                        terminal,
+                        "-e", f"bash -c 'source {command}; exec bash'"
+                    ])
             else:
-                print("Warning: No supported terminal found. Running command in the current terminal.")
-                subprocess.Popen(["bash", "-c", f"source ~/miniconda3/bin/activate && {command}"])
+                print("No compatible terminal emulator found.")
 
         elif system == "Windows":
             drive, path = os.path.splitdrive(cwd)

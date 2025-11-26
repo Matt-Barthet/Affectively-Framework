@@ -106,30 +106,36 @@ class AbstractSurrogateModel(ABC):
         self.players = self.data['[control]player_id']
         
         scores, arousals = [], []
-        for player in self.players.unique():
-            player_mask = self.data['[control]player_id'] == player
-            player_scores = np.pad(self.data.loc[player_mask, 'playerScore'].values[:40], (0, max(0, 40 - len(self.data.loc[player_mask, 'playerScore'].values))), 'edge')
-            player_arousals = np.pad(self.data.loc[player_mask, '[output]arousal'].values[:40], (0, max(0, 40 - len(self.data.loc[player_mask, '[output]arousal'].values))), 'edge')
-            scores.append(player_scores)
 
-            # Normalize arousal values using MinMaxScaler
-            scaler = MinMaxScaler()
-            scaled_arousals = scaler.fit_transform(player_arousals.reshape(-1, 1)).flatten()
-            arousals.append(scaled_arousals)
-        
-        scores_stacked = np.stack(scores, axis=1)
-        self.cluster_score = np.mean(scores_stacked, axis=1)
+        if not self.preference:
+            for player in self.players.unique():
+                try:
+                    player_mask = self.data['[control]player_id'] == player
+                    player_scores = np.pad(self.data.loc[player_mask, 'playerScore'].values[:40], (0, max(0, 40 - len(self.data.loc[player_mask, 'playerScore'].values))), 'edge')
+                    player_arousals = np.pad(self.data.loc[player_mask, '[output]arousal'].values[:40], (0, max(0, 40 - len(self.data.loc[player_mask, '[output]arousal'].values))), 'edge')
+                    scores.append(player_scores)
 
-        arousals_stacked = np.stack(arousals, axis=1)
-        self.cluster_arousal = np.mean(arousals_stacked, axis=1)
+                    # Normalize arousal values using MinMaxScaler
+                    scaler = MinMaxScaler()
+                    scaled_arousals = scaler.fit_transform(player_arousals.reshape(-1, 1)).flatten()
+                    arousals.append(scaled_arousals)
+                except:
+                    print("Skipping header error")
 
-        cluster_step = 3.0   # seconds per cluster sample
-        fine_step = 0.2    # seconds per fine sample
-        repeat_factor = int(cluster_step / fine_step)  # 3 / 0.25 = 12
 
-        # Repeat each value 12 times
-        self.cluster_score = np.repeat(self.cluster_score, repeat_factor)
-        self.cluster_arousal = np.repeat(self.cluster_arousal, repeat_factor)
+            scores_stacked = np.stack(scores, axis=1)
+            self.cluster_score = np.mean(scores_stacked, axis=1)
+
+            arousals_stacked = np.stack(arousals, axis=1)
+            self.cluster_arousal = np.mean(arousals_stacked, axis=1)
+
+            cluster_step = 3.0   # seconds per cluster sample
+            fine_step = 0.2    # seconds per fine sample
+            repeat_factor = int(cluster_step / fine_step)  # 3 / 0.25 = 12
+
+            # Repeat each value 12 times
+            self.cluster_score = np.repeat(self.cluster_score, repeat_factor)
+            self.cluster_arousal = np.repeat(self.cluster_arousal, repeat_factor)
 
         if self.preference and self.classifier:
             arousals = self.data['[output]ranking'].values

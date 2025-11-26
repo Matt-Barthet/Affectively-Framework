@@ -349,6 +349,9 @@ class TensorBoardCallback:
 
         self.writer.flush()
 
+    def on_step(self):
+        pass
+
 
 class TensorboardGoExplore:
     def __init__(self, env, archive):

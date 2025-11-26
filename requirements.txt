@@ -15,3 +15,5 @@ shimmy==0.2.1
 tqdm
 rich
 pynput
+pyqt5
+pyqtgraph
