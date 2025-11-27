@@ -55,6 +55,8 @@ if __name__ == "__main__":
 
     while True:
 
+        current_action = [1, 0]
+
         if pygame.joystick.get_count() == 0:
             print("No gamepad found.")
             try:
@@ -122,11 +124,6 @@ if __name__ == "__main__":
 
             if event.type == pygame.JOYBUTTONDOWN:
 
-                # A → jump
-                if event.button == 0:
-                    jumping = True
-                    print("A pressed (jump)")
-
                 # D-pad Left / Right
                 if event.button == 13:
                     current_action[0] = 0
@@ -136,13 +133,12 @@ if __name__ == "__main__":
                     print("→ (D-pad)")
 
             elif event.type == pygame.JOYBUTTONUP:
-                if event.button == 0:
-                    jumping = False
-                    print("A released")
+                if event.button == 1:
+                    current_action[1] = 1
 
                 if event.button in (13, 14):
                     current_action[0] = 1
-                    print("D-pad released")
+                    # print("D-pad released")
 
                 if event.button == 6:
                     pause = not pause
@@ -171,22 +167,6 @@ if __name__ == "__main__":
                     current_action[0] = 2
                     print("Joystick right")
             else:
-                if current_action[0] != 1:
-                    pass
+                current_action[0] = 1
 
-            if joystick.get_button(0):
-                jumping = True
-
-            try:
-                if joystick.get_button(13):  
-                    current_action[0] = 0
-                elif joystick.get_button(14): 
-                    current_action[0] = 2
-                elif abs(x_axis) <= DEADZONE:
-                    current_action[0] = 1
-            except:
-                if abs(x_axis) <= DEADZONE:
-                    current_action[0] = 1
-
-        current_action[1] = 1 if jumping else 0
         state, reward, terminated, info = env.step(current_action)

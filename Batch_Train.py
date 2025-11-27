@@ -103,12 +103,7 @@ def main():
     configs_directory = "configs"
 
     conda_sh = find_conda_sh()
-    if not conda_sh:
-        print("❌ Could not find conda.sh. Please check your conda installation.")
-        sys.exit(1)
-
-    conda_sh = find_conda_sh()
-    if not conda_sh:
+    if not conda_sh and platform.system() != "Windows":
         print("❌ Could not find conda.sh. Please check your conda installation.")
         sys.exit(1)
 
@@ -167,11 +162,12 @@ def main():
         grayscale = config.get("grayscale")
         discretize = config.get("discretize")
         decision_period = config.get("decisionPeriod")
-
+        
+        linux_only = f"source {conda_sh}" if system == "darwin" else ""
         # Construct the command using the parameters from the current file
         command = (
-            f"cd {cwd} && "
-            f"source {conda_sh} && conda activate {conda_env} && "
+            f"cd {cwd} && {linux_only}"
+            f"conda activate {conda_env} && "
             f"python {script_path} --run={runs} --use_gpu={use_gpu} --weight={weight} "
             f"--cluster={cluster} --target_arousal={target_arousal} --preference={preference} "
             f"--classifier={classifier} --game={game} --periodic_ra={period_ra} --cv={cv} "

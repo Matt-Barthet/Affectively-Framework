@@ -113,72 +113,90 @@ if __name__ == "__main__":
                 # Keyboard input for horizontal movement (arrows)
                 if event.key == pygame.K_LEFT:  # Left arrow
                     current_action[0] = 0  # Left
-                    print("← pressed (Keyboard)")
+                    # print("← pressed (Keyboard)")
                 elif event.key == pygame.K_RIGHT:  # Right arrow
                     current_action[0] = 2  # Right
-                    print("→ pressed (Keyboard)")
+                    # print("→ pressed (Keyboard)")
                 elif event.key == pygame.K_UP:  # Up arrow for acceleration
                     accelerating = True
-                    print("Accelerate (Up arrow pressed)")
+                    # print("Accelerate (Up arrow pressed)")
                 elif event.key == pygame.K_DOWN:  # Down arrow for braking
                     braking = True
-                    print("Brake (Down arrow pressed)")
+                    # print("Brake (Down arrow pressed)")
 
             elif event.type == pygame.KEYUP:
                 # Reset actions when arrow keys are released
                 if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
                     current_action[0] = 1  # Neutral horizontal
-                    print("Horizontal (Keyboard) released")
+                    # print("Horizontal (Keyboard) released")
                 if event.key == pygame.K_UP:
                     accelerating = False
-                    print("Accelerate released")
+                    # print("Accelerate released")
                 elif event.key == pygame.K_DOWN:
                     braking = False
-                    print("Brake released")
+                    # print("Brake released")
 
             # Event-driven gamepad input
             if event.type == pygame.JOYBUTTONDOWN:
                 print(event.button)
-                if event.button == 0:  # A button (usually for accelerate)
+                if event.button == 1:  # A button (usually for accelerate)
                     accelerating = True
-                    print("Accelerate (A pressed)")
+                    # print("Accelerate (A pressed)")
                 elif event.button == 2:  # X button (usually for brake)
                     braking = True
-                    print("Brake (X pressed)")
-
-                # D-pad input for horizontal direction
-                if event.button == 13:  # D-pad Left (button 14)
-                    current_action[0] = 0  # Move left (Gamepad D-pad Left)
-                    print("← pressed (Gamepad D-pad Left)")
-
-                elif event.button == 14:  # D-pad Right (button 15)
-                    current_action[0] = 2  # Move right (Gamepad D-pad Right)
-                    print("→ pressed (Gamepad D-pad Right)")
-
+                    # print("Brake (X pressed)")
 
             elif event.type == pygame.JOYBUTTONUP:
-                if event.button == 0:  # A button
+                if event.button == 1:
                     accelerating = False
-                    print("A released")
-                elif event.button == 2:  # X button
+                    # print("A released")
+                elif event.button == 2:
                     braking = False
-                    print("X released")
-
-                # Reset D-pad inputs when released
-                if event.button == 13 or event.button == 14:  # D-pad Left or Right
-                    current_action[0] = 1  # Neutral horizontal
-                    print("D-pad (Horizontal) released")
+                    # print("X released")
 
                 if event.button == 6:
                     pause = not pause
-                    print(f"Pause toggled to {pause}")
+                    # print(f"Pause toggled to {pause}")
                     if pause:
                         env.callback.on_pause()
                     continue
 
+            elif event.type == pygame.JOYHATMOTION:
+                hat_x, hat_y = event.value  # event.value is a tuple (x, y)
 
+                # Horizontal movement
+                if hat_x == -1:
+                    current_action[0] = 0  # Move left
+                    # print("← pressed (Gamepad D-pad Left via hat)")
 
-        # Handle vertical movement for acceleration and braking
+                elif hat_x == 1:
+                    current_action[0] = 2  # Move right
+                    # print("→ pressed (Gamepad D-pad Right via hat)")
+
+                elif hat_x == 0:
+                    # Neutral (no horizontal input)
+                    current_action[0] = 1
+                    pass
+
+        if joystick is not None:
+
+            # Get the axes (analog stick for horizontal movement)
+            x_axis = joystick.get_axis(0)  # Left/right horizontal (X axis)
+
+            # Apply deadzone logic
+            if abs(x_axis) < DEADZONE:
+                x_axis = 0
+
+            if abs(x_axis) > DEADZONE:
+                if x_axis < 0:  # Joystick left
+                    current_action[0] = 0
+                    # print("Joystick left")
+                elif x_axis > 0:  # Joystick right
+                    current_action[0] = 2
+                    # print("Joystick right")
+            else:
+                current_action[0] = 1
+
         if accelerating:
             current_action[1] = 2  # Accelerate
         elif braking:

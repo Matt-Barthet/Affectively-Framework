@@ -10,7 +10,7 @@ conda_env: "affect-envs"
 
 # Hardware settings
 use_gpu: 0
-headless: 0
+headless: 1
 
 # Specific game and agent parameters for this run
 weight: 1

@@ -49,37 +49,49 @@ class InteractiveDashboard(QtWidgets.QMainWindow):
         self.setCentralWidget(cw)
 
         pg.setConfigOptions(antialias=True)
+        font = pg.QtGui.QFont("Arial", 16)
 
         # ---------- Score Plot ----------
         self.score_plot = pg.PlotWidget(title="Live Score Trace")
         self.score_plot.setTitle("Live Score Trace", size='18pt')
-        self.score_plot.setLabel('left', 'Score', **{'font-size': '18pt'})
-        # self.score_plot.setLabel('bottom', 'Time(s)', **{'font-size': '18pt'})
-        self.score_plot.getAxis('left').setStyle(tickFont=pg.QtGui.QFont("Arial", 14))
-        self.score_plot.getAxis('bottom').setStyle(tickFont=pg.QtGui.QFont("Arial", 14))   
-        layout.addWidget(self.score_plot)
-        
-       # Add legend to score plot with custom styling
-        self.score_legend = self.score_plot.addLegend(
-            offset=(10, 10),       # negative y moves UP
-            anchor=(0, 0) ,
-            colCount=2          # top-left of plot
+        self.score_plot.setLabel(
+            'left',
+            '<span style="color:gray; font-size:18pt;">Score</span>'
         )
-        self.score_legend.setLabelTextSize('18pt')
+        self.score_plot.getAxis('left').setStyle(tickFont=font)
+        self.score_plot.getAxis('bottom').setStyle(tickFont=font)
+        layout.addWidget(self.score_plot)
+
+        self.score_legend = self.score_plot.addLegend(
+            offset=(10, 10),
+            anchor=(0, 0) ,
+            colCount=2
+        )
+        self.score_legend.setLabelTextSize('16pt')
 
         self.score_curve = self.score_plot.plot([], [], pen=pg.mkPen('cyan', width=2), name="You")
         self.score_expert_curve = self.score_plot.plot([], [], pen=pg.mkPen('orange', width=2), name="Experts")
 
         # ---------- Arousal Plot ----------
-        self.arousal_plot = pg.PlotWidget(title="Live Intensity Trace")
-        self.arousal_plot.setTitle("Live Intensity Trace", size='18pt')
+
+        self.arousal_plot = pg.PlotWidget(title="Live Arousal Trace")
+        self.arousal_plot.setTitle("Live Arousal Trace", size='18pt')
         self.arousal_plot.setYRange(0, 1)
-        self.arousal_plot.setLabel('left', 'Intensity', **{'font-size': '18pt'})
-        self.arousal_plot.setLabel('bottom', 'Time(s)', **{'font-size': '18pt'})
-        self.arousal_plot.getAxis('left').setStyle(tickFont=pg.QtGui.QFont("Arial", 18))
-        self.arousal_plot.getAxis('bottom').setStyle(tickFont=pg.QtGui.QFont("Arial", 18))    
+
+        # Correct: use font=QFont(...)
+        # Axis tick label fonts
+        self.arousal_plot.getAxis('left').setStyle(tickFont=font)
+        self.arousal_plot.getAxis('bottom').setStyle(tickFont=font)
+        self.arousal_plot.setLabel(
+            'left',
+            '<span style="color:gray; font-size:18pt;">Arousal</span>'
+        )
+        self.arousal_plot.setLabel(
+            'bottom',
+            '<span style="color:gray; font-size:18pt;">Time (s)</span>'
+        )
         layout.addWidget(self.arousal_plot)
-        
+
         # Add legend to arousal plot
         # self.arousal_legend = self.arousal_plot.addLegend()
 
@@ -87,7 +99,7 @@ class InteractiveDashboard(QtWidgets.QMainWindow):
         self.arousal_expert_curve = self.arousal_plot.plot([], [], pen=pg.mkPen('orange', width=2), name="Experts")
 
         self.show()
-        
+
         # Process events once to show the window
         QtWidgets.QApplication.processEvents()
         self.on_episode_end()
@@ -122,10 +134,10 @@ class InteractiveDashboard(QtWidgets.QMainWindow):
 
         if self._waiting_restart:
             return
-        
+
         if self.pause:
             return
-        
+
         if self._end_label is not None:
             self.score_plot.removeItem(self._end_label)
             self._end_label = None
@@ -197,7 +209,7 @@ class InteractiveDashboard(QtWidgets.QMainWindow):
             return
 
         xs = np.array(self.times) / 5
-        
+
         ymin, ymax = float(np.array(self.scores).min()), float(np.array(self.scores).max())
 
         if ymin == ymax:
@@ -233,7 +245,7 @@ class InteractiveDashboard(QtWidgets.QMainWindow):
         The dashboard will pause updating plots until it detects the
         environment has restarted (step/tick resets or env.paused toggles).
         """
-        
+
         # Add a prominent label to the score plot (centered)
         try:
             if self._end_label is None:
@@ -252,7 +264,7 @@ class InteractiveDashboard(QtWidgets.QMainWindow):
 
         # Enter waiting state until a restart/pause signal is detected
         self._waiting_restart = True
-        
+
     def clear(self):
         try:
             self.times.clear()
