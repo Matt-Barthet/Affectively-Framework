@@ -1,9 +1,10 @@
-# fro÷ßm sb3_contrib import RecurrentPPO
 from stable_baselines3.ppo import PPO
 from stable_baselines3.common.callbacks import ProgressBarCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
+from mlagents_envs.exception import UnityTimeOutException
 
 import argparse
+import traceback
 
 from affectively.environments.pirates_cv import PiratesEnvironmentCV
 from affectively.environments.heist_cv import HeistEnvironmentCV
@@ -14,6 +15,134 @@ from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
 from affectively.utils.logging import TensorBoardCallback
 from agents.game_obs.Rainbow_DQN import RainbowAgent
 import torch
+
+
+def create_environment(args, run):
+    """Factory function to create a new environment with the same parameters"""
+    if args.cv == 0:
+        if args.game == "fps":
+            return HeistEnvironmentGameObs(
+                id_number=run,
+                weight=args.weight,
+                graphics=args.headless==0,
+                cluster=args.cluster,
+                target_arousal=args.target_arousal,
+                period_ra=args.periodic_ra,
+                discretize=args.discretize,
+                classifier=args.classifier,
+                preference=args.preference,
+                decision_period=args.decision_period,
+            )
+        elif args.game == "solid":
+            return SolidEnvironmentGameObs(
+                id_number=run,
+                weight=args.weight,
+                graphics=args.headless==0,
+                cluster=args.cluster,
+                target_arousal=args.target_arousal,
+                period_ra=args.periodic_ra,
+                discretize=args.discretize,
+                classifier=args.classifier,
+                preference=args.preference,
+                decision_period=args.decision_period,
+            )
+        elif args.game == "platform":
+            return PiratesEnvironmentGameObs(
+                id_number=run,
+                weight=args.weight,
+                graphics=True,
+                cluster=args.cluster,
+                target_arousal=args.target_arousal,
+                period_ra=args.periodic_ra,
+                discretize=args.discretize,
+                classifier=args.classifier,
+                preference=args.preference,                    
+                decision_period=args.decision_period,
+            )
+    elif args.cv == 1:
+        if args.game == "fps":
+            return HeistEnvironmentCV(
+                id_number=run,
+                weight=args.weight,
+                cluster=args.cluster,
+                target_arousal=args.target_arousal,
+                period_ra=args.periodic_ra,
+                grayscale=args.grayscale,
+                classifier=args.classifier,
+                preference=args.preference,
+                decision_period=args.decision_period,
+            )
+        elif args.game == "solid":
+            return SolidEnvironmentCV(
+                id_number=run,
+                weight=args.weight,
+                cluster=args.cluster,
+                target_arousal=args.target_arousal,
+                period_ra=args.periodic_ra,
+                grayscale=args.grayscale,
+                classifier=args.classifier,
+                preference=args.preference,
+                decision_period=args.decision_period,
+            )
+        elif args.game == "platform":
+            return PiratesEnvironmentCV(
+                id_number=run,
+                weight=args.weight,
+                cluster=args.cluster,
+                target_arousal=args.target_arousal,
+                period_ra=args.periodic_ra,
+                grayscale=args.grayscale,
+                classifier=args.classifier,
+                preference=args.preference,
+                decision_period=args.decision_period,
+            )
+
+
+def train_with_recovery(model, env, callbacks, total_timesteps, max_retries=5):
+    """Train with automatic recovery from Unity timeout errors"""
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            print(f"📊 Starting/resuming training at timestep: {model.num_timesteps}/{total_timesteps}")
+            
+            model.learn(
+                total_timesteps=total_timesteps,
+                callback=callbacks,
+                reset_num_timesteps=False
+            )
+            
+            print(f"✅ Training completed successfully! Final timesteps: {model.num_timesteps}")
+            return True
+            
+        except UnityTimeOutException as e:
+            retry_count += 1
+            print(f"\n⚠️ Unity timeout at timestep {model.num_timesteps} (attempt {retry_count}/{max_retries})")
+            print(f"Error: {e}")
+            
+            if retry_count < max_retries:
+                print("🔄 Attempting to recover...")
+                
+                # Close the broken environment
+                try:
+                    env.env.close()
+                except Exception as close_error:
+                    print(f"Warning during env close: {close_error}")
+                
+                # Recreate the environment using the factory function
+                # Note: You'll need to pass args and run to this function
+                print("🔨 Creating new environment...")
+                # This will be handled in the main loop where we have access to args
+                return False  # Signal that we need to recreate
+            else:
+                print(f"❌ Max retries ({max_retries}) reached at timestep {model.num_timesteps}")
+                raise
+                
+        except Exception as e:
+            print(f"\n❌ Unexpected error: {e}")
+            traceback.print_exc()
+            raise
+
 
 if __name__ == "__main__":
 
@@ -35,6 +164,7 @@ if __name__ == "__main__":
     parser.add_argument("--classifier", required=True, help="Use classifier model and reward for training", type=int)
     parser.add_argument("--preference", required=False, help="Use preference model for training", type=int)
     parser.add_argument("--decision_period", required=False, help="Decision period for environments", type=int, default=10)
+    parser.add_argument("--max_retries", required=False, help="Max retries for Unity timeout recovery", type=int, default=5)
     args = parser.parse_args()
 
     if args.use_gpu == 1:
@@ -45,7 +175,6 @@ if __name__ == "__main__":
 
     if args.algorithm.lower() == "ppo":
         if "lstm" in args.policy.lower():
-            # model_class = RecurrentPPO
             pass
         else:
             model_class = PPO
@@ -58,91 +187,65 @@ if __name__ == "__main__":
             exit()
 
     for run in range(args.run):
-        if args.cv == 0:
-            if args.game == "fps":
-                env = HeistEnvironmentGameObs(
-                    id_number=run,
-                    weight=args.weight,
-                    graphics=args.headless==0,
-                    cluster=args.cluster,
-                    target_arousal=args.target_arousal,
-                    period_ra=args.periodic_ra,
-                    discretize=args.discretize,
-                    classifier=args.classifier,
-                    preference=args.preference,
-                    decision_period=args.decision_period,
-                )
-            elif args.game == "solid":
-                env = SolidEnvironmentGameObs(
-                    id_number=run,
-                    weight=args.weight,
-                    graphics=args.headless==0,
-                    cluster=args.cluster,
-                    target_arousal=args.target_arousal,
-                    period_ra=args.periodic_ra,
-                    discretize=args.discretize,
-                    classifier=args.classifier,
-                    preference=args.preference,
-                    decision_period=args.decision_period,
-                )
-            elif args.game == "platform":
-                env = PiratesEnvironmentGameObs(
-                    id_number=run,
-                    weight=args.weight,
-                    graphics=True, # Pirates is bugged in headless, prevent it manually for now
-                    cluster=args.cluster,
-                    target_arousal=args.target_arousal,
-                    period_ra=args.periodic_ra,
-                    discretize=args.discretize,
-                    classifier=args.classifier,
-                    preference=args.preference,                    
-                    decision_period=args.decision_period,
-                )
-        elif args.cv == 1:  # CV builds cannot run in headless mode - the unity renderer must be switched on to produce frames.
-            if args.game == "fps":
-                env = HeistEnvironmentCV(
-                    id_number=run,
-                    weight=args.weight,
-                    cluster=args.cluster,
-                    target_arousal=args.target_arousal,
-                    period_ra=args.periodic_ra,
-                    grayscale=args.grayscale,
-                    classifier=args.classifier,
-                    preference=args.preference,
-                    decision_period=args.decision_period,
-                )
-            elif args.game == "solid":
-                env = SolidEnvironmentCV(
-                    id_number=run,
-                    weight=args.weight,
-                    cluster=args.cluster,
-                    target_arousal=args.target_arousal,
-                    period_ra=args.periodic_ra,
-                    grayscale=args.grayscale,
-                    classifier=args.classifier,
-                    preference=args.preference,
-                    decision_period=args.decision_period,
-                )
-            elif args.game == "platform":
-                env = PiratesEnvironmentCV(
-                    id_number=run,
-                    weight=args.weight,
-                    cluster=args.cluster,
-                    target_arousal=args.target_arousal,
-                    period_ra=args.periodic_ra,
-                    grayscale=args.grayscale,
-                    classifier=args.classifier,
-                    preference=args.preference,
-                    decision_period=args.decision_period,
-                )
-
-        model = model_class(policy=args.policy, env = env, device=device) # define model for training using pixels here
+        print(f"\n{'='*60}")
+        print(f"Starting Run {run}")
+        print(f"{'='*60}\n")
+        
+        # Create initial environment
+        env = create_environment(args, run)
+        
+        # Create model
+        model = model_class(policy=args.policy, env=env, device=device)
+        
+        # Setup experiment tracking
         experiment_name = f'{args.logdir}/{args.game}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier==1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
-        env.callback =  TensorBoardCallback(experiment_name, env, model)
-        label = 'optimize' if args.weight == 0 else 'arousal' if args.weight == 1 else 'blended'
+        env.callback = TensorBoardCallback(experiment_name, env, model)
         callbacks = ProgressBarCallback()
-
-        model.learn(total_timesteps=5_000_000, callback=callbacks, reset_num_timesteps=False)
-        model.save(f"{experiment_name}.zip")
-        print(f"Finished run {run}")
-        env.env.close()
+        
+        # Train with automatic recovery
+        training_complete = False
+        recovery_attempts = 0
+        max_recovery_attempts = args.max_retries
+        
+        while not training_complete and recovery_attempts < max_recovery_attempts:
+            success = train_with_recovery(
+                model=model,
+                env=env,
+                callbacks=callbacks,
+                total_timesteps=5_000_000,
+                max_retries=3  # Inner retries before recreating env
+            )
+            
+            if success:
+                training_complete = True
+            else:
+                # Need to recreate environment
+                recovery_attempts += 1
+                print(f"\n🔄 Recovery attempt {recovery_attempts}/{max_recovery_attempts}")
+                
+                try:
+                    env.env.close()
+                except:
+                    pass
+                
+                # Create new environment
+                env = create_environment(args, run)
+                
+                # Update model's environment
+                model.set_env(env)
+                env.callback = TensorBoardCallback(experiment_name, env, model)
+                
+                print(f"✅ Environment recreated, resuming from timestep {model.num_timesteps}")
+        
+        if training_complete:
+            # Save the trained model
+            model.save(f"{experiment_name}.zip")
+            print(f"✅ Finished run {run} - Model saved!")
+        else:
+            print(f"❌ Run {run} failed after {recovery_attempts} recovery attempts")
+        
+        # Clean up
+        try:
+            env.env.close()
+        except:
+            pass
