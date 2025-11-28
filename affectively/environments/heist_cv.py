@@ -5,7 +5,7 @@ from affectively.environments.heist import HeistEnvironment
 
 class HeistEnvironmentCV(HeistEnvironment):
 
-    def __init__(self, id_number, weight, grayscale, cluster, target_arousal, period_ra, classifier=True, preference=True):
+    def __init__(self, id_number, weight, grayscale, cluster, target_arousal, period_ra, classifier=True, preference=True, decision_period=10):
         self.width, self.height, self.stackNo = 128, 96, 1
         self.grayscale = grayscale
         if grayscale:

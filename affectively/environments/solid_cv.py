@@ -4,7 +4,7 @@ from affectively.environments.solid import SolidEnvironment
 
 class SolidEnvironmentCV(SolidEnvironment):
 
-    def __init__(self, id_number, weight, grayscale, cluster, classifier=True, preference=True, decision_period=10):
+    def __init__(self, id_number, weight, grayscale, cluster, classifier=True, preference=True, decision_period=10, target_arousal=1, period_ra=False):
         self.width, self.height, self.stackNo = 128, 96, 1
         self.grayscale = grayscale
         if grayscale == 1:

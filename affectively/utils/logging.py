@@ -313,7 +313,6 @@ class TensorBoardCallback:
         self.best_cumulative_rl = 0
         self.best_mean_ra, self.best_mean_rb, self.best_mean_rl = 0, 0, 0
 
-
     def on_episode_end(self):
 
         self.best_cumulative_ra = np.max([self.best_cumulative_ra, self.environment.cumulative_ra])
@@ -321,13 +320,14 @@ class TensorBoardCallback:
         self.best_cumulative_rl = np.max([self.best_cumulative_rl, self.environment.cumulative_rl])
         self.best_env_score = np.max([self.environment.current_score, self.best_env_score])
 
-        print(f"End of episode, Best Cumulative Rb =  {self.best_cumulative_rb}")
+        # print(f"End of episode, Best Cumulative Rb =  {self.best_cumulative_rb}")
 
         if self.environment.period_ra:
             # Normalize by length of the episodes arousal trace (static size due to fixed periodic reward)
-            mean_rl = np.nan_to_num(self.environment.cumulative_rl / len(self.environment.episode_arousal_trace))
-            mean_ra = np.nan_to_num(self.environment.cumulative_ra / len(self.environment.episode_arousal_trace))
-            mean_rb = np.nan_to_num(self.environment.cumulative_rb / len(self.environment.episode_arousal_trace))
+            trace_len = len(self.environment.episode_arousal_trace)
+            mean_rl = 0 if trace_len == 0 else self.environment.cumulative_rl / trace_len
+            mean_ra = 0 if trace_len == 0 else self.environment.cumulative_ra / trace_len
+            mean_rb = 0 if trace_len == 0 else self.environment.cumulative_rb / trace_len
         else:
             # Normalize based on number of rewards assigned (taken by counting changes in env score)
             mean_rl = 0 if self.environment.behavior_ticks == 0 else self.environment.cumulative_rl / self.environment.behavior_ticks
@@ -336,13 +336,15 @@ class TensorBoardCallback:
 
         self.episode += 1
 
-        # if self.episode % 100 == 0:
-
         # Arousal metrics
         self.writer.add_scalar('affect_rewards/cumulative_r_a', self.environment.cumulative_ra, self.episode)
         self.writer.add_scalar('affect_rewards/best_cumulative_r_a', self.best_cumulative_ra, self.episode)
         self.writer.add_scalar('affect_rewards/mean_r_a', mean_ra, self.episode)
-        self.writer.add_scalar('affect_rewards/episode_mean_arousal', np.mean(self.environment.episode_arousal_trace), self.episode)
+
+        # Handle empty arousal trace
+        episode_mean_arousal = 0 if len(self.environment.episode_arousal_trace) == 0 else np.mean(
+            self.environment.episode_arousal_trace)
+        self.writer.add_scalar('affect_rewards/episode_mean_arousal', episode_mean_arousal, self.episode)
 
         # Behavior Metrics
         self.writer.add_scalar('behavior_rewards/cumulative_r_b', self.environment.cumulative_rb, self.episode)

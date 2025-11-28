@@ -4,7 +4,7 @@ from affectively.environments.pirates import PiratesEnvironment
 
 class PiratesEnvironmentCV(PiratesEnvironment):
 
-    def __init__(self, id_number, weight, grayscale, cluster, target_arousal, period_ra, classifier=True, preference=True, ):
+    def __init__(self, id_number, weight, grayscale, cluster, target_arousal, period_ra, classifier=True, preference=True, decision_period=10):
         self.width, self.height, self.stackNo = 80, 60, 1
         self.grayscale = grayscale
         if grayscale == 1:

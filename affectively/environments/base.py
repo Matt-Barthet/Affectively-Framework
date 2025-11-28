@@ -141,7 +141,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.behavior_ticks += 1 if self.score_change else 0
         self.score_change = False
         self.cumulative_rb += r_b
-        print(f"Behavior rewarded, cumulative reward: {self.cumulative_rb}")
+        # print(f"Behavior rewarded, cumulative reward: {self.cumulative_rb}")
         return r_b
 
 
