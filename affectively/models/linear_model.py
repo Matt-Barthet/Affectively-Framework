@@ -10,7 +10,7 @@ class LinearSurrogateModel(AbstractSurrogateModel):
     def _setup_paths(self):
         classifier_suff = 'classifier' if self.classifier else 'regressor'
         pref_suff = 'preferences' if self.preference else ''
-        self.model_path = f'./affectively/models/{self.game}/{classifier_suff}/Linear/Cluster_{self.cluster}_{classifier_suff}_{pref_suff}_linear.pkl'
+        self.model_path = f'./affectively/models/{self.game.lower()}/{classifier_suff}/Linear/Cluster_{self.cluster}_{classifier_suff}_{pref_suff}_linear.pkl'
         self.model_extension = '.pkl'
     
     def _create_model(self, **kwargs):

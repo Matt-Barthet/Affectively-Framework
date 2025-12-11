@@ -237,7 +237,7 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.cumulative_rl += final_reward
 
-        if self.episode_length % 10 == 0:
+        if self.episode_length % 10 == 0 and self.callback is not None:
             self.callback.on_step()
             
         return state, final_reward, done, info
@@ -270,14 +270,13 @@ class BaseEnvironment(gym.Env, ABC):
         system="Mac" if system == "Darwin" else system
 
         try:
-            env = UnityEnvironment(f"./affectively/builds/{self.game}/{system}/{self.game}.{game_suffix}",
+            env = UnityEnvironment(f"./affectively/builds/{self.game.lower()}/{system}/{self.game.lower()}.{game_suffix}",
                                    side_channels=[self.engineConfigChannel, self.customSideChannel],
                                    worker_id=identifier,
                                    no_graphics=not graphics,
                                    additional_args=args)
         except:
             print("Checking next ID!") 
-            # raise # the error if you get a stack overflow
             return self.load_environment(identifier + 1, graphics, args)
         return env
 

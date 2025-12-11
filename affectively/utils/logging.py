@@ -358,7 +358,7 @@ class TensorBoardCallback:
         self.writer.add_scalar('overall_reward/best_cumulative_r_lambda', self.best_cumulative_rl, self.episode)
         self.writer.add_scalar('overall_reward/mean_r_lambda', mean_rl, self.episode)
 
-        if self.episode % 1000 == 0:
+        if self.episode % 1000 == 0 and self.log_dir != "":
             self.model.save(f"{self.log_dir}-Episode-{self.episode}.zip")
 
         self.writer.flush()

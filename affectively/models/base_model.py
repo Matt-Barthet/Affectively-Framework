@@ -95,11 +95,11 @@ class AbstractSurrogateModel(ABC):
 
     def load_data(self):
         pref_suff = '_downsampled_pairs' if self.preference else ''
-        fname = f'./affectively/datasets/{self.game}_3000ms{pref_suff}.csv'
+        fname = f'./affectively/datasets/{self.game.lower()}_3000ms{pref_suff}.csv'
         
         self.data = pd.read_csv(fname)
         if self.cluster > 0:
-            cluster_members = pd.read_csv(f"./affectively/datasets/{self.game}_cluster_book.csv")
+            cluster_members = pd.read_csv(f"./affectively/datasets/{self.game.lower()}_cluster_book.csv")
             cluster_members = cluster_members[cluster_members['Cluster'] == self.cluster]
             self.data = self.data[self.data['[control]player_id'].isin(cluster_members['[control]player_id'])]
         
@@ -212,8 +212,7 @@ class AbstractSurrogateModel(ABC):
             self.surrogate_length = int(self.surrogate_length / 2)
 
         self.arousals = arousals
-        print(np.min(self.arousals), np.max(self.arousals))
-    
+
     def load_model(self):
         counter = 0
         
@@ -241,7 +240,7 @@ class AbstractSurrogateModel(ABC):
     
 
     def save_models(self):
-        os.makedirs(f"affectively/models/{self.game}/", exist_ok=True)
+        os.makedirs(f"affectively/models/{self.game.lower()}/", exist_ok=True)
         for i in range(len(self.models)):
             self._save_single_model(self.models[i], self.scalers[i], i)
     
