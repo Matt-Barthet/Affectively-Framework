@@ -23,11 +23,6 @@ class SolidEnvironment(BaseEnvironment):
         action[1] = random.choice(pedal_distribution)
         return action
 
-    def reset_condition(self):
-        if self.episode_length > 6000 / self.decision_period:
-            self.episode_length = 0
-            self.reset()
-
     def reset(self, **kwargs):
         state = super().reset()
         state = self.construct_state(state)
@@ -37,5 +32,4 @@ class SolidEnvironment(BaseEnvironment):
         transformed_action = np.asarray([tuple([action[0], action[1], 0])])
         state, reward, d, info = super().step(transformed_action)
         state = self.construct_state(state)
-        self.reset_condition()
         return state, reward, d, info

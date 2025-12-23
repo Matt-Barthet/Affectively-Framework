@@ -3,14 +3,14 @@
 # General experiment settings
 runs: 5
 output_dir: "./results/"
-game: "fps"
-algorithm: "PPO"
+game: "solid"
+algorithm: "EQ"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 
 # Hardware settings
 use_gpu: 0
-headless: 1
+headless: 0
 
 # Specific game and agent parameters for this run
 weight: 0.5

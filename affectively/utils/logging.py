@@ -11,6 +11,86 @@ from collections import deque
 from PyQt5 import QtWidgets, QtCore
 import pyqtgraph as pg
 
+import numpy as np
+from morl_baselines.common.performance_indicators import hypervolume
+
+
+class HypervolumeTracker:
+    def __init__(self, reference_point):
+        self.reference_point = np.asarray(reference_point, dtype=np.float32)
+
+    def compute(self, pareto_front):
+        if pareto_front is None or len(pareto_front) == 0:
+            return 0.0
+        return hypervolume(
+            np.asarray(pareto_front, dtype=np.float32),
+            self.reference_point
+        )
+
+class MORLTensorBoardCallback:
+    def __init__(self, log_dir, environment, agent, reference_point):
+        self.log_dir = log_dir
+        self.environment = environment
+        backup(log_dir)
+        self.writer = SummaryWriter(log_dir)
+        self.agent = agent
+        self.episode = 0
+
+        self.best_cumulative_ra = 0
+        self.best_cumulative_rb = 0
+        self.best_env_score = 0
+        self.best_hypervolume = 0
+
+        self.hv_tracker = HypervolumeTracker(reference_point)
+
+    def on_episode_end(self):
+
+        env = self.environment
+        self.episode += 1
+
+        # --- basic objective returns ---
+        r_a = env.env.cumulative_ra
+        r_b = env.env.cumulative_rb
+
+        self.best_cumulative_ra = max(self.best_cumulative_ra, r_a)
+        self.best_cumulative_rb = max(self.best_cumulative_rb, r_b)
+        self.best_env_score = max(self.best_env_score, env.env.current_score)
+
+        # --- hypervolume ---
+        hv = 0.0
+        pareto_size = 0
+        if hasattr(self.agent, "pareto_front"):
+            pareto_size = len(self.agent.pareto_front)
+            hv = self.hv_tracker.compute(self.agent.pareto_front)
+            self.best_hypervolume = max(self.best_hypervolume, hv)
+
+        # --- logging ---
+        self.writer.add_scalar("returns/r_a", r_a, self.episode)
+        self.writer.add_scalar("returns/r_b", r_b, self.episode)
+
+        self.writer.add_scalar("returns/best_r_a", self.best_cumulative_ra, self.episode)
+        self.writer.add_scalar("returns/best_r_b", self.best_cumulative_rb, self.episode)
+
+        self.writer.add_scalar("env/current_score", env.env.current_score, self.episode)
+        self.writer.add_scalar("env/best_score", self.best_env_score, self.episode)
+
+        self.writer.add_scalar("morl/pareto_size", pareto_size, self.episode)
+        self.writer.add_scalar("morl/hypervolume", hv, self.episode)
+        self.writer.add_scalar("morl/best_hypervolume", self.best_hypervolume, self.episode)
+
+        # --- arousal diagnostics ---
+        mean_arousal = 0.0 if len(env.env.episode_arousal_trace) == 0 else np.mean(env.env.episode_arousal_trace)
+        self.writer.add_scalar("affect/episode_mean_arousal", mean_arousal, self.episode)
+
+        if self.episode % 1000 == 0:
+            self.agent.save(f"{self.log_dir}-Episode-{self.episode}")
+
+        self.writer.flush()
+
+    def on_step(self):
+        pass
+
+
 
 class InteractiveDashboard(QtWidgets.QMainWindow):
     """
@@ -334,6 +414,10 @@ class TensorBoardCallback:
             mean_ra = 0 if self.environment.behavior_ticks == 0 else self.environment.cumulative_ra / self.environment.behavior_ticks
             mean_rb = 0 if self.environment.behavior_ticks == 0 else self.environment.cumulative_rb / self.environment.behavior_ticks
 
+
+        self.best_mean_ra = np.max([self.best_mean_ra, mean_ra])
+        self.best_mean_rb = np.max([self.best_mean_rb, mean_rb])
+        
         self.episode += 1
 
         # Arousal metrics

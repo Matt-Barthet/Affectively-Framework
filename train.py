@@ -2,19 +2,23 @@ from stable_baselines3.ppo import PPO
 from stable_baselines3.common.callbacks import ProgressBarCallback, BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
 from mlagents_envs.exception import UnityTimeOutException
+from morl_baselines.multi_policy.envelope.envelope import Envelope
+
 from tqdm import tqdm
 
 import argparse
 import traceback
 import time
 
+from affectively.environments.gymnasium_wrapper import GymToGymnasiumWrapper
 from affectively.environments.pirates_cv import PiratesEnvironmentCV
 from affectively.environments.heist_cv import HeistEnvironmentCV
 from affectively.environments.solid_cv import SolidEnvironmentCV
 from affectively.environments.heist_game_obs import HeistEnvironmentGameObs
 from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
-from affectively.utils.logging import TensorBoardCallback
+from affectively.utils.action_wrapper import FlattenMultiDiscreteAction
+from affectively.utils.logging import TensorBoardCallback, MORLTensorBoardCallback
 from agents.game_obs.Rainbow_DQN import RainbowAgent
 import torch
 
@@ -261,17 +265,23 @@ if __name__ == "__main__":
         device = torch.device("cpu")
 
     if args.algorithm.lower() == "ppo":
-        if "lstm" in args.policy.lower():
-            pass
-        else:
-            model_class = PPO
+        model_class = PPO
+
     elif args.algorithm.lower() == "dqn":
         args.policy = "DQN"
+        model_class = RainbowAgent
         if args.cv == 0:
             model_class = RainbowAgent
         else:
             print("Model not implemented yet! Aborting...")
             exit()
+
+    elif args.algorithm.lower() in ["eq", "envelopeq", "envelope_q"]:
+        model_class = "ENVELOPE_Q"
+        args.weight = -1.0
+
+    else:
+        raise ValueError(f"Unknown algorithm: {args.algorithm}")
 
     for run in range(args.run):
 
@@ -285,63 +295,100 @@ if __name__ == "__main__":
         try:
             # Create initial environment
             env = create_environment(args, run)
+            # env = GymToGymnasiumWrapper(env)
 
-            # Create model
-            model = model_class(policy=args.policy, env=env, device=device)
-
-            # Setup experiment tracking
+            # Setup experiment tracking name
             experiment_name = f'{args.logdir}/{args.game}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
-            env.callback = TensorBoardCallback(experiment_name, env, model)
 
-            # Train with automatic recovery
-            training_complete = False
-            recovery_attempts = 0
-            max_recovery_attempts = args.max_retries
+            # =========================
+            # ENVELOPE Q (MORL) BRANCH
+            # =========================
+            if model_class == "ENVELOPE_Q":
 
-            # Create a single persistent progress bar callback with environment reference
-            callbacks = PersistentProgressBarCallback(total_timesteps=5_000_000, env_wrapper=env)
-
-            while not training_complete and recovery_attempts < max_recovery_attempts:
-                success = train_with_recovery(
-                    model=model,
+                import gymnasium
+                # Flatten MultiDiscrete -> Discrete for MORL agents that need scalar actions
+                env = FlattenMultiDiscreteAction(env)
+                env = GymToGymnasiumWrapper(env)
+                agent = Envelope(
                     env=env,
-                    callbacks=callbacks,
-                    total_timesteps=5_000_000,
-                    max_retries=500
+                    log=False   # 👈 ADD THIS
                 )
 
-                if success:
-                    training_complete = True
-                else:
-                    recovery_attempts += 1
+                env.callback = MORLTensorBoardCallback(
+                    experiment_name,
+                    env,
+                    agent,
+                    reference_point=[0.0, 0.0],
+                )
 
-                    print(f"\n🔄 Recovery attempt {recovery_attempts}/{max_recovery_attempts}")
-                    old_callback = env.callback if hasattr(env, 'callback') else None
-                    close_callback_safely(old_callback)
+                print("📊 Starting Envelope-Q training")
+
+                try:
+                    agent.train(total_timesteps=5_000_000, ref_point=[0.0, 0.0], verbose=True)
+                except UnityTimeOutException:
                     close_environment_safely(env)
+                    raise
 
-                    print("🔨 Creating new environment...")
-                    env = create_environment(args, run)
+                agent.save(f"{experiment_name}.zip")
+                print(f"✅ Finished run {run} - MORL agent saved!")
 
-                    if hasattr(model, 'set_env'):
-                        model.set_env(env)
-                        print("✓ Model environment updated")
-                    else:
-                        print("⚠️ Model doesn't have set_env method, continuing anyway")
-
-                    if old_callback is not None:
-                        old_callback.env = env
-                        env.callback = old_callback
-                        print("✓ Reattached existing callback to new environment")
-
-                    callbacks.env_wrapper = env
-                    print(f"✅ Environment recreated, resuming from timestep {model.num_timesteps}")
-
-            if training_complete:
-                model.save(f"{experiment_name}.zip")
-                print(f"✅ Finished run {run} - Model saved!")
+            # =========================
+            # EXISTING SB3 / DQN BRANCH
+            # =========================
             else:
-                print(f"❌ Run {run} failed after {recovery_attempts} recovery attempts")
+                model = model_class(policy=args.policy, env=env, device=device)
+
+                env.callback = TensorBoardCallback(experiment_name, env, model)
+
+                training_complete = False
+                recovery_attempts = 0
+                max_recovery_attempts = args.max_retries
+
+                callbacks = PersistentProgressBarCallback(
+                    total_timesteps=5_000_000,
+                    env_wrapper=env
+                )
+
+                while not training_complete and recovery_attempts < max_recovery_attempts:
+                    success = train_with_recovery(
+                        model=model,
+                        env=env,
+                        callbacks=callbacks,
+                        total_timesteps=5_000_000,
+                        max_retries=500
+                    )
+
+                    if success:
+                        training_complete = True
+                    else:
+                        recovery_attempts += 1
+
+                        print(f"\n🔄 Recovery attempt {recovery_attempts}/{max_recovery_attempts}")
+                        old_callback = env.callback if hasattr(env, 'callback') else None
+                        close_callback_safely(old_callback)
+                        close_environment_safely(env)
+
+                        print("🔨 Creating new environment...")
+                        env = create_environment(args, run)
+                        env = GymToGymnasiumWrapper(env)
+
+                        if hasattr(model, 'set_env'):
+                            model.set_env(env)
+                            print("✓ Model environment updated")
+
+                        if old_callback is not None:
+                            old_callback.env = env
+                            env.callback = old_callback
+                            print("✓ Reattached existing callback to new environment")
+
+                        callbacks.env_wrapper = env
+                        print(f"✅ Environment recreated, resuming from timestep {model.num_timesteps}")
+
+                if training_complete:
+                    model.save(f"{experiment_name}.zip")
+                    print(f"✅ Finished run {run} - Model saved!")
+                else:
+                    print(f"❌ Run {run} failed after {recovery_attempts} recovery attempts")
 
         except KeyboardInterrupt:
             print("\n⚠️ Training interrupted by user")

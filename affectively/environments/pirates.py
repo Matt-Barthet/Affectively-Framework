@@ -11,12 +11,6 @@ class PiratesEnvironment(BaseEnvironment):
                          capture_fps=capture_fps, time_scale=time_scale, weight=weight, cluster=cluster,
                          period_ra=period_ra, target_arousal=target_arousal, classifier=classifier, preference=preference, decision_period=decision_period)
 
-    def reset_condition(self):
-        if self.customSideChannel.levelEnd:
-            self.handle_level_end()
-        if self.episode_length > 6000 / self.decision_period:
-            self.reset()
-
     def reset(self, **kwargs):
         state = super().reset()
         state = self.construct_state(state)
