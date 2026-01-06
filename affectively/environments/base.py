@@ -6,6 +6,8 @@ import gym
 import numpy as np
 import torch
 from gym_unity.envs import UnityToGymWrapper
+# from mlagents_envs.envs.unity_gym_env import UnityToGymWrapper
+
 from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.side_channel import OutgoingMessage
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
@@ -107,7 +109,17 @@ class BaseEnvironment(gym.Env, ABC):
         self.classifier = classifier
         self.surrogate_length = self.model.surrogate_length
         self.callback = None
-        # self.create_and_send_message("[Save States]:Seed")
+        
+        self.episode_length_list = {}
+
+    def build_segment(self, segments):
+        for segment in segments:
+            flat_segment = ";".join(",".join(str(x) for x in row) for row in segment)
+            flat_segment = f"[Segment]:{flat_segment}"
+            self.create_and_send_message(flat_segment)
+
+        flat_info = "[End]:"
+        self.create_and_send_message(flat_info)
 
     def reset(self, **kwargs):
         if self.callback is not None and len(self.episode_arousal_trace) > 0:
@@ -199,13 +211,21 @@ class BaseEnvironment(gym.Env, ABC):
         return arousal
 
     def step(self, action):
-        self.episode_length += 1
-        self.arousal_episode_length += 1
+        if action[2] < 0:
+            self.episode_length_list[abs(action[2])] = self.episode_length
+        elif action[2] > 0:
+            if self.episode_length_list.get(abs(action[2])) != None:
+                self.episode_length = self.episode_length_list.get(abs(action[2]))
 
+        self.episode_length += 1            
+        self.arousal_episode_length += 1
+        # print("EPISODE LENGTH: " + str(self.episode_length))
         change_in_score = (self.current_score - self.previous_score)
         self.score_change = self.score_change or change_in_score > 0
         self.previous_score = self.current_score
 
+        # print("ACTION 3: " + str(action))
+        # print("---------")
         state, env_score, done, info = self.env.step(list(action))
 
         for modality in range(len(state)):
@@ -234,8 +254,11 @@ class BaseEnvironment(gym.Env, ABC):
             final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
 
 
-        self.cumulative_rl += final_reward
-        self.best_rl = np.max([self.best_rl, final_reward])
+        if self.episode_length % 10 == 0:
+            if self.callback is not None:
+                self.callback.on_step()
+
+            
         return state, final_reward, done, info
 
     def handle_level_end(self):
