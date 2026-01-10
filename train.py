@@ -1,3 +1,4 @@
+import numpy as np
 from stable_baselines3.ppo import PPO
 from stable_baselines3.common.callbacks import ProgressBarCallback, BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -295,6 +296,8 @@ if __name__ == "__main__":
         try:
             # Create initial environment
             env = create_environment(args, run)
+
+            eval_env = create_environment(args, run+10001)
             # env = GymToGymnasiumWrapper(env)
 
             # Setup experiment tracking name
@@ -309,22 +312,30 @@ if __name__ == "__main__":
                 # Flatten MultiDiscrete -> Discrete for MORL agents that need scalar actions
                 env = FlattenMultiDiscreteAction(env)
                 env = GymToGymnasiumWrapper(env)
+
+                from gymnasium.envs.registration import EnvSpec
+
+                env.spec = EnvSpec(
+                    id=f"{args.game}-Unity-v0"
+                )
+
+                eval_env = GymToGymnasiumWrapper(FlattenMultiDiscreteAction(eval_env))
                 agent = Envelope(
                     env=env,
-                    log=False   # 👈 ADD THIS
+                    log=True   # 👈 ADD THIS
                 )
 
                 env.callback = MORLTensorBoardCallback(
                     experiment_name,
                     env,
                     agent,
-                    reference_point=[0.0, 0.0],
+                    reference_point=np.asarray([-0.1, -0.1]),
                 )
 
                 print("📊 Starting Envelope-Q training")
 
                 try:
-                    agent.train(total_timesteps=5_000_000, ref_point=[0.0, 0.0], verbose=True)
+                    agent.train(total_timesteps=50_000_000, ref_point=np.asarray([-0.1, -0.1]), verbose=True, eval_env=eval_env, eval_freq=1_000_000, num_eval_episodes_for_front=2, num_eval_weights_for_eval=50, num_eval_weights_for_front=50)
                 except UnityTimeOutException:
                     close_environment_safely(env)
                     raise
