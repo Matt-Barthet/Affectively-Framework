@@ -1,16 +1,10 @@
 import os
-
-import numpy as np
 from tensorboardX import SummaryWriter
 import shutil
-
-
 import sys
-import numpy as np
 from collections import deque
 from PyQt5 import QtWidgets, QtCore
 import pyqtgraph as pg
-
 import numpy as np
 from morl_baselines.common.performance_indicators import hypervolume
 
@@ -48,21 +42,12 @@ class MORLTensorBoardCallback:
         env = self.environment
         self.episode += 1
 
-        # --- basic objective returns ---
         r_a = env.env.cumulative_ra
         r_b = env.env.cumulative_rb
 
         self.best_cumulative_ra = max(self.best_cumulative_ra, r_a)
         self.best_cumulative_rb = max(self.best_cumulative_rb, r_b)
         self.best_env_score = max(self.best_env_score, env.env.current_score)
-
-        # --- hypervolume ---
-        hv = 0.0
-        pareto_size = 0
-        if hasattr(self.agent, "pareto_front"):
-            pareto_size = len(self.agent.pareto_front)
-            hv = self.hv_tracker.compute(self.agent.pareto_front)
-            self.best_hypervolume = max(self.best_hypervolume, hv)
 
         # --- logging ---
         self.writer.add_scalar("returns/r_a", r_a, self.episode)
@@ -73,10 +58,6 @@ class MORLTensorBoardCallback:
 
         self.writer.add_scalar("env/current_score", env.env.current_score, self.episode)
         self.writer.add_scalar("env/best_score", self.best_env_score, self.episode)
-
-        self.writer.add_scalar("morl/pareto_size", pareto_size, self.episode)
-        self.writer.add_scalar("morl/hypervolume", hv, self.episode)
-        self.writer.add_scalar("morl/best_hypervolume", self.best_hypervolume, self.episode)
 
         # --- arousal diagnostics ---
         mean_arousal = 0.0 if len(env.env.episode_arousal_trace) == 0 else np.mean(env.env.episode_arousal_trace)

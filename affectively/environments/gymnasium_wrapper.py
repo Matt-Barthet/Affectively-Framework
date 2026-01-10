@@ -43,9 +43,13 @@ class GymToGymnasiumWrapper(gymnasium.Env):
             self.reward_space = to_gymnasium_space(env.reward_space)
 
     def reset(self, *, seed=None, options=None):
-        print(self.callback, self.env.episode_arousal_trace)
-        if self.callback is not None and len(self.env.episode_arousal_trace) > 0:
-            self.callback.on_episode_end()
+        # print(self.callback, self.env.episode_arousal_trace)
+        try:
+            if self.callback is not None and len(self.env.episode_arousal_trace) > 0:
+                self.callback.on_episode_end()
+        except AttributeError:
+            pass
+
         obs = self.env.reset()
         return obs, {}
 

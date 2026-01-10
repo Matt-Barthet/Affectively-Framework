@@ -30,7 +30,6 @@ class PiratesEnvironment(BaseEnvironment):
         transformed_action = (action[0] - 1, action[1], save_load,)
         state, reward, d, info = super().step(transformed_action)
         state = self.construct_state(state)
-        self.reset_condition()
         return state, reward, d, info
 
     def handle_level_end(self):
