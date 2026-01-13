@@ -2,13 +2,13 @@ from GANGenerate import generateNewLevel
 import numpy as np
 
 class GANWrapper:
-    def generate(self, vector):
-        # vector = numpy array → convert to python list
-        values = vector.tolist()
-
-        # call your GAN function
-        level = generateNewLevel(values)
-
-        # return a placeholder observation for PPO (must match your observation_space)
-        # example: 64x64 RGB black image
-        return level.astype(np.int32)
+    def generate(self, vector, worker_id):
+        try:
+            values = vector.tolist()
+            level = generateNewLevel(values, worker_id)
+            return level.astype(np.int32)
+        except Exception as e:
+            return self._empty_level()
+        
+    def _empty_level(self):
+        return np.zeros((14, 32), dtype=np.int32)

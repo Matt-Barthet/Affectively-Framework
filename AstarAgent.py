@@ -43,6 +43,35 @@ from helper import Helper
 
 import matplotlib.pyplot as plt
 
+# def extract_plan(actions_data, best_pos, require_replanning):
+#     actions = []
+#     save_nums = []
+#     pos_x = []
+#     if best_pos == None:
+#         for i in range(10):
+#             actions.append(actions_data["move_right"]["action"])
+#             save_nums.append(0)
+#             pos_x.append(1)
+#         return actions, save_nums, pos_x, require_replanning
+    
+#     current = best_pos
+#     while current.parent != None:
+#         for i in range(current.repetitions):
+#             actions.append(current.action)
+#             save_nums.append(current.save_num)
+#             pos_x.append(current.pos_x)
+
+#         if current.state[19] > 0 or current.state[37] > 0:
+#             require_replanning = True
+        
+#         current = current.parent
+
+#     actions.reverse()
+#     save_nums.reverse()
+#     pos_x.reverse()
+
+#     return actions, save_nums, pos_x, require_replanning
+
 def extract_plan(actions_data, best_pos, require_replanning):
     actions = []
     save_nums = []
@@ -69,35 +98,51 @@ def extract_plan(actions_data, best_pos, require_replanning):
     actions.reverse()
     save_nums.reverse()
     pos_x.reverse()
-    return actions, save_nums, pos_x, require_replanning
 
-def start_search(env, dist_x, dist_y, damage, death, starting_state, starting_save_num, latest_save_num, starting_repetitions):
-    start_pos = AStarNode   (  
-                                env=env,
-                                parent=None,
-                                dist_x=dist_x,
-                                dist_y=dist_y,
-                                damage=damage,
-                                death=death,
-                                repetitions=starting_repetitions,
-                                action=None,
-                                save_num=starting_save_num
-                            )
-    
-    start_pos.initialize_root(starting_state, starting_save_num)
-    
-    pos_pool = []
-    visited_states = []
+    return require_replanning
 
-    children, latest_save_num = start_pos.generate_children(env, starting_save_num, latest_save_num)
+def start_search(pos_pool, visited_states, env, dist_x, dist_y, damage, death, starting_state, starting_save_num, latest_save_num, starting_repetitions):
+    # print("start dist_x: " + str(dist_x))
+    # keyboard.wait("space")
+    if death > 0 or damage > 0:
+        print("death: " + str(death))
+        print("damage: " + str(damage))
+        # keyboard.wait("space")
 
-    for child in children:
-        heapq.heappush(pos_pool, (child.calculate_cost(), child))
+    if len(pos_pool) == 0:
+        start_pos = AStarNode   (  
+                                    env=env,
+                                    parent=None,
+                                    dist_x=dist_x,
+                                    dist_y=dist_y,
+                                    damage=damage,
+                                    death=death,
+                                    repetitions=starting_repetitions,
+                                    action=None,
+                                    save_num=starting_save_num
+                                )
         
-    current_starting_pos_x = start_pos.pos_x
+        start_pos.initialize_root(starting_state, starting_save_num)
+    
+        # print("pos_pool: " + str(pos_pool))
+        # print("visited_states: " + str(visited_states))
+        # pos_pool = []
+        # visited_states = []
 
-    best_pos = start_pos
-    furthest_pos = start_pos
+    
+        children, latest_save_num = start_pos.generate_children(env, starting_save_num, latest_save_num)
+
+        for child in children:
+            heapq.heappush(pos_pool, (child.calculate_cost(), child))
+        
+        current_starting_pos_x = start_pos.pos_x
+
+        best_pos = start_pos
+        furthest_pos = start_pos
+    else:
+        current_starting_pos_x = dist_x
+        best_pos, pos_pool = pick_best_pos(pos_pool)
+        furthest_pos = best_pos
 
     return best_pos, furthest_pos, current_starting_pos_x, pos_pool, visited_states, latest_save_num
 
@@ -132,16 +177,30 @@ def is_in_visited(x, y, t, visited_states):
         
     return False
 
-def search(actions_data, env, pos_pool, best_pos, furthest_pos, current_starting_pos_x, latest_save_num, visited_states, require_replanning, original_save_num, original_dist_x, original_dist_y, original_damage, original_death, original_score, original_kill_count):
+def search(time_limit_count, actions_data, env, pos_pool, best_pos, furthest_pos, current_starting_pos_x, latest_save_num, visited_states, require_replanning, original_save_num, original_dist_x, original_dist_y, original_damage, original_death, original_score, original_kill_count):
     
     current = best_pos
     current_good = False
     max_right = 20
     search_count = 0
 
-    while best_pos.reached_end_count == 0 and search_count <= 500 and (len(pos_pool) != 0 and (((best_pos.pos_x - current_starting_pos_x) < max_right) or not current_good) and env.episode_length < 600):        
-        if (search_count % 50) == 0:
-            print("search count: " + str(search_count))
+    # print("----<>")
+    # print("best_pos.reached_end_count: " + str(best_pos.reached_end_count))
+    # print("search_count: " + str(search_count))
+    # print("len(pos_pool): " + str(len(pos_pool)))
+    # print("best_pos.pos_x: " + str(best_pos.pos_x))
+    # print("current_starting_pos_x: " + str(current_starting_pos_x))
+    # print("max_right: " + str(max_right))
+    # print("current_good: " + str(current_good))
+    # print("env.episode_length: " + str(env.episode_length))
+    # print("----<>")
+
+    while best_pos.reached_end_count == 0 and search_count <= 500 and time_limit_count <= 1200 and (len(pos_pool) != 0 and (((best_pos.pos_x - current_starting_pos_x) < max_right) or not current_good) and env.episode_length < 600):        
+        # if (search_count % 50) == 0:
+        #     print("search count: " + str(search_count))
+
+        if (time_limit_count % 50) == 0:
+            print("time limit count: " + str(time_limit_count))
             
         current, pos_pool = pick_best_pos(pos_pool)
         
@@ -204,7 +263,8 @@ def search(actions_data, env, pos_pool, best_pos, furthest_pos, current_starting
                     # print("Search Count Reset")
                     search_count = 0
                     # print("Best changed")
-                    # print(str(extract_plan(actions_data, best_pos, require_replanning)))
+                    # print("best_pos.pos_x: " + str(best_pos.pos_x))
+                    # # print(str(extract_plan(actions_data, best_pos, require_replanning)))
                     # print("=========") 
                     # keyboard.wait("space")
 
@@ -212,15 +272,15 @@ def search(actions_data, env, pos_pool, best_pos, furthest_pos, current_starting
                 furthest_pos = current
 
         search_count+=1  
-             
+        time_limit_count+=1             
 
     if (current.pos_x - current_starting_pos_x) < max_right and furthest_pos.pos_x > best_pos.pos_x + 20:
         best_pos = furthest_pos
 
     # print("best_pos: " + str(best_pos))
-    return search_count, best_pos, furthest_pos, pos_pool, visited_states, latest_save_num
+    return time_limit_count, search_count, best_pos, furthest_pos, pos_pool, visited_states, latest_save_num
 
-def optimise(actions_data, env, original_state, original_save_num, current_action_plan, original_dist_x, original_dist_y, original_damage, original_death, original_score, original_kill_count):
+def optimise(time_limit_count, pos_pool, visited_states, actions_data, env, original_state, original_save_num, original_dist_x, original_dist_y, original_damage, original_death, original_score, original_kill_count):
     plan_ahead = 2
     steps_per_search = 1
 
@@ -229,19 +289,16 @@ def optimise(actions_data, env, original_state, original_save_num, current_actio
 
     state = original_state
 
-    if len(current_action_plan) < plan_ahead:
-        plan_ahead = len(current_action_plan)
-
-    best_pos, furthest_pos, current_starting_pos_x, pos_pool, visited_states, latest_save_num = start_search(env, original_dist_x, original_dist_y, original_damage, original_death, state, latest_save_num, latest_save_num, steps_per_search)
+    best_pos, furthest_pos, current_starting_pos_x, pos_pool, visited_states, latest_save_num = start_search(pos_pool, visited_states, env, original_dist_x, original_dist_y, original_damage, original_death, state, latest_save_num, latest_save_num, steps_per_search)
 
     if state[37] > 0:
-        best_pos, furthest_pos, current_starting_pos_x, pos_pool, visited_states, latest_save_num = start_search(env, original_dist_x, original_dist_y, original_damage, original_death, original_state, original_save_num, latest_save_num, steps_per_search)
+        best_pos, furthest_pos, current_starting_pos_x, pos_pool, visited_states, latest_save_num = start_search(pos_pool, visited_states, env, original_dist_x, original_dist_y, original_damage, original_death, original_state, original_save_num, latest_save_num, steps_per_search)
 
-    search_count, best_pos, furthest_pos, pos_pool, visited_states, latest_save_num = search(actions_data, env, pos_pool, best_pos, furthest_pos, current_starting_pos_x, latest_save_num, visited_states, require_replanning, original_save_num, original_dist_x, original_dist_y, original_damage, original_death, original_score, original_kill_count)
+    time_limit_count, search_count, best_pos, furthest_pos, pos_pool, visited_states, latest_save_num = search(time_limit_count, actions_data, env, pos_pool, best_pos, furthest_pos, current_starting_pos_x, latest_save_num, visited_states, require_replanning, original_save_num, original_dist_x, original_dist_y, original_damage, original_death, original_score, original_kill_count)
     
-    current_action_plan, current_save_nums, pos_x_list, require_replanning = extract_plan(actions_data, best_pos, require_replanning)
+    # require_replanning = extract_plan(actions_data, best_pos, require_replanning)
 
-    return search_count, current_action_plan, current_save_nums, pos_x_list, latest_save_num
+    return time_limit_count, search_count, best_pos, latest_save_num, pos_pool, visited_states
 
 class AstarAgent:    
     # cwd: c:\Users\vassa\Documents\GitHub\Affectively-Framework
@@ -316,13 +373,16 @@ class AstarAgent:
 
         main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(main_actions_data["stay_still"]["action"], main_save_load_num)
         
-        main_current_action_plan = []
         main_dist_x = 0
         main_dist_y = 0
         main_damage = 0
         main_death = 0
         main_score = 0
         main_kill_count = 0
+        main_time_limit_count = 0
+
+        main_pos_pool = []
+        main_visited_states = []
 
         while True:   
             main_new_save_load_num = main_save_load_num
@@ -331,15 +391,13 @@ class AstarAgent:
             main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(main_actions_data["stay_still"]["action"], main_save_load_num)
             # keyboard.wait("space")
 
-            main_current_action_plan = []
-            main_current_save_nums = []
-            main_search_count, main_current_action_plan, main_current_save_nums, pos_x_list, main_new_save_load_num = optimise(main_actions_data, main_env, main_state, main_new_save_load_num, main_current_action_plan, main_dist_x, main_dist_y, main_damage, main_death, main_score, main_kill_count)
+            main_time_limit_count, main_search_count, main_best_pos, main_new_save_load_num, main_pos_pool, main_visited_states = optimise(main_time_limit_count, main_pos_pool, main_visited_states, main_actions_data, main_env, main_state, main_new_save_load_num, main_dist_x, main_dist_y, main_damage, main_death, main_score, main_kill_count)
 
-            # print("main_current_action_plan: " + str(main_current_action_plan))
             # print("main_search_count: " + str(main_search_count))
 
-            if main_search_count >= 500 or (main_current_action_plan == [] and main_search_count == 0):
+            if main_search_count >= 500 or main_search_count == 0 or main_time_limit_count >= 1200:
                 playable = False
+                print("Close 1")
                 main_env.env.close()
                 return playable, main_dist_x
             
@@ -348,48 +406,54 @@ class AstarAgent:
             main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(main_actions_data["stay_still"]["action"], main_save_load_num)
             # keyboard.wait("space")
 
-            if main_current_action_plan == None:
-                # print("1 LOAD MOVE: Stay Still")
-                main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(main_actions_data["stay_still"]["action"], main_save_load_num)
-                # keyboard.wait("space")
+            if main_best_pos == None:
+                test = 1
+                # # print("1 LOAD MOVE: Stay Still")
+                # main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(main_actions_data["stay_still"]["action"], main_save_load_num)
+                # # keyboard.wait("space")
 
-                main_dist_x += main_state[0]
-                # print("1 Dist X: " + str(main_dist_x))
-                main_dist_y += main_state[1]
-                main_damage += main_state[19]
-                main_death += main_state[37]
-
-                main_score = main_state[7]
-                main_kill_count = main_state[23]
-
-                # print("1 SAVE")
-                main_new_save_load_num += 1
-                main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(main_actions_data["stay_still"]["action"], -main_new_save_load_num)
-                # keyboard.wait("space")
-
-                if main_reached_termination or main_death > 0:
-                    # print("TERMINATION 1")
-                    # print("main_reached_termination: " + str(main_reached_termination))
-                    # print("main_death: " + str(main_death))
-                    playable = True
-
-                    if main_reached_end_door == False:
-                        playable = False
-
-                    main_env.env.close()
-
-                    return playable, main_dist_x
-            else:
-                action_index = (len(main_current_action_plan) - 1)
-                main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(main_current_action_plan[action_index], main_current_save_nums[action_index])
-                
-                main_dist_x = pos_x_list[action_index]
+                # main_dist_x += main_state[0]
+                # # print("1 Dist X: " + str(main_dist_x))
                 # main_dist_y += main_state[1]
                 # main_damage += main_state[19]
-                # main_death += main_state[37] 
+                # main_death += main_state[37]
 
                 # main_score = main_state[7]
                 # main_kill_count = main_state[23]
+
+                # # print("1 SAVE")
+                # main_new_save_load_num += 1
+                # main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(main_actions_data["stay_still"]["action"], -main_new_save_load_num)
+                # # keyboard.wait("space")
+
+                # if main_reached_termination or main_death > 0:
+                #     # print("TERMINATION 1")
+                #     # print("main_reached_termination: " + str(main_reached_termination))
+                #     # print("main_death: " + str(main_death))
+
+                #     # if main_death > 0:
+                #     #     print("TERMINATION 1")
+                #     #     keyboard.wait("space")
+                        
+                #     playable = True
+
+                #     if main_reached_end_door == False:
+                #         playable = False
+
+                #     print("Close 2")
+                #     main_env.env.close()
+
+                #     return playable, main_dist_x
+            else:
+                main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(main_best_pos.action, main_best_pos.save_num)
+                
+                main_dist_x = main_best_pos.pos_x
+                main_dist_y = main_best_pos.pos_y
+                main_damage += main_best_pos.damage
+                main_death += main_best_pos.death
+
+                main_score = main_best_pos.score_difference
+                main_kill_count = main_best_pos.kill_count_difference
 
                 # keyboard.wait("space")   
 
@@ -397,47 +461,20 @@ class AstarAgent:
                     # print("TERMINATION 2")
                     # print("main_reached_termination: " + str(main_reached_termination))
                     # print("main_death: " + str(main_death))
+
+                    # if main_death > 0:
+                    #     print("TERMINATION 2")
+                    #     keyboard.wait("space")
+
                     playable = True
 
                     if main_reached_end_door == False:
                         playable = False
 
+                    print("Close 3")
                     main_env.env.close()
 
                     return playable, main_dist_x 
-                
-                # for i, part_action in enumerate(main_current_action_plan):
-                #     if i == 0:
-                #         # print("2 LOAD MOVE: " + str(part_action))
-                #         main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(part_action, main_save_load_num)
-                #         # keyboard.wait("space")
-                #     else:
-                #         # print("2 MOVE: " + str(part_action))
-                #         main_raw_grid, main_state, main_reached_termination, main_reached_end_door, main_reward, main_done, main_info = main_env.step(part_action, 0)
-                #         # keyboard.wait("space")
-                    
-                #     main_dist_x += main_state[0]
-                #     main_dist_y += main_state[1]
-                #     main_damage += main_state[19]
-                #     main_death += main_state[37] 
-
-                #     main_score = main_state[7]
-                #     main_kill_count = main_state[23]
-
-                #     keyboard.wait("space")    
-
-                #     if main_reached_termination or main_death > 0:
-                #         print("TERMINATION 2")
-                #         print("main_reached_termination: " + str(main_reached_termination))
-                #         print("main_death: " + str(main_death))
-                #         playable = True
-
-                #         if main_reached_end_door == False:
-                #             playable = False
-
-                #         main_env.env.close()
-
-                #         return playable, main_dist_x
 
             # print("SAVE")
             main_new_save_load_num += 1  
@@ -448,11 +485,17 @@ class AstarAgent:
                 # print("TERMINATION 3")
                 # print("main_reached_termination: " + str(main_reached_termination))
                 # print("main_death: " + str(main_death))
+
+                # if main_death > 0:
+                #     print("TERMINATION 3")
+                #     keyboard.wait("space")
+
                 playable = True
 
                 if main_reached_end_door == False:
                     playable = False
 
+                print("Close 4")
                 main_env.env.close()
 
                 return playable, main_dist_x
@@ -463,11 +506,16 @@ class AstarAgent:
             # keyboard.wait("space") 
             
             if main_reached_termination and main_death > 0:
+                # if main_death > 0:
+                #     print("TERMINATION 4")
+                #     keyboard.wait("space")
+
                 playable = True
 
                 if main_reached_end_door == False:
                     playable = False
 
+                print("Close 5")
                 main_env.env.close()
 
                 return playable, main_dist_x
@@ -480,10 +528,13 @@ class AstarAgent:
                 if main_reached_end_door == False:
                     playable = False
 
+                print("Close 6")
                 main_env.env.close()
 
                 return playable, main_dist_x
             
+            print("MOVED")
+            print("******************************************")
             # keyboard.wait("space")
         # 0 - (transform.position - previousPosition).x
         # 1 - (transform.position - previousPosition).y
@@ -537,6 +588,11 @@ class AstarAgent:
 # cd C:\Users\vassa\Documents\GitHub\Affectively-Framework
 # conda activate unity_gym
 # python AstarAgent.py
+# 
+
+# cd C:\Users\vassa\Documents\GitHub\Affectively-Framework
+# conda activate unity_gym
+# python GANMain.py
 # 
 
 if __name__ == "__main__":  

@@ -25,6 +25,8 @@ import sys
 # print("SHOWING")
 # print(sys.executable)
 
+from stable_baselines3.common.vec_env import SubprocVecEnv
+
 class CustomMLPExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: spaces.Box, features_dim: int = 256):
         super().__init__(observation_space, features_dim)
@@ -59,6 +61,13 @@ def load_config(config_file_path):
         print(f"Error parsing YAML file '{config_file_path}': {exc}")
         return None
 
+def make_env(worker_id):
+    def _init():
+        env = GANLevelEnv(worker_id=worker_id)
+        env = Monitor(env)
+        return env
+    return _init
+
 if __name__ == "__main__":    
     run = 1
     weight = 0
@@ -66,12 +75,14 @@ if __name__ == "__main__":
     env = GANLevelEnv()
     env = Monitor(env)
 
+    # env = SubprocVecEnv([make_env(i) for i in range(5)])
+
     label = 'optimize' if weight == 0 else 'arousal' if weight == 1 else 'blended'
 
     checkpoint_callback = CheckpointCallback(
                                                 save_freq=100,
                                                 save_path="./GANArousalAgents/PPO/",
-                                                name_prefix=f"cnn_ppo_onlyplayable_{label}_{run}"
+                                                name_prefix=f"cnn_ppo_{label}_{run}"
                                             )
     
     callbacks = CallbackList([
@@ -97,5 +108,5 @@ if __name__ == "__main__":
         device='cuda',
     )
 
-    model.learn(total_timesteps=4000, callback=callbacks)
-    model.save(f"./GANArousalAgents/PPO/cnn_ppo_solid_onlyplayable_{label}_{run}_extended")
+    model.learn(total_timesteps=40000, callback=callbacks)
+    model.save(f"./GANArousalAgents/PPO/cnn_ppo_{label}_{run}_extended")

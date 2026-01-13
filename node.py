@@ -76,16 +76,16 @@ class AStarNode():
     def calculate_distance_from_origin(self, dist_x):
         self.distance_from_origin = dist_x
         # self.remaining_time_estimated = (1 - (self.distance_from_origin / 600))
-        test_time = max(0.0, min(1.0, 1 - (self.distance_from_origin / 600)))
+        test_time = max(0.0, min(1.0, 1 - (self.distance_from_origin / 1000)))
         if test_time <= 0:
             print("self.distance_from_origin: " + str(self.distance_from_origin))
-            print("(self.distance_from_origin / 600): " + str((self.distance_from_origin / 600)))
-            print("1 - (self.distance_from_origin / 600): " + str(1 - (self.distance_from_origin / 600)))
-            print("min(1.0, 1 - (self.distance_from_origin / 600)): " + str(min(1.0, 1 - (self.distance_from_origin / 600))))
-            print("max(0.0, min(1.0, 1 - (self.distance_from_origin / 600))): " + str(max(0.0, min(1.0, 1 - (self.distance_from_origin / 600)))))
+            print("(self.distance_from_origin / 1000): " + str((self.distance_from_origin / 1000)))
+            print("1 - (self.distance_from_origin / 1000): " + str(1 - (self.distance_from_origin / 1000)))
+            print("min(1.0, 1 - (self.distance_from_origin / 1000)): " + str(min(1.0, 1 - (self.distance_from_origin / 1000))))
+            print("max(0.0, min(1.0, 1 - (self.distance_from_origin / 1000))): " + str(max(0.0, min(1.0, 1 - (self.distance_from_origin / 1000)))))
             keyboard.wait("space")
 
-        self.remaining_time_estimated = max(0.0, min(1.0, 1 - (self.distance_from_origin / 600)))
+        self.remaining_time_estimated = max(0.0, min(1.0, 1 - (self.distance_from_origin / 1000)))
 
         self.calculate_cost()
     
@@ -152,6 +152,7 @@ class AStarNode():
         self.calculate_distance_from_origin(self.pos_x)
 
         latest_save_num += 1
+        temp_end_save_num = latest_save_num
         raw_grid, self.state, reached_termination, reached_end_door, reward, done, info = env.step(self.actions_data["stay_still"]["action"], -latest_save_num)
         
         if reached_end_door:
@@ -159,21 +160,61 @@ class AStarNode():
         
         self.damage += self.state[19]
         self.death += self.state[37]
+
+        raw_grid, self.state, reached_termination, reached_end_door, reward, done, info = env.step(self.actions_data["stay_still"]["action"], 0)
+        
+        if reached_end_door:
+            self.reached_end_count += 1
+        
+        self.damage += self.state[19]
+        self.death += self.state[37]
+        # print("save")
+        # keyboard.wait("space")
+        # for i in range(1):
+        #     test_raw_grid, test_state, test_reached_termination, test_reached_end_door, test_reward, test_done, test_info = env.step(self.actions_data["stay_still"]["action"], latest_save_num)
+            
+        #     if test_reached_end_door:
+        #         self.reached_end_count += 1
+        #     self.damage += test_state[19]
+        #     self.death += test_state[37]
+        #     # print("load")
+        #     # keyboard.wait("space")
+        #     test_raw_grid, test_state, test_reached_termination, test_reached_end_door, test_reward, test_done, test_info = env.step(self.actions_data["stay_still"]["action"], 0)
+
+        #     if test_reached_end_door:
+        #         self.reached_end_count += 1
+        #     self.damage += test_state[19]
+        #     self.death += test_state[37]
+        #     # print("move")
+        #     # keyboard.wait("space")
+        #     latest_save_num += 1
+        #     test_raw_grid, test_state, test_reached_termination, test_reached_end_door, test_reward, test_done, test_info = env.step(self.actions_data["stay_still"]["action"], -latest_save_num)
+            
+        #     if test_reached_end_door:
+        #         self.reached_end_count += 1
+        #     self.damage += test_state[19]
+        #     self.death += test_state[37]
+        #     # print("save 2")
+        #     # keyboard.wait("space")
+            
+
         
         # print("move")
         # keyboard.wait("space")
-        for i in range(2):
-            raw_grid, temp_state, reached_termination, reached_end_door, reward, done, info = env.step(self.actions_data["stay_still"]["action"], 0)
+        # for i in range(2):
+        #     raw_grid, temp_state, reached_termination, reached_end_door, reward, done, info = env.step(self.actions_data["stay_still"]["action"], 0)
             
-            if reached_end_door:
-                self.reached_end_count += 1
+        #     if reached_end_door:
+        #         self.reached_end_count += 1
                 
-            self.damage += temp_state[19]
-            self.death += temp_state[37]
+        #     self.damage += temp_state[19]
+        #     self.death += temp_state[37]
         # print("check")
         # keyboard.wait("space")
 
-        test_raw_grid, test_state, test_reached_termination, test_reached_end_door, test_reward, test_done, test_info = env.step(self.actions_data["stay_still"]["action"], latest_save_num)
+        test_raw_grid, test_state, test_reached_termination, test_reached_end_door, test_reward, test_done, test_info = env.step(self.actions_data["stay_still"]["action"], temp_end_save_num)
+        # test_raw_grid, test_state, test_reached_termination, test_reached_end_door, test_reward, test_done, test_info = env.step(self.actions_data["stay_still"]["action"], latest_save_num)
+
         # print("load")
         # keyboard.wait("space")
         damage = Helper.get_damage(self, self.parent)
@@ -350,13 +391,17 @@ class AStarNode():
 
             children.append(AStarNode(env, self, state[0], state[1], child_damage, child_death, self.repetitions, action, latest_save_num))
 
+        # if self.is_leaf_node() or len(children) == 0:
+        #     print("self.is_leaf_node(): " + str(self.is_leaf_node()))
+        #     print("len(children): " + str(len(children)))
+        #     keyboard.wait("space")
         return children, latest_save_num
 
 
     def is_leaf_node(self):
-        if self.state[37] <= 0:
+        if self.death <= 0:
             return False
-        return self.state[37] > 0     
+        return self.death > 0     
     
 
     # ---

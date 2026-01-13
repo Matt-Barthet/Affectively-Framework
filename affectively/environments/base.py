@@ -113,6 +113,9 @@ class BaseEnvironment(gym.Env, ABC):
         self.episode_length_list = {}
 
     def build_segment(self, segments):
+        if isinstance(segments, np.ndarray) and segments.ndim == 2:
+            segments = [segments]
+
         for segment in segments:
             flat_segment = ";".join(",".join(str(x) for x in row) for row in segment)
             flat_segment = f"[Segment]:{flat_segment}"

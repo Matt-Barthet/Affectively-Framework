@@ -8,6 +8,8 @@ from CNet.model import CNet
 
 import __main__
 
+import keyboard
+
 # parameter
 Threshold = 0.05
 P_M0 = 0.8
@@ -114,20 +116,53 @@ def random_choose_ind(pop):
     return len(pop) - 1
 
 def evolution(isfigure, isrepair, result_path):
+    # print("evolution 1")
+    # keyboard.wait("space")
+
     figure_index = range(Iteration)  # [0, 1, 2, 4, 8, 15, 25, 40, 60, 90]
     figure_path = result_path + "//figure"
     txt_path = result_path + "//txt"
+
+    if not os.path.exists(txt_path):
+        os.makedirs(txt_path)
+
+    # print("evolution 2")
+    # keyboard.wait("space")
+
     global S
     S = []
     initial()
     pop = initpop()
     best = pop[0]
     start = {}
+
+    # print("evolution 3")
+    # keyboard.wait("space")
+
     for i, j in S:
         start[(i, j)] = origin[i][j]
+
+    # print("evolution 3-1")
+    # keyboard.wait("space")
+
     level, S1, T1 = get_mark_set(start)
+
+    # print("evolution 3-2")
+    # keyboard.wait("space")
+
+    # print("txt_path: " + str(txt_path))
+    # keyboard.wait("space")
+
     save_level_as_text(level, txt_path + "//iteration0")
+
+    # print("evolution 3-3")
+    # keyboard.wait("space")
+
     save_level_as_text(level, result_path + "//start")
+
+    # print("evolution 4")
+    # keyboard.wait("space")
+
     for index in range(Iteration):
         level, S1, T1 = get_mark_set(best)
         save_level_as_text(level, txt_path + "//iteration" + str(index + 1))
@@ -169,9 +204,17 @@ def evolution(isfigure, isrepair, result_path):
     '''for i in range(Lamda):
         for j in score[Iteration].keys():
             score[Iteration][j] += pop[i][j]'''
+    
+    # print("evolution 5")
+    # keyboard.wait("space")
+
     level, S1, T1 = get_mark_set(best)
     save_level_as_num_text(level, result_path + "//result")
     # whole_level = numpy_level(lv_str)
+
+    # print("evolution 6")
+    # keyboard.wait("space")
+
     return best, level
 
 def get_protile(ind, i, j):
@@ -305,10 +348,18 @@ def GA(net_name, lv_name, result_path, isfigure=True, isrepair=True):
     import torch
     import __main__
 
+    import keyboard
+
     __main__.CNet = CNet
+
+    # print("GA 1")
+    # keyboard.wait("space")
 
     net = torch.load(net_name, map_location="cpu", weights_only=False)
     net.eval()
+
+    # print("GA 2")
+    # keyboard.wait("space")
 
     net.eval()
     score = []
@@ -317,13 +368,44 @@ def GA(net_name, lv_name, result_path, isfigure=True, isrepair=True):
         for j in range(Lamda):
             one.append({"fit": 0, "value": 0, "replace": 0, "wrong": 0})
         score.append(one)
+
+    # print("GA 3")
+    # keyboard.wait("space")
+
     lv_str = ''
     with open(lv_name) as f:
         for i in f.readlines():
             lv_str += i
+
+    # print("GA 4")
+    # keyboard.wait("space")
+
     whole_level = numpy_level(lv_str)
+
+    # print("GA 4-1")
+    # keyboard.wait("space")
+
     origin = whole_level
+
+    # print("GA 4-2")
+    # keyboard.wait("space")
+
     best, level = evolution(isfigure, isrepair, result_path)
-    with open(result_path + "//json//data.json", 'w') as f:
+
+    # print("GA 5")
+    # keyboard.wait("space")
+
+    # with open(result_path + "//json//data.json", 'w') as f:
+    #     json.dump(score, f)
+
+    json_dir = os.path.join(result_path, "json")
+    os.makedirs(json_dir, exist_ok=True)
+    json_path = os.path.join(json_dir, "data.json")
+
+    with open(json_path, 'w') as f:
         json.dump(score, f)
+
+    # print("GA 6")
+    # keyboard.wait("space")
+
     return score, level
