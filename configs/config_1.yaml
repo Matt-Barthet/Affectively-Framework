@@ -24,3 +24,4 @@ periodic_ra: 0
 cv: 0
 grayscale: 0
 discretize: 0
+decisionPeriod: 10
