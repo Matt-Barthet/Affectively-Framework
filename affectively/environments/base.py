@@ -80,7 +80,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'],
                                                 dtype=dtype)
         self.model = LinearSurrogateModel(game=game, cluster=cluster, classifier=classifier, preference=preference)
-
+        self.cluster = cluster
         self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
         self.arousal_trace = []
 
@@ -107,13 +107,21 @@ class BaseEnvironment(gym.Env, ABC):
         self.classifier = classifier
         self.surrogate_length = self.model.surrogate_length
         self.callback = None
+        self.multi_objective = self.weight == -1
+        if self.multi_objective:
+            self.reward_space = gym.spaces.Box(
+                low=-np.inf,
+                high=np.inf,
+                shape=(2,),
+                dtype=np.float32
+            )
+
+    def reinit(self):
+        self.model = LinearSurrogateModel(game=self.game, cluster=self.cluster, classifier=self.classifier, preference=self.preference)
 
     def reset(self, **kwargs):
-
-        if self.callback is not None and len(self.episode_arousal_trace) > 0:
-            self.callback.on_episode_end()
-
         state = self.env.reset()
+        
         for modality in range(len(state)):
             if len(np.asarray(state[modality]).shape) == 1:
                 arousal_window = self.episode_arousal_trace[-5:]
@@ -194,7 +202,8 @@ class BaseEnvironment(gym.Env, ABC):
                 self.episode_arousal_trace.append(arousal)
                 self.period_arousal_trace.append(arousal)
             else:
-                print(arousal)
+                # print(arousal)
+                pass
             self.previous_surrogate = self.current_surrogate.copy()
             self.customSideChannel.arousal_vector.clear()
         return arousal
@@ -207,7 +216,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.score_change = self.score_change or change_in_score > 0
         self.previous_score = self.current_score
 
-        state, env_score, done, info = self.env.step(list(action))
+        state, env_score, done, info = self.env.step(action)
 
         for modality in range(len(state)):
             if len(np.asarray(state[modality]).shape) == 1:
@@ -225,17 +234,26 @@ class BaseEnvironment(gym.Env, ABC):
             self.arousal_episode_length = 0
             self.surrogate_list.clear()
 
-        final_reward = 0
+        if self.multi_objective:
+            final_reward = np.array([0,0], dtype=np.float32)
+            if self.period_ra and (len(self.episode_arousal_trace) > 0):
+                # print("assigning reward asynchronously!")
+                final_reward = np.array([self.reward_behavior(), self.reward_affect()], dtype=np.float32)
+            elif not self.period_ra and self.score_change:
+                # print("assigning reward synchronously based on score change!")
+                final_reward = np.array([self.reward_behavior(), self.reward_affect()], dtype=np.float32)   
+        else:
+            final_reward = 0
 
-        if self.period_ra and (len(self.episode_arousal_trace) > 0):
-            # print("assigning reward asynchronously!")
-            final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
+            if self.period_ra and (len(self.episode_arousal_trace) > 0):
+                # print("assigning reward asynchronously!")
+                final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
 
-        elif not self.period_ra and self.score_change:
-            # print("assigning reward synchronously based on score change!")
-            final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
+            elif not self.period_ra and self.score_change:
+                # print("assigning reward synchronously based on score change!")
+                final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
 
-        self.cumulative_rl += final_reward
+            self.cumulative_rl += final_reward
 
         if self.episode_length % 10 == 0 and self.callback is not None:
             self.callback.on_step()
@@ -277,6 +295,7 @@ class BaseEnvironment(gym.Env, ABC):
                                    additional_args=args)
         except:
             print("Checking next ID!") 
+            raise
             return self.load_environment(identifier + 1, graphics, args)
         return env
 

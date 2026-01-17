@@ -1,222 +1,119 @@
 import os
-import shutil
 import subprocess
 import time
 import platform
 import yaml
 import sys
+import shlex
 
-# --- Helper function to load the configuration file ---
-def load_config(config_file_path):
-    """
-    Loads parameters from a YAML configuration file.
 
-    Args:
-        config_file_path (str): The full path to the YAML configuration file.
-
-    Returns:
-        dict: A dictionary containing the loaded configuration parameters.
-    """
+def load_config(path):
     try:
-        with open(config_file_path, 'r') as file:
-            config = yaml.safe_load(file)
-            return config
-    except FileNotFoundError:
-        print(f"Error: Configuration file '{config_file_path}' not found.")
+        with open(path, "r") as f:
+            return yaml.safe_load(f)
+    except Exception:
         return None
-    except yaml.YAMLError as exc:
-        print(f"Error parsing YAML file '{config_file_path}': {exc}")
-        return None
+
 
 def find_conda_sh():
-    """Locate conda.sh dynamically from the conda binary."""
     try:
-        # Find where the `conda` executable lives
         conda_path = subprocess.check_output(["which", "conda"], text=True).strip()
-        if not os.path.exists(conda_path):
-            return None
-
-        # Go two levels up and look for conda.sh
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(conda_path), ".."))
-        candidate = os.path.join(base_dir, "etc", "profile.d", "conda.sh")
-
+        base = os.path.abspath(os.path.join(os.path.dirname(conda_path), ".."))
+        candidate = os.path.join(base, "etc", "profile.d", "conda.sh")
         if os.path.exists(candidate):
             return candidate
-
-        # As a fallback, try searching the base dir
-        for root, dirs, files in os.walk(base_dir):
+        for root, _, files in os.walk(base):
             if "conda.sh" in files:
                 return os.path.join(root, "conda.sh")
-
-    except Exception as e:
-        print(f"Error locating conda.sh: {e}")
-        return None
-
+    except Exception:
+        pass
     return None
 
-def get_conda_activation_command(conda_env):
-    system = platform.system()
 
-    if system in ["Linux", "Darwin"]:  # macOS = "Darwin"
-        try:
-            # Find conda binary
-            conda_path = subprocess.check_output(["which", "conda"], text=True).strip()
-            base_dir = os.path.abspath(os.path.join(os.path.dirname(conda_path), ".."))
-            conda_sh = os.path.join(base_dir, "etc", "profile.d", "conda.sh")
-
-            if not os.path.exists(conda_sh):
-                # fallback: search for conda.sh
-                for root, _, files in os.walk(base_dir):
-                    if "conda.sh" in files:
-                        conda_sh = os.path.join(root, "conda.sh")
-                        break
-
-            if not os.path.exists(conda_sh):
-                print("❌ Could not find conda.sh; please verify your Conda installation.")
-                sys.exit(1)
-
-            return f"source {conda_sh} && conda activate {conda_env}"
-
-        except subprocess.CalledProcessError:
-            print("❌ Conda not found on PATH.")
-            sys.exit(1)
-
-    elif system == "Windows":
-        # On Windows, conda.bat handles activation
-        conda_exe = subprocess.check_output(["where", "conda"], text=True).splitlines()[0]
-        conda_bat = os.path.join(os.path.dirname(conda_exe), "conda.bat")
-        if not os.path.exists(conda_bat):
-            print("❌ Could not find conda.bat; please check your Conda installation.")
-            sys.exit(1)
-        return f'call "{conda_bat}" activate {conda_env}'
-
-    else:
-        print(f"Unsupported platform: {system}")
-        sys.exit(1)
-
-# --- Main script logic ---
 def main():
-    """
-    Main function to load configurations from a directory and run experiments.
-    """
-    # Define the directory containing the configuration files
-    configs_directory = "configs"
-
-    conda_sh = find_conda_sh()
-    if not conda_sh and platform.system() != "Windows":
-        print("❌ Could not find conda.sh. Please check your conda installation.")
-        sys.exit(1)
-
-    # Get current working directory and system info
-    cwd = os.getcwd()
+    configs_dir = "configs"
     script_path = "./train.py"
+    output_dir = "./results"
+    cwd = os.getcwd()
     system = platform.system()
 
-    # Create the output directory if it doesn't exist
-    output_dir = "./results/"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Check if the configs directory exists
-    if not os.path.isdir(configs_directory):
-        print(f"Error: The configuration directory '{configs_directory}' does not exist.")
-        sys.exit(1)
+    if not os.path.isdir(configs_dir):
+        sys.exit(f"Config directory not found: {configs_dir}")
 
-    # Find all YAML files in the directory
-    config_files = [
-        f for f in os.listdir(configs_directory)
-        if f.endswith(('.yaml', '.yml'))
-    ]
+    configs = [f for f in os.listdir(configs_dir) if f.endswith((".yml", ".yaml"))]
+    if not configs:
+        sys.exit("No config files found")
 
-    if not config_files:
-        print(f"Warning: No YAML configuration files found in '{configs_directory}'.")
-        return
+    conda_sh = None
+    if system in ("Darwin", "Linux"):
+        conda_sh = find_conda_sh()
+        if not conda_sh:
+            sys.exit("conda.sh not found")
 
-    print(f"Found {len(config_files)} configuration files. Starting experiments...")
+    quoted_cwd = shlex.quote(cwd)
+    quoted_script = shlex.quote(script_path)
+    quoted_conda_sh = shlex.quote(conda_sh) if conda_sh else ""
 
-    # Iterate through each configuration file and run an experiment
-    for config_file_name in config_files:
-        config_file_path = os.path.join(configs_directory, config_file_name)
-        config = load_config(config_file_path)
+    for cfg in configs:
+        c = load_config(os.path.join(configs_dir, cfg))
+        if not c:
+            continue
 
-        if not config:
-            continue  # Skip to the next file if loading failed
-
-        # Extract parameters from the loaded config
-        runs = config.get("runs")
-        game = config.get("game")
-        algorithm = config.get("algorithm")
-        policy = config.get("policy")
-        conda_env = config.get("conda_env")
-        use_gpu = config.get("use_gpu")
-        headless = config.get("headless")
-
-        weight = config.get("weight")
-        cluster = config.get("cluster")
-        target_arousal = config.get("target_arousal")
-        classifier = config.get("classifier")
-        preference = config.get("preference")
-
-        period_ra = config.get("periodic_ra")
-        cv = config.get("cv")
-        grayscale = config.get("grayscale")
-        discretize = config.get("discretize")
-        decision_period = config.get("decisionPeriod")
-        
-        linux_only = f"source {conda_sh}" if system == "darwin" else ""
-        # Construct the command using the parameters from the current file
-        command = (
-            f"cd {cwd} && {linux_only}"
-            f"conda activate {conda_env} && "
-            f"python {script_path} --run={runs} --use_gpu={use_gpu} --weight={weight} "
-            f"--cluster={cluster} --target_arousal={target_arousal} --preference={preference} "
-            f"--classifier={classifier} --game={game} --periodic_ra={period_ra} --cv={cv} "
-            f"--headless={headless} --discretize={discretize if cv == 0 else 0} "
-            f"--grayscale={grayscale if cv == 1 else 0} --logdir={output_dir} "
-            f"--algorithm={algorithm} --policy={policy} --decision_period={decision_period}"
+        train_cmd = (
+            f"python {quoted_script} "
+            f"--run={c.get('runs')} "
+            f"--use_gpu={c.get('use_gpu')} "
+            f"--weight={c.get('weight')} "
+            f"--cluster={c.get('cluster')} "
+            f"--target_arousal={c.get('target_arousal')} "
+            f"--preference={c.get('preference')} "
+            f"--classifier={c.get('classifier')} "
+            f"--game={c.get('game')} "
+            f"--periodic_ra={c.get('periodic_ra')} "
+            f"--cv={c.get('cv')} "
+            f"--headless={c.get('headless')} "
+            f"--discretize={c.get('discretize') if c.get('cv') == 0 else 0} "
+            f"--grayscale={c.get('grayscale') if c.get('cv') == 1 else 0} "
+            f"--logdir={shlex.quote(output_dir)} "
+            f"--algorithm={c.get('algorithm')} "
+            f"--policy={c.get('policy')} "
+            f"--decision_period={c.get('decisionPeriod')}"
         )
 
-        # Execute the command based on the operating system
-        print(f"Starting run from config file: {config_file_name}")
-        if system == "Linux":
-            terminals = ["konsole", "xfce4-terminal", "x-terminal-emulator", "lxterminal",
-                         "mate-terminal", "gnome-terminal", ]
-            terminal = next((t for t in terminals if shutil.which(t)), None)
+        if system == "Darwin":
+            shell_cmd = (
+                f"cd {quoted_cwd} && "
+                f"source {quoted_conda_sh} && "
+                f"conda activate {c.get('conda_env')} && "
+                f"{train_cmd}"
+            )
+            apple_cmd = shell_cmd.replace('"', '\\"')
+            subprocess.Popen([
+                "osascript",
+                "-e",
+                f'tell application "Terminal" to do script "{apple_cmd}"'
+            ])
 
-
-            if terminal:
-                # Some terminals (like GNOME Terminal) use different argument styles
-                if terminal == "gnome-terminal":
-                    subprocess.Popen([
-                        terminal,
-                        "--",  # separates gnome-terminal args from the command
-                        "bash", "-c", f"source {command}; exec bash"
-                    ])
-                elif terminal == "konsole":
-                    subprocess.Popen([
-                        terminal,
-                        "-e", f"bash -c 'source {command}; exec bash'"
-                    ])
-                else:
-                    subprocess.Popen([
-                        terminal,
-                        "-e", f"bash -c 'source {command}; exec bash'"
-                    ])
-            else:
-                print("No compatible terminal emulator found.")
+        elif system == "Linux":
+            shell_cmd = (
+                f"cd {quoted_cwd} && "
+                f"source {quoted_conda_sh} && "
+                f"conda activate {c.get('conda_env')} && "
+                f"{train_cmd}"
+            )
+            subprocess.Popen(["bash", "-c", shell_cmd])
 
         elif system == "Windows":
             drive, path = os.path.splitdrive(cwd)
-            subprocess.Popen([
-                "wt", "new-tab", "cmd.exe", "/K",
-                f"{drive} && cd {path} && call {command}"
-            ])
-        elif system == "Darwin":  # macOS
-            subprocess.Popen(
-                ["osascript", "-e", f'tell app "Terminal" to do script "{command}"']
+            cmd = (
+                f"{drive} && cd {path} && "
+                f"call conda activate {c.get('conda_env')} && "
+                f"{train_cmd}"
             )
+            subprocess.Popen(["wt", "new-tab", "cmd.exe", "/K", cmd])
 
-        print(f"Finished processing {config_file_name}. Waiting 10 seconds before next run.")
         time.sleep(10)
 
 

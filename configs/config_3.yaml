@@ -3,8 +3,8 @@
 # General experiment settings
 runs: 5
 output_dir: "./results/"
-game: "fps"
-algorithm: "PPO"
+game: "solid"
+algorithm: "EQ"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 

@@ -11,12 +11,6 @@ class HeistEnvironment(BaseEnvironment):
                          capture_fps=capture_fps, time_scale=1, weight=weight, cluster=cluster, target_arousal=targetArousal, period_ra=period_ra, classifier=classifier, preference=preference,
                          decision_period=decision_period)
 
-    def reset_condition(self):
-        if self.episode_length > 6000 / self.decision_period:
-            self.reset()
-        if self.customSideChannel.levelEnd:
-            self.handle_level_end()
-
     def reset(self, **kwargs):
         state = super().reset()
         return self.construct_state(state)
@@ -32,10 +26,4 @@ class HeistEnvironment(BaseEnvironment):
         ]
         state, reward, done, info = super().step(transformed_action)
         state = self.construct_state(state)
-        self.reset_condition()
         return state, reward, done, info
-
-    def handle_level_end(self):
-        print("End of level reached, resetting environment.")
-        self.reset()
-        self.customSideChannel.levelEnd = False

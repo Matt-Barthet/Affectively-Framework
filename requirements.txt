@@ -17,3 +17,4 @@ rich
 pynput
 pyqt5
 pyqtgraph
+morl-baselines
