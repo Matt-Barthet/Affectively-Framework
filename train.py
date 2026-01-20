@@ -1,7 +1,6 @@
 import numpy as np
 from stable_baselines3.ppo import PPO
-from stable_baselines3.common.callbacks import ProgressBarCallback, BaseCallback
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.callbacks import BaseCallback
 from mlagents_envs.exception import UnityTimeOutException
 from morl_baselines.multi_policy.envelope.envelope import Envelope
 
@@ -49,6 +48,7 @@ class PersistentProgressBarCallback(BaseCallback):
         self.last_update_step = self.model.num_timesteps
 
     def _on_step(self):
+
         if self.pbar is not None:
             steps_since_last = self.model.num_timesteps - self.last_update_step
             if steps_since_last > 0:
@@ -191,7 +191,7 @@ def close_progress_bar_safely(callbacks):
         print(f"Warning closing progress bar: {e}")
 
 
-def train_with_recovery(model, env, callbacks, total_timesteps, max_retries=5):
+def train_with_recovery(model, callbacks, total_timesteps, max_retries=5):
     retry_count = 0
 
     while retry_count < max_retries:
@@ -211,20 +211,20 @@ def train_with_recovery(model, env, callbacks, total_timesteps, max_retries=5):
 
         except UnityTimeOutException as e:
             retry_count += 1
-            print(f"\n⚠️ Unity timeout at timestep {model.num_timesteps} (attempt {retry_count}/{max_retries})")
+            print(f"\nUnity timeout at timestep {model.num_timesteps} (attempt {retry_count}/{max_retries})")
             print(f"Error: {e}")
 
             close_progress_bar_safely(callbacks)
 
             if retry_count < max_retries:
-                print("🔄 Attempting to recover...")
+                print("Attempting to recover...")
                 return False
             else:
-                print(f"❌ Max retries ({max_retries}) reached at timestep {model.num_timesteps}")
+                print(f"Max retries ({max_retries}) reached at timestep {model.num_timesteps}")
                 raise
 
         except Exception as e:
-            print(f"\n❌ Unexpected error: {e}")
+            print(f"\nUnexpected error: {e}")
             traceback.print_exc()
             close_progress_bar_safely(callbacks)
             raise
@@ -261,7 +261,6 @@ if __name__ == "__main__":
 
     if args.use_gpu == 1:
         device = torch.device("cuda")
-        print(device)
     else:
         device = torch.device("cpu")
 
@@ -314,7 +313,7 @@ if __name__ == "__main__":
                 eval_env = GymToGymnasiumWrapper(FlattenMultiDiscreteAction(eval_env))
                 agent = Envelope(
                     env=env,
-                    log=True   # 👈 ADD THIS
+                    log=True
                 )
 
                 env.callback = MORLTensorBoardCallback(
@@ -335,7 +334,6 @@ if __name__ == "__main__":
                 agent.save(f"{experiment_name}.zip")
                 print(f"✅ Finished run {run} - MORL agent saved!")
 
-
             else:
                 model = model_class(policy=args.policy, env=env, device=device)
                 env.callback = TensorBoardCallback(experiment_name, env, model)
@@ -344,16 +342,16 @@ if __name__ == "__main__":
                 recovery_attempts = 0
                 max_recovery_attempts = args.max_retries
 
-                callbacks = PersistentProgressBarCallback(
-                    total_timesteps=args.timesteps,
-                    env_wrapper=env
-                )
+                # callbacks = PersistentProgressBarCallback(
+                #     total_timesteps=args.timesteps,
+                #     env_wrapper=env
+                # )
 
                 while not training_complete and recovery_attempts < max_recovery_attempts:
+
                     success = train_with_recovery(
                         model=model,
-                        env=env,
-                        callbacks=callbacks,
+                        callbacks=None,
                         total_timesteps=args.timesteps,
                         max_retries=500
                     )
@@ -363,39 +361,32 @@ if __name__ == "__main__":
                     else:
                         recovery_attempts += 1
 
-                        print(f"\n🔄 Recovery attempt {recovery_attempts}/{max_recovery_attempts}")
+                        print(f"\nRecovery attempt {recovery_attempts}/{max_recovery_attempts}")
                         old_callback = env.callback if hasattr(env, 'callback') else None
                         close_callback_safely(old_callback)
                         close_environment_safely(env)
 
-                        print("🔨 Creating new environment...")
                         env = create_environment(args, run)
                         env = GymToGymnasiumWrapper(env)
 
                         if hasattr(model, 'set_env'):
                             model.set_env(env)
-                            print("✓ Model environment updated")
 
                         if old_callback is not None:
                             old_callback.env = env
                             env.callback = old_callback
-                            print("✓ Reattached existing callback to new environment")
 
-                        callbacks.env_wrapper = env
-                        print(f"✅ Environment recreated, resuming from timestep {model.num_timesteps}")
+                        # callbacks.env_wrapper = env
+                        print(f"Environment recreated, resuming from timestep {model.num_timesteps}")
 
                 if training_complete:
                     model.save(f"{experiment_name}.zip")
-                    print(f"✅ Finished run {run} - Model saved!")
+                    print(f"Finished run {run} - Model saved!")
                 else:
-                    print(f"❌ Run {run} failed after {recovery_attempts} recovery attempts")
-
-        except KeyboardInterrupt:
-            print("\n⚠️ Training interrupted by user")
-            break
+                    print(f"Run {run} failed after {recovery_attempts} recovery attempts")
 
         except Exception as e:
-            print(f"\n❌ Fatal error in run {run}: {e}")
+            print(f"\nFatal error in run {run}: {e}")
             traceback.print_exc()
 
         finally:

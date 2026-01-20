@@ -167,9 +167,9 @@ class RainbowAgent:
                  n_step=3, gamma=0.99, lr=1e-4, alpha=0.6, beta_start=0.4, beta_frames=100000):
         
         self.device = device
-        self.env = env.env
+        self.env = env
 
-        self.observation_size = self.env.obs_size[0]
+        self.observation_size = self.env.env.obs_size[0]
         self.atom_size = atom_size
         self.v_min = v_min
         self.v_max = v_max
@@ -179,7 +179,7 @@ class RainbowAgent:
         self.support = torch.linspace(self.v_min, self.v_max, self.atom_size).to(device)
         self.delta_z = (self.v_max - self.v_min) / (self.atom_size - 1)
 
-        self.action_sizes = self.env.action_space.nvec
+        self.action_sizes = self.env.env.action_space.nvec
         self.policy_net = MultiDiscreteRainbowDQN(self.observation_size, self.action_sizes, atom_size, self.support).to(device)
         self.target_net = MultiDiscreteRainbowDQN(self.observation_size, self.action_sizes, atom_size, self.support).to(device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -293,25 +293,28 @@ class RainbowAgent:
         training_started = False
         episode_rewards = []
 
-        state = self.env.reset()
+        state = self.env.reset()[0]
         state = np.array(state, dtype=np.float32)
         episode_reward = 0
-
+        done = False
+        truncated = False
         for timestep in tqdm(range(1, total_timesteps+1), desc="Training Timesteps"):
             self.num_timesteps += 1
-            if timestep % 600 == 0:
-                state = self.env.reset()
+            if timestep % 600 == 0 or done or truncated:
+                state = self.env.reset()[0]
 
                 state = np.array(state, dtype=np.float32)
                 episode_reward = 0
                 episode_rewards.append(episode_reward)
 
             action = self.select_action(state)
-            next_state, reward, done, _ = self.env.step(action)
+            next_state, reward, done, truncated, info = self.env.step(action)
             next_state = np.array(next_state, dtype=np.float32)
             self.append_sample(state, action, reward, next_state, done)
             state = next_state
             episode_reward += reward
+
+
 
             if len(self.memory) >= learning_starts:
                 if not training_started:

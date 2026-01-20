@@ -363,7 +363,7 @@ class TensorBoardCallback:
 
     def __init__(self, log_dir, environment, model):
         self.log_dir = log_dir
-        self.environment = environment
+        self.environment = environment.env
         backup(log_dir)
         self.writer = SummaryWriter(log_dir)
         self.episode = 0
