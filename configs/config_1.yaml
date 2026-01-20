@@ -4,7 +4,7 @@
 runs: 5
 output_dir: "./results/"
 game: "platform"
-algorithm: "EQ"
+algorithm: "PPO"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 

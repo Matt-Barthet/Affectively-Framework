@@ -294,22 +294,14 @@ if __name__ == "__main__":
         model = None
 
         try:
-            # Create initial environment
+
             env = create_environment(args, run)
-
-            eval_env = create_environment(args, run+10001)
-            # env = GymToGymnasiumWrapper(env)
-
-            # Setup experiment tracking name
+            env = GymToGymnasiumWrapper(env)
             experiment_name = f'{args.logdir}/{args.game}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
 
-            # =========================
-            # ENVELOPE Q (MORL) BRANCH
-            # =========================
             if model_class == "ENVELOPE_Q":
 
-                import gymnasium
-                # Flatten MultiDiscrete -> Discrete for MORL agents that need scalar actions
+                eval_env = create_environment(args, run + 10001)
                 env = FlattenMultiDiscreteAction(env)
                 env = GymToGymnasiumWrapper(env)
 
@@ -343,12 +335,9 @@ if __name__ == "__main__":
                 agent.save(f"{experiment_name}.zip")
                 print(f"✅ Finished run {run} - MORL agent saved!")
 
-            # =========================
-            # EXISTING SB3 / DQN BRANCH
-            # =========================
+
             else:
                 model = model_class(policy=args.policy, env=env, device=device)
-
                 env.callback = TensorBoardCallback(experiment_name, env, model)
 
                 training_complete = False

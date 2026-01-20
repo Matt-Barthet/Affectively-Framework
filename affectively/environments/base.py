@@ -295,7 +295,6 @@ class BaseEnvironment(gym.Env, ABC):
                                    additional_args=args)
         except:
             print("Checking next ID!") 
-            raise
             return self.load_environment(identifier + 1, graphics, args)
         return env
 
