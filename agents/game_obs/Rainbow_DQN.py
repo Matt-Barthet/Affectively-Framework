@@ -167,10 +167,9 @@ class RainbowAgent:
                  n_step=3, gamma=0.99, lr=1e-4, alpha=0.6, beta_start=0.4, beta_frames=100000):
         
         self.device = device
-        self.env = env
+        self.env = env.env
 
-
-        self.observation_size = env.obs_size[0]
+        self.observation_size = self.env.obs_size[0]
         self.atom_size = atom_size
         self.v_min = v_min
         self.v_max = v_max
@@ -180,7 +179,7 @@ class RainbowAgent:
         self.support = torch.linspace(self.v_min, self.v_max, self.atom_size).to(device)
         self.delta_z = (self.v_max - self.v_min) / (self.atom_size - 1)
 
-        self.action_sizes = env.action_space.nvec
+        self.action_sizes = self.env.action_space.nvec
         self.policy_net = MultiDiscreteRainbowDQN(self.observation_size, self.action_sizes, atom_size, self.support).to(device)
         self.target_net = MultiDiscreteRainbowDQN(self.observation_size, self.action_sizes, atom_size, self.support).to(device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -192,7 +191,7 @@ class RainbowAgent:
         self.beta_start = beta_start
         self.beta_frames = beta_frames
         self.frame_idx = 0
-
+        self.num_timesteps = 0
         self.n_step_buffer = deque(maxlen=n_step)
 
     def select_action(self, state):
@@ -299,7 +298,7 @@ class RainbowAgent:
         episode_reward = 0
 
         for timestep in tqdm(range(1, total_timesteps+1), desc="Training Timesteps"):
-
+            self.num_timesteps += 1
             if timestep % 600 == 0:
                 state = self.env.reset()
 

@@ -256,7 +256,7 @@ if __name__ == "__main__":
                         default=10)
     parser.add_argument("--max_retries", required=False, help="Max retries for Unity timeout recovery", type=int,
                         default=500)
-
+    parser.add_argument("--timesteps", required=False, help="Total timesteps for training", type=int, default=5_000_000)
     args = parser.parse_args()
 
     if args.use_gpu == 1:
@@ -327,7 +327,7 @@ if __name__ == "__main__":
                 print("📊 Starting Envelope-Q training")
 
                 try:
-                    agent.train(total_timesteps=50_000_000, ref_point=np.asarray([-0.1, -0.1]), verbose=True, eval_env=eval_env, eval_freq=1_000_000, num_eval_episodes_for_front=2, num_eval_weights_for_eval=50, num_eval_weights_for_front=50)
+                    agent.train(total_timesteps=args.timesteps, ref_point=np.asarray([-0.1, -0.1]), verbose=True, eval_env=eval_env, eval_freq=1_000_000, num_eval_episodes_for_front=2, num_eval_weights_for_eval=50, num_eval_weights_for_front=50)
                 except UnityTimeOutException:
                     close_environment_safely(env)
                     raise
@@ -345,7 +345,7 @@ if __name__ == "__main__":
                 max_recovery_attempts = args.max_retries
 
                 callbacks = PersistentProgressBarCallback(
-                    total_timesteps=5_000_000,
+                    total_timesteps=args.timesteps,
                     env_wrapper=env
                 )
 
@@ -354,7 +354,7 @@ if __name__ == "__main__":
                         model=model,
                         env=env,
                         callbacks=callbacks,
-                        total_timesteps=5_000_000,
+                        total_timesteps=args.timesteps,
                         max_retries=500
                     )
 

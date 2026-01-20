@@ -79,7 +79,8 @@ def main():
             f"--logdir={shlex.quote(output_dir)} "
             f"--algorithm={c.get('algorithm')} "
             f"--policy={c.get('policy')} "
-            f"--decision_period={c.get('decisionPeriod')}"
+            f"--decision_period={c.get('decisionPeriod')} "
+            f"--timesteps={c.get('timesteps')} "
         )
 
         if system == "Darwin":

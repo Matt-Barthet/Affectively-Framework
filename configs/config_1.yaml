@@ -3,10 +3,11 @@
 # General experiment settings
 runs: 5
 output_dir: "./results/"
-game: "platform"
-algorithm: "PPO"
+game: "solid"
+algorithm: "DQN"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
+timesteps: 5_000_000
 
 # Hardware settings
 use_gpu: 0
