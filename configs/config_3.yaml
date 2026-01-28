@@ -4,7 +4,7 @@
 runs: 5
 output_dir: "./results/"
 game: "solid"
-algorithm: "EQ"
+algorithm: "PPO"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 timesteps: 10_000_000
@@ -17,11 +17,11 @@ headless: 1
 weight: 1
 cluster: 0
 target_arousal: 1
-classifier: 1
+classifier: 0
 preference: 1
 
 # Specific algorithm parameters
-periodic_ra: 0
+periodic_ra: 1
 cv: 0
 grayscale: 0
 discretize: 0

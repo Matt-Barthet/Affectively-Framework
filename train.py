@@ -296,7 +296,7 @@ if __name__ == "__main__":
 
             env = create_environment(args, run)
             env = GymToGymnasiumWrapper(env)
-            experiment_name = f'{args.logdir}/{args.game}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
+            experiment_name = f'{args.logdir}/{args.game}/{f"Synchronized Reward" if args.periodic_ra else "Asynchronized Reward"}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
 
             if model_class == "ENVELOPE_Q":
 

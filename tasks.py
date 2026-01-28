@@ -368,6 +368,6 @@ grayscale= 0
 discretize= 0
 decisionPeriod= 10
 
-for run in range((runs)):
-    train.delay(run, weight, game, target_arousal, cluster, periodic_ra, cv, headless, output_dir, grayscale,
-                discretize, algorithm, policy, use_gpu, classifier, preference, decisionPeriod)
+# for run in range((runs)):
+#     train.delay(run, weight, game, target_arousal, cluster, periodic_ra, cv, headless, output_dir, grayscale,
+#                 discretize, algorithm, policy, use_gpu, classifier, preference, decisionPeriod)

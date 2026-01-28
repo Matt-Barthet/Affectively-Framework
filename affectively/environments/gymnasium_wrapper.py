@@ -32,7 +32,6 @@ class GymToGymnasiumWrapper(gymnasium.Env):
             self.reward_space = to_gymnasium_space(env.reward_space)
 
     def reset(self, *, seed=None, options=None):
-        print(self.callback, self.env.episode_arousal_trace)
         try:
             if self.callback is not None and len(self.env.episode_arousal_trace) > 0:
                 self.callback.on_episode_end()
@@ -42,7 +41,6 @@ class GymToGymnasiumWrapper(gymnasium.Env):
         return obs, {}
 
     def step(self, action):
-        # print("stepping")
         obs, reward, done, info = self.env.step(action)
         terminated = bool(done or getattr(self.env.unwrapped.customSideChannel, "levelEnd", False))
         truncated = bool(getattr(self.env.unwrapped, "episode_length", 0) > (6000 / getattr(self.env.unwrapped, "decision_period", 1)))
