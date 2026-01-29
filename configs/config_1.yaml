@@ -3,25 +3,25 @@
 # General experiment settings
 runs: 5
 output_dir: "./results/"
-game: "solid"
-algorithm: "PPO"
+game: "fps"
+algorithm: "DQN"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
-timesteps: 10_000_000
+timesteps: 5_000_000
 
 # Hardware settings
-use_gpu: 0
+use_gpu: 1
 headless: 1
 
 # Specific game and agent parameters for this run
 weight: 0.5
 cluster: 0
 target_arousal: 1
-classifier: 0
+classifier: 1
 preference: 1
 
 # Specific algorithm parameters
-periodic_ra: 1
+periodic_ra: 0
 cv: 0
 grayscale: 0
 discretize: 0
