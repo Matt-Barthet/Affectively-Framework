@@ -1,4 +1,4 @@
-from celery import Celery
+# from celery import Celery
 
 from stable_baselines3.ppo import PPO
 from stable_baselines3.common.callbacks import ProgressBarCallback, BaseCallback
@@ -227,9 +227,9 @@ def train_with_recovery(model, env, callbacks, total_timesteps, max_retries=5):
             raise
     return None
 
-app = Celery('Celery_Train', broker='pyamqp://guest@localhost//')
+# app = Celery('Celery_Train', broker='pyamqp://guest@localhost//')
 
-@app.task
+# @app.task
 def train(run, weight, game, target_arousal, cluster, periodic_ra, cv, headless, logdir, grayscale,
           discretize, algorithm, policy, use_gpu, classifier, preference, decision_period=10, max_retries=500):
 
@@ -345,7 +345,7 @@ def train(run, weight, game, target_arousal, cluster, periodic_ra, cv, headless,
 # General experiment settings
 runs= 5
 output_dir= "./results/"
-game= "fps"
+game= "pirates"
 algorithm= "PPO"
 policy= "MlpPolicy"
 conda_env= "affect-envs"
@@ -355,7 +355,7 @@ use_gpu= 0
 headless= 1
 
 # Specific game and agent parameters for this run
-weight= 0.5
+weight= 0
 cluster= 0
 target_arousal= 1
 classifier= 1
@@ -367,6 +367,10 @@ cv= 0
 grayscale= 0
 discretize= 0
 decisionPeriod= 10
+
+for run in [3]:
+    train(run, weight, game, target_arousal, cluster, periodic_ra, cv, headless, output_dir, 
+          grayscale, discretize, algorithm, policy, use_gpu, classifier, preference, decisionPeriod)
 
 # for run in range((runs)):
 #     train.delay(run, weight, game, target_arousal, cluster, periodic_ra, cv, headless, output_dir, grayscale,
