@@ -9,6 +9,7 @@ Library: C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Temp\BurstOutput
 --target-framework=NetFramework
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Temp\Burst
+--debug=LineOnly
 --key-folder=C:/Program Files/Unity/Hub/Editor/2022.3.62f3/Editor/Data/PlaybackEngines/MacStandaloneSupport
 --decode-folder=C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Library\Burst
 --output=C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Temp\BurstOutput\Solid.app\Contents\Plugins\lib_burst_generated
@@ -83,6 +84,7 @@ Library: C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Temp\BurstOutput
 --float-mode=Fast
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Temp\Burst
+--debug=LineOnly
 --key-folder=C:/Program Files/Unity/Hub/Editor/2022.3.62f3/Editor/Data/PlaybackEngines/MacStandaloneSupport
 --decode-folder=C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Library\Burst
 --output=C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Temp\BurstOutput\Solid.app\Contents\Plugins\lib_burst_generated
@@ -132,6 +134,7 @@ Library: C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Temp\BurstOutput
 --target-framework=NetFramework
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Temp\Burst
+--debug=LineOnly
 --key-folder=C:/Program Files/Unity/Hub/Editor/2022.3.62f3/Editor/Data/PlaybackEngines/MacStandaloneSupport
 --decode-folder=C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Library\Burst
 --output=C:\Users\IDG Room 208\Documents\GitHub\Solid-Rally-Gym\Temp\BurstOutput\Solid.app\Contents\Plugins\lib_burst_generated
