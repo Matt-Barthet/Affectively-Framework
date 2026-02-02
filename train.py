@@ -164,8 +164,7 @@ def close_environment_safely(env):
     except Exception as e:
         print(f"Warning during env close: {e}")
     print("⏳ Waiting for ports to be released...")
-    time.sleep(3)
-
+    
 
 def close_callback_safely(callback):
     if callback is None:
@@ -294,9 +293,14 @@ if __name__ == "__main__":
 
         try:
 
+            experiment_name = f'{args.logdir}/{args.game}/{f"Synchronized Reward" if not args.periodic_ra else "Asynchronized Reward"}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
+            import os
+            if os.path.exists(f"{experiment_name}.zip"):
+                print("Model exists, skipping...")
+                continue
+            
             env = create_environment(args, run)
             env = GymToGymnasiumWrapper(env)
-            experiment_name = f'{args.logdir}/{args.game}/{f"Synchronized Reward" if args.periodic_ra else "Asynchronized Reward"}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
 
             if model_class == "ENVELOPE_Q":
 
@@ -336,6 +340,12 @@ if __name__ == "__main__":
 
             else:
                 model = model_class(policy=args.policy, env=env, device=device)
+                for i in range(16000, 0, -1000):
+                    if os.path.exists(f"{experiment_name}-Episode-{i}.zip"):
+                        model.load(f"{experiment_name}-Episode-{i}.zip")
+                        model.set_parameters(f"{experiment_name}-Episode-{i}.zip")
+                        print(f"Loaded at timestep: {i}")
+                        break
                 env.callback = TensorBoardCallback(experiment_name, env, model)
 
                 training_complete = False
@@ -362,8 +372,8 @@ if __name__ == "__main__":
                         recovery_attempts += 1
 
                         print(f"\nRecovery attempt {recovery_attempts}/{max_recovery_attempts}")
-                        old_callback = env.callback if hasattr(env, 'callback') else None
-                        close_callback_safely(old_callback)
+                        # old_callback = env.callback if hasattr(env, 'callback') else None
+                        # close_callback_safely(old_callback)
                         close_environment_safely(env)
 
                         env = create_environment(args, run)
@@ -372,9 +382,9 @@ if __name__ == "__main__":
                         if hasattr(model, 'set_env'):
                             model.set_env(env)
 
-                        if old_callback is not None:
-                            old_callback.env = env
-                            env.callback = old_callback
+                        # if old_callback is not None:
+                        #     old_callback.env = env
+                        #     env.callback = old_callback
 
                         # callbacks.env_wrapper = env
                         print(f"Environment recreated, resuming from timestep {model.num_timesteps}")
@@ -396,3 +406,4 @@ if __name__ == "__main__":
                     close_callback_safely(env.callback)
                 close_environment_safely(env)
             print(f"{'=' * 60}\n")
+
