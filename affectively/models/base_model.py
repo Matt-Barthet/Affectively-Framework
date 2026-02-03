@@ -34,7 +34,6 @@ class AbstractSurrogateModel(ABC):
             self.train_model()
         else:
             self.evaluate_ensemble()
-            # print(self.data.shape)
     
     @abstractmethod
     def _setup_paths(self):
@@ -77,10 +76,9 @@ class AbstractSurrogateModel(ABC):
                 continue
 
             state_scaled = scaler.transform(state)
-            if np.min(state_scaled) < 0 or np.max(state_scaled) > 1:
-                # print(f"Values outside of range: Max={np.max(state_scaled):.3f}@{self.columns[np.argmax(state_scaled)]}(other={np.where(state_scaled > 1)[0]})", end=", ")
-                # print(f"Min={np.min(state_scaled):.3f}@{self.columns[np.argmin(state_scaled)]}(other={np.where(state_scaled < 0)[0]})")
-                pass
+            # if np.min(state_scaled) < 0 or np.max(state_scaled) > 1:
+            #     print(f"Values outside of range: Max={np.max(state_scaled):.3f}@{self.columns[np.argmax(state_scaled)]}(other={np.where(state_scaled > 1)[0]})", end=", ")
+            #     print(f"Min={np.min(state_scaled):.3f}@{self.columns[np.argmin(state_scaled)]}(other={np.where(state_scaled < 0)[0]})")
             
             state_scaled = np.clip(state_scaled, 0, 1)
             predictions.append(self._predict_single(model, scaler, state_scaled))
@@ -88,7 +86,6 @@ class AbstractSurrogateModel(ABC):
         avg_prediction = np.mean(predictions, axis=0)
         if self.classifier:
             return np.argmax(avg_prediction, axis=1)[0]
-            return avg_prediction[0] if len(avg_prediction.shape) == 1 else avg_prediction[0][0]
         else:
             return avg_prediction[0] if len(avg_prediction.shape) == 1 else avg_prediction[0][0]
     
@@ -114,20 +111,19 @@ class AbstractSurrogateModel(ABC):
                     player_scores = np.pad(self.data.loc[player_mask, 'playerScore'].values[:40], (0, max(0, 40 - len(self.data.loc[player_mask, 'playerScore'].values))), 'edge')
                     player_arousals = np.pad(self.data.loc[player_mask, '[output]arousal'].values[:40], (0, max(0, 40 - len(self.data.loc[player_mask, '[output]arousal'].values))), 'edge')
                     scores.append(player_scores)
-
-                    # Normalize arousal values using MinMaxScaler
                     scaler = MinMaxScaler()
                     scaled_arousals = scaler.fit_transform(player_arousals.reshape(-1, 1)).flatten()
                     arousals.append(scaled_arousals)
                 except:
                     print("Skipping header error")
 
-
             scores_stacked = np.stack(scores, axis=1)
             self.cluster_score = np.mean(scores_stacked, axis=1)
 
             arousals_stacked = np.stack(arousals, axis=1)
             self.cluster_arousal = np.mean(arousals_stacked, axis=1)
+            self.cluster_score = np.round(self.cluster_score)
+            print(self.cluster)
 
             cluster_step = 3.0   # seconds per cluster sample
             fine_step = 0.2    # seconds per fine sample
@@ -136,6 +132,11 @@ class AbstractSurrogateModel(ABC):
             # Repeat each value 12 times
             self.cluster_score = np.repeat(self.cluster_score, repeat_factor)
             self.cluster_arousal = np.repeat(self.cluster_arousal, repeat_factor)
+
+            from matplotlib import pyplot as plt
+            plt.errorbar(np.arange(len(self.cluster_arousal)), self.cluster_arousal, label='Cluster Arousal', alpha=0.7)
+            plt.errorbar(np.arange(len(self.cluster_score)), self.cluster_score / 24, label='Cluster Score', alpha=0.7, color='orange')
+            plt.show()
 
         if self.preference and self.classifier:
             arousals = self.data['[output]ranking'].values
@@ -150,36 +151,26 @@ class AbstractSurrogateModel(ABC):
             for player in self.players.unique():
                 player_mask = data_copy['[control]player_id'] == player
                 player_arousals = data_copy.loc[player_mask, '[output]delta'].values
-
-                # Normalize arousal values using MinMaxScaler
                 scaler = MinMaxScaler()
                 scaled_arousals = scaler.fit_transform(player_arousals.reshape(-1, 1)).flatten()
-
-                # Store normalized values back
                 data_copy.loc[player_mask, '[output]delta'] = scaled_arousals
 
             arousals = data_copy['[output]delta'].values
             self.data = self.data.drop(columns=['[output]ranking', '[output]delta'])
 
         elif not self.preference:
-            # Work on a copy to normalize per player
             data_copy = self.data.copy()
             arousal_labels = []
             valid_indices = []
-            threshold_scale = 0.1  # uncertainty threshold (on normalized [0, 1] scale)
+            threshold_scale = 0.1  
 
             for player in self.players.unique():
                 player_mask = data_copy['[control]player_id'] == player
                 player_arousals = data_copy.loc[player_mask, '[output]arousal'].values
-
-                # Normalize arousal values using MinMaxScaler
                 scaler = MinMaxScaler()
                 scaled_arousals = scaler.fit_transform(player_arousals.reshape(-1, 1)).flatten()
-
-                # Store normalized values back
                 data_copy.loc[player_mask, '[output]arousal'] = scaled_arousals
 
-                # Compute thresholding on normalized values
                 mean = np.mean(scaled_arousals)
 
                 upper = mean + threshold_scale
@@ -192,10 +183,8 @@ class AbstractSurrogateModel(ABC):
                     elif val < lower:
                         arousal_labels.append(0)
                         valid_indices.append(i)
-                    # Ignore ambiguous values (in between)
 
             if self.classifier:
-                # Keep only rows with confident labels
                 self.data = data_copy.loc[valid_indices].reset_index(drop=True)
                 arousals = np.array(arousal_labels)
             else:

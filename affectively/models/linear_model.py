@@ -7,6 +7,7 @@ import os
 
 
 class LinearSurrogateModel(AbstractSurrogateModel):
+    
     def _setup_paths(self):
         classifier_suff = 'classifier' if self.classifier else 'regressor'
         pref_suff = 'preferences' if self.preference else ''
@@ -62,7 +63,7 @@ class LinearSurrogateModel(AbstractSurrogateModel):
                 'solver': ['lbfgs']
             }
         else:
-            return {}  # LinearRegression has no hyperparameters that typically need tuning
+            return {} 
 
 
 if __name__ == "__main__":

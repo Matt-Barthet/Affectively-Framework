@@ -3,11 +3,12 @@
 # General experiment settings
 runs: 5
 output_dir: "./results/"
-game: "fps"
-algorithm: "DQN"
+game: "solid"
+algorithm: "Explore"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
-timesteps: 5_000_000
+timesteps: 10_000_000
+
 
 # Hardware settings
 use_gpu: 1
