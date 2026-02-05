@@ -88,7 +88,6 @@ class AbstractSurrogateModel(ABC):
         avg_prediction = np.mean(predictions, axis=0)
         if self.classifier:
             return np.argmax(avg_prediction, axis=1)[0]
-            return avg_prediction[0] if len(avg_prediction.shape) == 1 else avg_prediction[0][0]
         else:
             return avg_prediction[0] if len(avg_prediction.shape) == 1 else avg_prediction[0][0]
     

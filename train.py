@@ -341,7 +341,7 @@ if __name__ == "__main__":
             else:
                 model = model_class(policy=args.policy, env=env, device=device)
                 for i in range(16000, 0, -1000):
-                    if os.path.exists(f"{experiment_name}-Episode-{i}.zip"):
+                    if os.path.exists(f"{experiment_name}-Episode-{i}.zip") and model_class == PPO:
                         model.load(f"{experiment_name}-Episode-{i}.zip")
                         model.set_parameters(f"{experiment_name}-Episode-{i}.zip")
                         print(f"Loaded at timestep: {i}")
@@ -352,16 +352,16 @@ if __name__ == "__main__":
                 recovery_attempts = 0
                 max_recovery_attempts = args.max_retries
 
-                # callbacks = PersistentProgressBarCallback(
-                #     total_timesteps=args.timesteps,
-                #     env_wrapper=env
-                # )
+                callbacks = PersistentProgressBarCallback(
+                    total_timesteps=args.timesteps,
+                    env_wrapper=env
+                )
 
                 while not training_complete and recovery_attempts < max_recovery_attempts:
 
                     success = train_with_recovery(
                         model=model,
-                        callbacks=None,
+                        callbacks=callbacks,
                         total_timesteps=args.timesteps,
                         max_retries=500
                     )
@@ -372,8 +372,8 @@ if __name__ == "__main__":
                         recovery_attempts += 1
 
                         print(f"\nRecovery attempt {recovery_attempts}/{max_recovery_attempts}")
-                        # old_callback = env.callback if hasattr(env, 'callback') else None
-                        # close_callback_safely(old_callback)
+                        old_callback = env.callback if hasattr(env, 'callback') else None
+                        close_callback_safely(old_callback)
                         close_environment_safely(env)
 
                         env = create_environment(args, run)
@@ -382,11 +382,11 @@ if __name__ == "__main__":
                         if hasattr(model, 'set_env'):
                             model.set_env(env)
 
-                        # if old_callback is not None:
-                        #     old_callback.env = env
-                        #     env.callback = old_callback
+                        if old_callback is not None:
+                            old_callback.env = env
+                            env.callback = old_callback
 
-                        # callbacks.env_wrapper = env
+                        callbacks.env_wrapper = env
                         print(f"Environment recreated, resuming from timestep {model.num_timesteps}")
 
                 if training_complete:

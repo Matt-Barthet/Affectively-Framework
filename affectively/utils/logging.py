@@ -354,8 +354,14 @@ def backup(log_dir):
         while True:
             filename = f"./results/backups/{log_dir.split('/')[-1]}_{counter}"
             if not os.path.exists(filename):
-                shutil.move(log_dir, f"{filename}")
+                try:
+                    shutil.move(log_dir, f"{filename}")
+                except:
+                    counter += 1
+                    filename = f"./results/backups/{log_dir.split('/')[-1]}_{counter}"
+                    shutil.move(log_dir, f"{filename}")
                 break
+
             counter += 1
 
 
