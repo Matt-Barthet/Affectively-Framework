@@ -22,7 +22,9 @@ class SolidEnvironmentGameObs(SolidEnvironment):
     def discretize_observations(self, game_obs):
 
         position_delta = game_obs[0:3]
-        position_discrete = np.round(position_delta / 40)
+        self.estimated_position = np.add(self.estimated_position, position_delta)
+        position_discrete = np.round(self.estimated_position / 60)
+        # print(position_discrete)
         position_discrete[0] = 0 if position_discrete[0] == -0 else position_discrete[0]
         position_discrete[1] = 0 if position_discrete[1] == -0 else position_discrete[1]
         position_discrete[2] = 0 if position_discrete[2] == -0 else position_discrete[2]

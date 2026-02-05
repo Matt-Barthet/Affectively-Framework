@@ -369,7 +369,7 @@ class TensorBoardCallback:
 
     def __init__(self, log_dir, environment, model):
         self.log_dir = log_dir
-        self.environment = environment.env
+        self.environment = environment
         backup(log_dir)
         self.writer = SummaryWriter(log_dir)
         self.episode = 0
@@ -392,6 +392,9 @@ class TensorBoardCallback:
         if self.environment.period_ra:
             # Normalize by length of the episodes arousal trace (static size due to fixed periodic reward)
             trace_len = len(self.environment.episode_arousal_trace)
+            print("normalizing by trace length", trace_len)
+            print(self.environment.episode_arousal_trace)
+            print(self.environment.cumulative_ra)
             mean_rl = 0 if trace_len == 0 else self.environment.cumulative_rl / trace_len
             mean_ra = 0 if trace_len == 0 else self.environment.cumulative_ra / trace_len
             mean_rb = 0 if trace_len == 0 else self.environment.cumulative_rb / trace_len
@@ -439,10 +442,11 @@ class TensorBoardCallback:
 
 
 class TensorboardGoExplore:
-    def __init__(self, env, archive):
+    def __init__(self, log_dir, env, archive):
         self.env = env
         self.step_count = 0
         self.archive = archive
+        self.writer = SummaryWriter(log_dir)
 
     def size(self):
         return len(self.archive.archive)
@@ -453,9 +457,9 @@ class TensorboardGoExplore:
     def best_cell_lambda(self):
         return self.archive.bestCell.reward
 
-    def on_step(self):
-        self.env.writer.add_scalar('archive/archive size', self.size(), self.step_count)
-        self.env.writer.add_scalar('archive/archive updates', self.archive.updates, self.step_count)
-        self.env.writer.add_scalar('best cell/trajectory length', self.best_cell_length(), self.step_count)
-        self.env.writer.add_scalar('best cell/blended reward', self.best_cell_lambda(), self.step_count)
+    def on_episode_end(self):
+        self.writer.add_scalar('archive/archive size', self.size(), self.step_count)
+        self.writer.add_scalar('archive/archive updates', self.archive.updates, self.step_count)
+        self.writer.add_scalar('best cell/trajectory length', self.best_cell_length(), self.step_count)
+        self.writer.add_scalar('best cell/blended reward', self.best_cell_lambda(), self.step_count)
         self.step_count += 100 * 20

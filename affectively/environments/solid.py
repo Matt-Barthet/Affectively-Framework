@@ -19,8 +19,8 @@ class SolidEnvironment(BaseEnvironment):
         steering_distribution = [0, 0, 0, 0, 1, 1, 1, -1, -1, -1]
         pedal_distribution = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1]
         action = self.action_space.sample()
-        action[0] = random.choice(steering_distribution)
-        action[1] = random.choice(pedal_distribution)
+        action[0] = random.choice(steering_distribution) + 1
+        action[1] = random.choice(pedal_distribution) + 1
         return action
 
     def reset(self, **kwargs):
@@ -29,7 +29,7 @@ class SolidEnvironment(BaseEnvironment):
         return state
 
     def step(self, action):
-        transformed_action = np.asarray([tuple([action[0], action[1], 0])])
+        transformed_action = np.asarray([tuple([action[0], action[1], action[2]])])
         state, reward, d, info = super().step(transformed_action)
         state = self.construct_state(state)
         return state, reward, d, info
