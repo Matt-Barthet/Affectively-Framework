@@ -352,7 +352,7 @@ if __name__ == "__main__":
 
                 if model_class == Explorer:
                     print(experiment_name.split('/')[-1])
-                    env.env.create_and_send_message(f"[Save Name]:{experiment_name}")
+                    # env.env.create_and_send_message(f"[Save Name]:")
                     env.env.callback = TensorboardGoExplore(experiment_name, env, model)
                     model.logdir = experiment_name
                 # else :
