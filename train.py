@@ -352,25 +352,26 @@ if __name__ == "__main__":
 
                 if model_class == Explorer:
                     print(experiment_name.split('/')[-1])
-                    env.env.create_and_send_message(f"[Save Name]:test")
-                    env.callback = TensorboardGoExplore(experiment_name, env, model)      
-                else :
-                    env.callback = TensorBoardCallback(experiment_name, env, model)
+                    env.env.create_and_send_message(f"[Save Name]:{experiment_name}")
+                    env.env.callback = TensorboardGoExplore(experiment_name, env, model)
+                    model.logdir = experiment_name
+                # else :
+                #     env.callback = TensorBoardCallback(experiment_name, env, model)
 
                 training_complete = False
                 recovery_attempts = 0
                 max_recovery_attempts = args.max_retries
 
-                # callbacks = PersistentProgressBarCallback(
-                #     total_timesteps=args.timesteps,
-                #     env_wrapper=env
-                # )
+                callbacks = PersistentProgressBarCallback(
+                    total_timesteps=args.timesteps,
+                    env_wrapper=env
+                )
 
                 while not training_complete and recovery_attempts < max_recovery_attempts:
 
                     success = train_with_recovery(
                         model=model,
-                        callbacks=env.callback,
+                        callbacks=env.env.callback,
                         total_timesteps=args.timesteps,
                         max_retries=500
                     )
@@ -381,8 +382,8 @@ if __name__ == "__main__":
                         recovery_attempts += 1
 
                         print(f"\nRecovery attempt {recovery_attempts}/{max_recovery_attempts}")
-                        # old_callback = env.callback if hasattr(env, 'callback') else None
-                        # close_callback_safely(old_callback)
+                        old_callback = env.callback if hasattr(env, 'callback') else None
+                        close_callback_safely(old_callback)
                         close_environment_safely(env)
 
                         env = create_environment(args, run)
@@ -390,17 +391,16 @@ if __name__ == "__main__":
 
                         if model_class == Explorer:
                             env.env.create_and_send_message(f"[Save Name]:{experiment_name.split('/')[-3:]}")
-                            env.callback = TensorboardGoExplore(experiment_name, env, model)
-                        
+                            env.env.callback = TensorboardGoExplore(experiment_name, env, model)
 
                         if hasattr(model, 'set_env'):
                             model.set_env(env)
 
-                        # if old_callback is not None:
-                        #     old_callback.env = env
-                        #     env.callback = old_callback
+                        if old_callback is not None:
+                            old_callback.env = env
+                            env.env.callback = old_callback
 
-                        # callbacks.env_wrapper = env
+                        callbacks.env_wrapper = env
                         print(f"Environment recreated, resuming from timestep {model.num_timesteps}")
 
                 if training_complete:
