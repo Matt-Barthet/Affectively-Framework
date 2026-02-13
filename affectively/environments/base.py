@@ -149,7 +149,6 @@ class BaseEnvironment(gym.Env, ABC):
         # print(f"Behavior rewarded, cumulative reward: {self.cumulative_rb}")
         return r_b
 
-
     def reward_affect(self):
         """
         Affect reward component: optimize behavior and update reward statistics.
@@ -203,8 +202,8 @@ class BaseEnvironment(gym.Env, ABC):
     def step(self, action):
 
         # If a load is called dont do the rest of the env logic.
-        if action[0][0] == np.inf and action[0][1] == np.inf:
-            state, env_score, done, info = self.env.step((1,1,action[0][2]))
+        if action[0] == np.inf and action[1] == np.inf:
+            state, env_score, done, info = self.env.step((1,1,action[2]))
             return state, 0, done, info
 
         self.episode_length += 1
@@ -266,6 +265,9 @@ class BaseEnvironment(gym.Env, ABC):
         message = OutgoingMessage()
         message.write_string(contents)
         self.customSideChannel.queue_message_to_send(message)
+
+    def sample_action(self):
+        return self.action_space.sample()
 
     def load_environment(self, identifier, graphics, args):
         system = platform.system()

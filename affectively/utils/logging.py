@@ -447,6 +447,7 @@ class TensorboardGoExplore:
         self.step_count = 0
         self.archive = archive
         self.writer = SummaryWriter(log_dir)
+        self.logdir = log_dir
 
     def size(self):
         return len(self.archive.archive)
@@ -462,4 +463,6 @@ class TensorboardGoExplore:
         self.writer.add_scalar('archive/archive updates', self.archive.updates, self.step_count)
         self.writer.add_scalar('best cell/trajectory length', self.best_cell_length(), self.step_count)
         self.writer.add_scalar('best cell/blended reward', self.best_cell_lambda(), self.step_count)
-        self.step_count += 100 * 20
+        self.writer.add_scalar('best cell/arousal rward', self.archive.bestCell.arousal_reward)
+        self.writer.add_scalar('best cell/behavior rward', self.archive.bestCell.behavior_reward)
+        self.step_count += 1000

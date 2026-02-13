@@ -12,9 +12,6 @@ class SolidEnvironment(BaseEnvironment):
                          capture_fps=capture_fps, time_scale=1, weight=weight, cluster=cluster,
                          target_arousal=target_arousal, period_ra=period_ra, classifier=classifier, preference=preference, decision_period=decision_period)
 
-    def sample_action(self):
-        return self.action_space.sample()
-
     def sample_weighted_action(self):
         steering_distribution = [0, 0, 0, 0, 1, 1, 1, -1, -1, -1]
         pedal_distribution = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1]
@@ -29,7 +26,7 @@ class SolidEnvironment(BaseEnvironment):
         return state
 
     def step(self, action):
-        transformed_action = np.asarray([tuple([action[0], action[1], action[2]])])
+        transformed_action = np.asarray((action[0], action[1], action[2]))
         state, reward, d, info = super().step(transformed_action)
         state = self.construct_state(state)
         return state, reward, d, info

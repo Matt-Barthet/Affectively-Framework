@@ -33,8 +33,8 @@ class GymToGymnasiumWrapper(gymnasium.Env):
 
     def reset(self, *, seed=None, options=None):
         try:
-            if self.callback is not None and len(self.env.episode_arousal_trace) > 0:
-                self.callback.on_episode_end()
+            if self.env.callback is not None and len(self.env.episode_arousal_trace) > 0:
+                self.env.callback.on_episode_end()
         except AttributeError:
             raise
         obs = self.env.reset()

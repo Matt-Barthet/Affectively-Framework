@@ -58,7 +58,7 @@ class Cell:
 
 class Explorer:
 
-    def __init__(self, env, policy="Explore", device="cpu"):
+    def __init__(self, env, policy="Explore", device="cpu", logdir=''):
         self.gymnasium_env = env
         self.env = env.env  
         self.policy = policy
@@ -66,10 +66,13 @@ class Explorer:
         self.updates = 0
         self.bestCell = None
         self.current_cell = Cell([0, 0, 0, 'Start'])
-        self.env.step((1, 1, -1))
+        null_action = self.env.action_space.sample()
+        null_action[-1] = -1
+        self.env.step(null_action)
         self.save_digit = self.current_cell.key
         self.num_timesteps = 0
         self.store_cell(self.current_cell)
+        self.logdir=logdir
 
     def select_cell(self):
         non_final_cells = [(key, cell) for key, cell in self.archive.items() if not cell.final]
@@ -127,38 +130,43 @@ class Explorer:
         self.current_cell = self.select_cell()
         if self.current_cell.get_cell_length() >= 600:
             return
-        
-        self.gymnasium_env.step((np.inf, np.inf, self.current_cell.key))
+
+        null_action = self.gymnasium_env.action_space.sample()
+        null_action[-1] = self.current_cell.key
+
+        self.gymnasium_env.step(null_action)
 
         self.env.episode_length = len(self.current_cell.trajectory_dict['state_trajectory'])
-        # print(self.current_cell.key, self.current_cell.get_cell_length())
         self.env.previous_score = self.current_cell.previous_score
         self.env.current_score = self.current_cell.score
         self.env.cumulative_rl = self.current_cell.reward
         self.env.cumulative_rb = self.current_cell.cumulative_score
+        self.env.cumulative_ra = self.current_cell.arousal_reward
         self.env.estimated_position = self.current_cell.estimated_position
+        self.env.surrogate_list = self.current_cell.human_vector
 
         for j in range(explore_length):
 
-            # input()
-            action = self.env.sample_weighted_action()
+            action = self.env.sample_action()
 
             if self.current_cell.get_cell_length() >= 600:
                 break
             if self.store_cell(self.current_cell):
-                self.save_digit = -new_cell.key
+                self.save_digit = new_cell.key
             else:
                 self.save_digit = 0
 
-            state, _, _, _, _ = self.gymnasium_env.step((action[0], action[1], self.save_digit))
-            
+            action[-1] = -self.save_digit
+            state, _, _, _, _ = self.gymnasium_env.step(action)
+            # print(state, len(self.archive))
             self.num_timesteps += 1
 
             new_cell = copy.deepcopy(self.current_cell)
             new_cell.trajectory_dict['behavior_trajectory'].append(action)
             new_cell.trajectory_dict['state_trajectory'].append(state)
+            new_cell.trajectory_dict['arousal_trajectory'] = self.env.episode_arousal_trace
             new_cell.trajectory_dict['score_trajectory'].append(self.env.cumulative_rb)
-
+            new_cell.human_vector = self.env.surrogate_list
             new_cell.update_key()
 
             new_cell.final = new_cell.get_cell_length() >= 600
@@ -167,14 +175,23 @@ class Explorer:
             new_cell.score = self.env.current_score
             new_cell.cumulative_score = self.env.cumulative_rb
             new_cell.reward = self.env.cumulative_rl
+            new_cell.arousal_reward = self.env.cumulative_ra
 
             new_cell.estimated_position = self.env.estimated_position
             self.current_cell = new_cell
 
-        print(len(self.archive), self.bestCell.get_cell_length(), self.bestCell.reward, self.updates)
+            if self.num_timesteps % 1000 == 0:
+                print("Timestep: ", self.num_timesteps, len(self.archive), self.bestCell.get_cell_length(), self.bestCell.reward, self.updates)
+
+            if self.num_timesteps % 1000000 == 0:
+                self.save(self.logdir)
+
 
     def learn(self, total_timesteps, callback = None, explore_length=40, reset_num_timesteps=False):
-        for _ in range(total_timesteps):
+        while True:
             self.explore_actions(explore_length)
-            self.gymnasium_env.callback.on_episode_end()
+            self.env.callback.on_episode_end()
+            if self.num_timesteps >= total_timesteps:
+                break
+
         return self.archive

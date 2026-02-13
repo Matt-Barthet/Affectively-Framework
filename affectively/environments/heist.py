@@ -22,7 +22,7 @@ class HeistEnvironment(BaseEnvironment):
             action[2] - 1,
             action[3]- 1,
             action[4],
-            0
+            action[5]
         ]
         state, reward, done, info = super().step(transformed_action)
         state = self.construct_state(state)

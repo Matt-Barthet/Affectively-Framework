@@ -91,57 +91,64 @@ class AbstractSurrogateModel(ABC):
     
 
     def load_data(self):
+
         pref_suff = '_downsampled_pairs' if self.preference else ''
+        preff_suff_2 = '_pairs' if self.preference else ''
+
         fname = f'./affectively/datasets/{self.game.lower()}_3000ms{pref_suff}.csv'
-        
         self.data = pd.read_csv(fname)
+        self.unbalanced_data = pd.read_csv(f'./affectively/datasets/{self.game.lower()}_3000ms{preff_suff_2}.csv')
+
         if self.cluster > 0:
             cluster_members = pd.read_csv(f"./affectively/datasets/{self.game.lower()}_cluster_book.csv")
             cluster_members = cluster_members[cluster_members['Cluster'] == self.cluster]
             self.data = self.data[self.data['[control]player_id'].isin(cluster_members['[control]player_id'])]
+            self.unbalanced_data = self.unbalanced_data[self.unbalanced_data['[control]player_id'].isin(cluster_members['[control]player_id'])]
         
         self.players = self.data['[control]player_id']
         
         scores, arousals = [], []
 
+        cluster_step = 3.0   # seconds per cluster sample
+        fine_step = 0.2    # seconds per fine sample
+        repeat_factor = int(cluster_step / fine_step)  # 3 / 0.25 = 12
+
+        for player in self.players.unique():
+            try:
+                player_mask = self.unbalanced_data['[control]player_id'] == player
+                player_scores = np.pad(self.unbalanced_data.loc[player_mask, 'playerScore' if not self.preference else 'playerScore_R'].values[:40], (0, max(0, 40 - len(self.unbalanced_data.loc[player_mask, 'playerScore'  if not self.preference else 'playerScore_R'].values))), 'edge')
+                scores.append(player_scores)
+            except:
+                print("Skipping header error")
+
+        scores_stacked = np.stack(scores, axis=1)
+        self.cluster_score = np.mean(scores_stacked, axis=1)
+        self.cluster_score = np.round(self.cluster_score)
+        self.cluster_score = np.repeat(self.cluster_score, repeat_factor)
+
         if not self.preference:
             for player in self.players.unique():
                 try:
                     player_mask = self.data['[control]player_id'] == player
-                    player_scores = np.pad(self.data.loc[player_mask, 'playerScore'].values[:40], (0, max(0, 40 - len(self.data.loc[player_mask, 'playerScore'].values))), 'edge')
                     player_arousals = np.pad(self.data.loc[player_mask, '[output]arousal'].values[:40], (0, max(0, 40 - len(self.data.loc[player_mask, '[output]arousal'].values))), 'edge')
-                    scores.append(player_scores)
                     scaler = MinMaxScaler()
                     scaled_arousals = scaler.fit_transform(player_arousals.reshape(-1, 1)).flatten()
                     arousals.append(scaled_arousals)
                 except:
                     print("Skipping header error")
 
-            scores_stacked = np.stack(scores, axis=1)
-            self.cluster_score = np.mean(scores_stacked, axis=1)
-
             arousals_stacked = np.stack(arousals, axis=1)
             self.cluster_arousal = np.mean(arousals_stacked, axis=1)
-            self.cluster_score = np.round(self.cluster_score)
-            print(self.cluster)
-
-            cluster_step = 3.0   # seconds per cluster sample
-            fine_step = 0.2    # seconds per fine sample
-            repeat_factor = int(cluster_step / fine_step)  # 3 / 0.25 = 12
-
-            # Repeat each value 12 times
-            self.cluster_score = np.repeat(self.cluster_score, repeat_factor)
             self.cluster_arousal = np.repeat(self.cluster_arousal, repeat_factor)
 
-            from matplotlib import pyplot as plt
-            plt.errorbar(np.arange(len(self.cluster_arousal)), self.cluster_arousal, label='Cluster Arousal', alpha=0.7)
-            plt.errorbar(np.arange(len(self.cluster_score)), self.cluster_score / 24, label='Cluster Score', alpha=0.7, color='orange')
-            plt.show()
+            # from matplotlib import pyplot as plt
+            # plt.errorbar(np.arange(len(self.cluster_arousal)), self.cluster_arousal, label='Cluster Arousal', alpha=0.7)
+            # plt.errorbar(np.arange(len(self.cluster_score)), self.cluster_score / 24, label='Cluster Score', alpha=0.7, color='orange')
+            # plt.show()
 
         if self.preference and self.classifier:
             arousals = self.data['[output]ranking'].values
             self.data = self.data.drop(columns=['[output]ranking', '[output]delta'])
-
 
         elif self.preference and not self.classifier:
             arousals = self.data['[output]delta'].values
@@ -200,6 +207,7 @@ class AbstractSurrogateModel(ABC):
         if self.preference:
             self.surrogate_length = int(self.surrogate_length / 2)
 
+        print(self.cluster_score[-1])
         self.arousals = arousals
 
     def load_model(self):
