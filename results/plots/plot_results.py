@@ -4,11 +4,12 @@ import numpy as np
 import pandas as pd
 
 if __name__ == "__main__":
-    results_path = 'results/plots/experiment_results.csv'
+    results_path = './experiment_results.csv'
     df_raw = pd.read_csv(results_path)
 
-    # df_raw = df_raw[df_raw['prediction'] == 'Classification']
-    # df_raw = df_raw[df_raw['signal'] == 'Ordinal']
+    df_raw = df_raw[df_raw['prediction'] == 'Classification']
+    df_raw = df_raw[df_raw['signal'] == 'Ordinal']
+    df_raw = df_raw[df_raw['Cluster'] == 0]
 
     df_sync  = df_raw[df_raw['reward schedule'] == 'Synchronized']
     df_async = df_raw[df_raw['reward schedule'] == 'Asynchronized']
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     signals = ['Interval', 'Ordinal'] 
     predictions = ['Regression', 'Classification']
     schedules = ['Synchronized', 'Asynchronized']
-    models = ['Random', 'PPO', 'DQN']
+    models = ['Random', 'PPO', 'DQN', 'Explore']
     weights = [0, 0.5, 1]
     targets = ['Minimize', 'Maximize']
 
@@ -31,7 +32,7 @@ if __name__ == "__main__":
         means = []
         errors = []
         for weight in weights:
-            subset = df_sync[(df_sync['model'] == model) & (df_sync['lambda'] == weight)] 
+            subset = df_sync[(df_sync['model'] == model) & (df_sync['lambda'] == weight)  & (df_sync['arousal target'] == "Minimize")]
             means.append(subset['R_b'].mean()/24)
             errors.append(subset['R_b_95%'].mean()/24)
         ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, label=model, edgecolor='black')
@@ -48,7 +49,7 @@ if __name__ == "__main__":
         means = []
         errors = []
         for weight in weights:
-            subset = df_sync[(df_sync['model'] == model) & (df_sync['lambda'] == weight)]
+            subset = df_sync[(df_sync['model'] == model) & (df_sync['lambda'] == weight)  & (df_sync['arousal target'] == "Minimize")]
             means.append(subset['R_a'].mean())
             errors.append(subset['R_a_95%'].mean())
         ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, edgecolor='black')
@@ -57,11 +58,51 @@ if __name__ == "__main__":
     ax.set_xticklabels(weights)
     ax.set_xlabel('Weight')
     ax.set_ylabel('Mean $R_a$')
-    ax.set_title('Mean $R_a$ in Solid')
+    ax.set_title('Mean $R_a$ in Solid (Minimize Arousal)')
     ax.set_ylim(-0.1, 1.2)
 
     fig.legend(loc='upper center', ncol=len(models))
-    plt.savefig('results/plots/average_score_by_model_type.png')
+    plt.savefig('./average_score_by_model_type.png')
+
+    fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+
+    # --- Plot for R_b ---
+    ax = axs[0]
+    for i, model in enumerate(models):
+        means = []
+        errors = []
+        for weight in weights:
+            subset = df_sync[(df_sync['model'] == model) & (df_sync['lambda'] == weight)  & (df_sync['arousal target'] == "Maximize") ]
+            means.append(subset['R_b'].mean() / 24)
+            errors.append(subset['R_b_95%'].mean() / 24)
+        ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, label=model, edgecolor='black')
+
+    ax.set_xticks(x + bar_width)
+    ax.set_xticklabels(weights)
+    ax.set_xlabel('Weight')
+    ax.set_ylabel('Mean $R_b$')
+    ax.set_title('Mean $R_b$ in Solid')
+    ax.set_ylim(-0.1, 1.2)
+
+    ax = axs[1]
+    for i, model in enumerate(models):
+        means = []
+        errors = []
+        for weight in weights:
+            subset = df_sync[(df_sync['model'] == model) & (df_sync['lambda'] == weight) & (df_sync['arousal target'] == "Maximize")]
+            means.append(subset['R_a'].mean())
+            errors.append(subset['R_a_95%'].mean())
+        ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, edgecolor='black')
+
+    ax.set_xticks(x + bar_width)
+    ax.set_xticklabels(weights)
+    ax.set_xlabel('Weight')
+    ax.set_ylabel('Mean $R_a$')
+    ax.set_title('Mean $R_a$ (Maximize Arousal)')
+    ax.set_ylim(-0.1, 1.2)
+
+    fig.legend(loc='upper center', ncol=len(models))
+    plt.savefig('./average_score_by_model_type.png')
 
 
     for weight in [0, 0.5, 1]:
@@ -146,7 +187,7 @@ if __name__ == "__main__":
     ax.set_ylim(-0.1, 1.2)
 
     fig.legend(loc='upper center', ncol=len(models))
-    plt.savefig('results/plots/average_score_by_model_type.png')
+    plt.savefig('./average_score_by_model_type.png')
 
     fig, axs = plt.subplots(1, 2, figsize=(12, 6))
 
@@ -190,7 +231,7 @@ ax.set_ylim(-0.1, 1.2)
 
 fig.legend(loc='upper center', ncol=len(models))
 plt.tight_layout(rect=[0, 0, 1, 0.95])
-plt.savefig('results/plots/average_score_async.png')
+plt.savefig('./average_score_async.png')
 
 fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
@@ -227,6 +268,6 @@ axs[1].set_ylim(-0.1, 1.2)
 
 fig.legend(loc='upper center', ncol=2)
 plt.tight_layout(rect=[0, 0, 1, 0.95])
-plt.savefig('results/plots/sync_vs_async.png')
+plt.savefig('./sync_vs_async.png')
 plt.show()
 plt.close()

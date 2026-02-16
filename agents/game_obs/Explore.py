@@ -112,15 +112,17 @@ class Explorer:
         elif cell.reward == self.bestCell.reward and cell.get_cell_length() < self.bestCell.get_cell_length():
             self.bestCell = copy.deepcopy(cell)
 
-    def save(self, name):
+    def save(self, name, final=False):
         best_reward = 0
         best_cell = None
         for cell in self.archive.values():
             if cell.reward > best_reward:
                 best_reward = cell.reward
                 best_cell = cell
-        pickle.dump(best_cell, open(f'{name}_Best_Cell.pkl', 'wb'))
-        pickle.dump(self.archive, open(f'{name}_Archive.pkl', 'wb'))
+        # pickle.dump(best_cell, open(f'{name}.zip', 'wb'))
+        if not final:
+            name += f'_Episode{self.num_timesteps//600}'
+        pickle.dump(self.archive, open(f'{name}.zip', 'wb'))
 
     def explore_actions(self, explore_length):
         """
@@ -183,8 +185,8 @@ class Explorer:
             if self.num_timesteps % 1000 == 0:
                 print("Timestep: ", self.num_timesteps, len(self.archive), self.bestCell.get_cell_length(), self.bestCell.reward, self.updates)
 
-            if self.num_timesteps % 1000000 == 0:
-                self.save(self.logdir)
+            if (self.num_timesteps // 600) % 1000 == 0:
+                self.save(self.logdir, False)
 
 
     def learn(self, total_timesteps, callback = None, explore_length=40, reset_num_timesteps=False):
@@ -193,5 +195,5 @@ class Explorer:
             self.env.callback.on_episode_end()
             if self.num_timesteps >= total_timesteps:
                 break
-
+        self.save(self.logdir, True)
         return self.archive

@@ -1,0 +1,11 @@
+model,signal,prediction,task,weight,n_runs,score_mean,score_ci,arousal_mean,arousal_ci,scores_raw,arousal_raw,frequency,cluster
+Explore,Ordinal,Classification,Minimize,0.5,1,17,0,0.375,0,[17],[0.375],Synchronized,0
+Explore,Ordinal,Classification,Minimize,0.5,1,18,0,0.25,0,[18],[0.25],Synchronized,1
+Explore,Ordinal,Classification,Minimize,1.0,1,17,0,0.5416666666666666,0,[17],[0.5416666666666666],Synchronized,0
+Explore,Ordinal,Classification,Minimize,1.0,1,18,0,0.5416666666666666,0,[18],[0.5416666666666666],Synchronized,1
+Explore,Ordinal,Classification,Maximize,0.0,1,20,0,0.8333333333333334,0,[20],[0.8333333333333334],Synchronized,0
+Explore,Ordinal,Classification,Maximize,0.0,1,17,0,0.7083333333333334,0,[17],[0.7083333333333334],Synchronized,1
+Explore,Ordinal,Classification,Maximize,0.5,1,15,0,0.625,0,[15],[0.625],Synchronized,0
+Explore,Ordinal,Classification,Maximize,0.5,1,20,0,0.8333333333333334,0,[20],[0.8333333333333334],Synchronized,1
+Explore,Ordinal,Classification,Maximize,1.0,1,18,0,0.75,0,[18],[0.75],Synchronized,0
+Explore,Ordinal,Classification,Maximize,1.0,1,17,0,0.7083333333333334,0,[17],[0.7083333333333334],Synchronized,1

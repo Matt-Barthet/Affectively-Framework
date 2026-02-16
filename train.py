@@ -5,10 +5,10 @@ from mlagents_envs.exception import UnityTimeOutException
 from morl_baselines.multi_policy.envelope.envelope import Envelope
 
 from tqdm import tqdm
+import os
 
 import argparse
 import traceback
-import time
 
 from affectively.environments.gymnasium_wrapper import GymToGymnasiumWrapper
 from affectively.environments.pirates_cv import PiratesEnvironmentCV
@@ -294,14 +294,15 @@ if __name__ == "__main__":
         env = None
         model = None
 
+        experiment_name = f'{args.logdir}/{args.game}/{f"Synchronized Reward" if not args.periodic_ra else "Asynchronized Reward"}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
+        if os.path.exists(f"{experiment_name}.zip"):
+            print("Model exists, skipping...")
+            continue
+        if os.path.exists(f"{experiment_name}.lock"):
+            print("Other experiment is running here, skipping...")
+            continue
         try:
-
-            experiment_name = f'{args.logdir}/{args.game}/{f"Synchronized Reward" if not args.periodic_ra else "Asynchronized Reward"}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
-            import os
-            if os.path.exists(f"{experiment_name}.zip"):
-                print("Model exists, skipping...")
-                continue
-            
+            os.open(f"{experiment_name}.lock", os.O_CREAT)
             env = create_environment(args, run)
             env = GymToGymnasiumWrapper(env)
 
@@ -342,21 +343,20 @@ if __name__ == "__main__":
                 print(f"✅ Finished run {run} - MORL agent saved!")
 
             else:
+
                 model = model_class(policy=args.policy, env=env, device=device)
-                for i in range(16000, 0, -1000):
-                    if os.path.exists(f"{experiment_name}-Episode-{i}.zip"):
-                        model.load(f"{experiment_name}-Episode-{i}.zip")
-                        model.set_parameters(f"{experiment_name}-Episode-{i}.zip")
-                        print(f"Loaded at timestep: {i}")
-                        break
 
                 if model_class == Explorer:
                     print(experiment_name.split('/')[-1])
-                    # env.env.create_and_send_message(f"[Save Name]:")
                     env.env.callback = TensorboardGoExplore(experiment_name, env, model)
                     model.logdir = experiment_name
-                # else :
-                #     env.callback = TensorBoardCallback(experiment_name, env, model)
+                else:
+                    for i in range(16000, 0, -1000):
+                        if os.path.exists(f"{experiment_name}-Episode-{i}.zip"):
+                            model.load(f"{experiment_name}-Episode-{i}.zip")
+                            model.set_parameters(f"{experiment_name}-Episode-{i}.zip")
+                            print(f"Loaded at timestep: {i}")
+                            break
 
                 training_complete = False
                 recovery_attempts = 0
@@ -415,6 +415,7 @@ if __name__ == "__main__":
 
         finally:
             print("Cleaning up resources...")
+            os.remove(f"{experiment_name}.lock")
             if env is not None:
                 if hasattr(env, 'callback'):
                     close_callback_safely(env.callback)
