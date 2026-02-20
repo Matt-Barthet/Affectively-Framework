@@ -170,6 +170,7 @@ class Explorer:
             new_cell.previous_score = self.env.previous_score
             new_cell.score = self.env.current_score
             new_cell.cumulative_score = self.env.cumulative_rb
+            new_cell.behavior_reward = self.env.cumulative_rb
             new_cell.reward = self.env.cumulative_rl
             new_cell.arousal_reward = self.env.cumulative_ra
             new_cell.estimated_position = self.env.estimated_position
