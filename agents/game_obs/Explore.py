@@ -2,7 +2,7 @@ import hashlib
 import pickle
 import random
 import copy
-
+import tqdm
 import numpy as np
 from tensorboardX import SummaryWriter
 
@@ -43,7 +43,7 @@ class Cell:
         self.arousal_reward = 0
         self.behavior_reward = 0
         self.reward = 0
-        self.estimated_position = [0, 0, 0]
+        self.estimated_position = [0, 0]
         self.age = 0
         self.visited = 1
         self.final = False
@@ -63,6 +63,7 @@ class Explorer:
         self.env = env.env  
         self.policy = policy
         self.archive = {}
+        self.final = {}
         self.updates = 0
         self.bestCell = None
         self.current_cell = Cell([0, 0, 0, 'Start'])
@@ -75,20 +76,22 @@ class Explorer:
         self.logdir=logdir
 
     def select_cell(self):
-        non_final_cells = [(key, cell) for key, cell in self.archive.items() if not cell.final]
-        weights = []
-        for key, cell in non_final_cells:
-            cell_length = cell.get_cell_length() if cell.get_cell_length() > 0 else 1  # Avoid division by zero
-            weight = cell.reward + 1 / cell_length
-            weights.append(weight)
-        _, chosen_cell = random.choices(non_final_cells, k=1)[0]
+        # weights = []
+        # for key, cell in non_final_cells:
+        #     cell_length = cell.get_cell_length() if cell.get_cell_length() > 0 else 1
+        #     weight = cell.reward + 1 / cell_length
+        #     weights.append(weight)
+        _, chosen_cell = random.choices(list(self.archive.items()), k=1)[0]
         return copy.deepcopy(chosen_cell)
 
     def store_cell(self, cell):
         if cell is None:
             return False
         if self.store_cell_condition(cell):
-            self.archive.update({cell.key: copy.deepcopy(cell)})
+            if cell.final:
+                self.final.update({cell.key: copy.deepcopy(cell)})
+            else:
+                self.archive.update({cell.key: copy.deepcopy(cell)})
             self.update_best_cell(cell)
             return True
 
@@ -113,16 +116,9 @@ class Explorer:
             self.bestCell = copy.deepcopy(cell)
 
     def save(self, name, final=False):
-        best_reward = 0
-        best_cell = None
-        for cell in self.archive.values():
-            if cell.reward > best_reward:
-                best_reward = cell.reward
-                best_cell = cell
-        # pickle.dump(best_cell, open(f'{name}.zip', 'wb'))
         if not final:
-            name += f'_Episode{self.num_timesteps//600}'
-        pickle.dump(self.archive, open(f'{name}.zip', 'wb'))
+            name += f'TS_{self.num_timesteps // 600}'
+        pickle.dump(self.archive | self.final, open(f'{name}.zip', 'wb'))
 
     def explore_actions(self, explore_length):
         """
@@ -137,7 +133,6 @@ class Explorer:
         null_action[-1] = self.current_cell.key
 
         self.gymnasium_env.step(null_action)
-
         self.env.episode_length = len(self.current_cell.trajectory_dict['state_trajectory'])
         self.env.previous_score = self.current_cell.previous_score
         self.env.current_score = self.current_cell.score
@@ -146,6 +141,7 @@ class Explorer:
         self.env.cumulative_ra = self.current_cell.arousal_reward
         self.env.estimated_position = self.current_cell.estimated_position
         self.env.surrogate_list = self.current_cell.human_vector
+        self.env.episode_arousal_trace = self.current_cell.trajectory_dict['arousal_trajectory']
 
         for j in range(explore_length):
 
@@ -160,16 +156,14 @@ class Explorer:
 
             action[-1] = -self.save_digit
             state, _, _, _, _ = self.gymnasium_env.step(action)
-            # print(state, len(self.archive))
             self.num_timesteps += 1
 
-            new_cell = copy.deepcopy(self.current_cell)
+            new_cell = self.current_cell
             new_cell.trajectory_dict['behavior_trajectory'].append(action)
             new_cell.trajectory_dict['state_trajectory'].append(state)
             new_cell.trajectory_dict['arousal_trajectory'] = self.env.episode_arousal_trace
             new_cell.trajectory_dict['score_trajectory'].append(self.env.cumulative_rb)
             new_cell.human_vector = self.env.surrogate_list
-            new_cell.update_key()
 
             new_cell.final = new_cell.get_cell_length() >= 600
 
@@ -178,22 +172,28 @@ class Explorer:
             new_cell.cumulative_score = self.env.cumulative_rb
             new_cell.reward = self.env.cumulative_rl
             new_cell.arousal_reward = self.env.cumulative_ra
-
             new_cell.estimated_position = self.env.estimated_position
+            new_cell.update_key()
             self.current_cell = new_cell
 
-            if self.num_timesteps % 1000 == 0:
+            if self.num_timesteps % 100000 == 0:
                 print("Timestep: ", self.num_timesteps, len(self.archive), self.bestCell.get_cell_length(), self.bestCell.reward, self.updates)
+                self.env.callback.on_episode_end()
 
-            if (self.num_timesteps // 600) % 1000 == 0:
-                self.save(self.logdir, False)
+            # if (self.num_timesteps // 600) % 1000  == 0:
+            #     self.save(self.logdir, False)
 
 
     def learn(self, total_timesteps, callback = None, explore_length=40, reset_num_timesteps=False):
-        while True:
-            self.explore_actions(explore_length)
-            self.env.callback.on_episode_end()
-            if self.num_timesteps >= total_timesteps:
-                break
+        with tqdm.tqdm(total=total_timesteps, ) as pbar:
+            while self.num_timesteps < total_timesteps:
+                self.explore_actions(explore_length)
+                pbar.set_postfix({
+                    "Archive": len(self.archive),
+                    "Best_Len": self.bestCell.get_cell_length() if self.bestCell else 0,
+                    "Reward": f"{self.bestCell.reward:.2f}" if self.bestCell else 0,
+                    "Updates": self.updates
+                })
+                pbar.update(explore_length)
         self.save(self.logdir, True)
         return self.archive

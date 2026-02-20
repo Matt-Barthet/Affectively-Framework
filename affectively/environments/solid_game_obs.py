@@ -6,7 +6,7 @@ class SolidEnvironmentGameObs(SolidEnvironment):
 
     def __init__(self, id_number, graphics, weight, discretize, cluster, target_arousal, period_ra, classifier=True, preference=True, decision_period=10, capture_fps=5):
         self.discretize = discretize
-        self.estimated_position = [0, 0, 0]
+        self.estimated_position = [0, 0]
         super().__init__(id_number=id_number, graphics=graphics,
                          obs={"low": -np.inf, "high": np.inf, "shape": (86,), "type": np.float32},
                         weight=weight, frame_buffer=False, cluster=cluster, 
@@ -21,13 +21,11 @@ class SolidEnvironmentGameObs(SolidEnvironment):
 
     def discretize_observations(self, game_obs):
 
-        position_delta = game_obs[0:3]
+        position_delta = np.asarray([game_obs[0], game_obs[2]])
         self.estimated_position = np.add(self.estimated_position, position_delta)
-        position_discrete = np.round(self.estimated_position / 60)
-        # print(position_discrete)
+        position_discrete = np.round(self.estimated_position / 80)
         position_discrete[0] = 0 if position_discrete[0] == -0 else position_discrete[0]
         position_discrete[1] = 0 if position_discrete[1] == -0 else position_discrete[1]
-        position_discrete[2] = 0 if position_discrete[2] == -0 else position_discrete[2]
 
         velocity = game_obs[3:6]
         velocity_discrete = np.round(np.linalg.norm(velocity) / 30)
@@ -52,5 +50,4 @@ class SolidEnvironmentGameObs(SolidEnvironment):
                 is_in_loop_zone,
             ]
         )
-
         return discrete_obs

@@ -266,8 +266,14 @@ class BaseEnvironment(gym.Env, ABC):
         message.write_string(contents)
         self.customSideChannel.queue_message_to_send(message)
 
+    def sample_weighted_action(self):
+        raise NotImplementedError()
+
     def sample_action(self):
-        return self.action_space.sample()
+        try:
+            return self.sample_weighted_action()
+        except NotImplementedError:
+            return self.action_space.sample()
 
     def load_environment(self, identifier, graphics, args):
         system = platform.system()

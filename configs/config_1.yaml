@@ -11,7 +11,7 @@ timesteps: 10_000_000
 
 # Hardware settings
 use_gpu: 1
-headless: 0
+headless: 1
 
 # Specific game and agent parameters for this run
 weight: 0.5
