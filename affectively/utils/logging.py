@@ -465,4 +465,4 @@ class TensorboardGoExplore:
         self.writer.add_scalar('best cell/blended reward', self.best_cell_lambda(), self.step_count)
         self.writer.add_scalar('best cell/arousal reward', self.archive.bestCell.arousal_reward, self.step_count)
         self.writer.add_scalar('best cell/behavior reward', self.archive.bestCell.behavior_reward, self.step_count)
-        self.step_count += 1000
+        self.step_count += 100_000

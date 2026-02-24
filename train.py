@@ -294,15 +294,23 @@ if __name__ == "__main__":
         env = None
         model = None
 
-        experiment_name = f'{args.logdir}/{args.game}/{f"Synchronized Reward" if not args.periodic_ra else "Asynchronized Reward"}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
+        experiment_folder = f'{args.logdir}/{args.game}/{f"Synchronized Reward" if not args.periodic_ra else "Asynchronized Reward"}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/'
+        if not os.path.exists(experiment_folder):
+            os.mkdir(experiment_folder)
+        
+        experiment_name = f'{experiment_folder}{args.policy}-Cluster{args.cluster}-{args.weight}λ-run{run}'
+        
         if os.path.exists(f"{experiment_name}.zip"):
             print("Model exists, skipping...")
             continue
         if os.path.exists(f"{experiment_name}.lock"):
             print("Other experiment is running here, skipping...")
             continue
+
+        os.open(f"{experiment_name}.lock", os.O_CREAT)
+
+
         try:
-            os.open(f"{experiment_name}.lock", os.O_CREAT)
             env = create_environment(args, run)
             env = GymToGymnasiumWrapper(env)
 
@@ -390,7 +398,7 @@ if __name__ == "__main__":
                         env = GymToGymnasiumWrapper(env)
 
                         if model_class == Explorer:
-                            env.env.create_and_send_message(f"[Save Name]:{experiment_name.split('/')[-3:]}")
+                            # env.env.create_and_send_message(f"[Save Name]:{experiment_name.split('/')[-3:]}")
                             env.env.callback = TensorboardGoExplore(experiment_name, env, model)
 
                         if hasattr(model, 'set_env'):

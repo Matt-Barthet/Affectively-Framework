@@ -177,24 +177,26 @@ class Explorer:
             new_cell.update_key()
             self.current_cell = new_cell
 
-            if self.num_timesteps % 100000 == 0:
+            if self.num_timesteps % 100_000 == 0:
                 print("Timestep: ", self.num_timesteps, len(self.archive), self.bestCell.get_cell_length(), self.bestCell.reward, self.updates)
                 self.env.callback.on_episode_end()
 
             # if (self.num_timesteps // 600) % 1000  == 0:
             #     self.save(self.logdir, False)
 
+        return j + 1
+
 
     def learn(self, total_timesteps, callback = None, explore_length=40, reset_num_timesteps=False):
         with tqdm.tqdm(total=total_timesteps, ) as pbar:
             while self.num_timesteps < total_timesteps:
-                self.explore_actions(explore_length)
+                actions = self.explore_actions(explore_length)
                 pbar.set_postfix({
                     "Archive": len(self.archive),
                     "Best_Len": self.bestCell.get_cell_length() if self.bestCell else 0,
                     "Reward": f"{self.bestCell.reward:.2f}" if self.bestCell else 0,
                     "Updates": self.updates
                 })
-                pbar.update(explore_length)
+                pbar.update(actions)
         self.save(self.logdir, True)
         return self.archive
