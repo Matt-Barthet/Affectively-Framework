@@ -416,6 +416,7 @@ if __name__ == "__main__":
                     print(f"Finished run {run} - Model saved!")
                 else:
                     print(f"Run {run} failed after {recovery_attempts} recovery attempts")
+                os.remove(f"{experiment_name}.lock")
 
         except Exception as e:
             print(f"\nFatal error in run {run}: {e}")
@@ -423,7 +424,6 @@ if __name__ == "__main__":
 
         finally:
             print("Cleaning up resources...")
-            os.remove(f"{experiment_name}.lock")
             if env is not None:
                 if hasattr(env, 'callback'):
                     close_callback_safely(env.callback)

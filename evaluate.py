@@ -8,6 +8,7 @@ import torch
 
 from affectively.environments.base import compute_confidence_interval
 from affectively.environments.gymnasium_wrapper import GymToGymnasiumWrapper
+from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
 from affectively.utils.logging import TensorBoardCallback
 from agents.game_obs.Explore import Explorer
@@ -57,11 +58,11 @@ def run_evaluation(env, model, model_type, steps_per_episode=600):
 
 if __name__ == "__main__":
 
-    weights = [0.0, 0.5, 1.0]
+    weights = [0.0]
     runs = 5
     signals = ['Ordinal', ]
-    tasks = ['Minimize', "Maximize"]
-    models = ['Explore']
+    tasks = ['Minimize']
+    models = ["Explore"]
     predictions = ['Classification']
     cluster = 3
     results = []
@@ -77,139 +78,159 @@ if __name__ == "__main__":
             decision_period=10,
         )
 
-    for freq in ['Synchronized']:
-        for model_type in models:
-            for signal in signals:
-                for prediction in predictions:
-                    for task in tasks:
-                        for weight in weights:
+    for game in ['solid']:
+        for freq in ['Synchronized']:
+            for model_type in models:
+                for signal in signals:
+                    for prediction in predictions:
+                        for task in tasks:
+                            for weight in weights:
 
+                                for cluster in [0]:
+                                    run_scores = []
+                                    run_arousals = []
+                                    for run in range(runs):
 
-                            for cluster in [0, 1]:
-                                run_scores = []
-                                run_arousals = []
-                                for run in range(runs):
-                                    if model_type == "Explore":
-                                        model_name = f"MlpPolicy-Cluster{cluster}-{weight}λ-run{run}"
-                                        model_path = f"results/solid/Synchronized Reward/Ordinal/Classification/{task} Arousal/{model_type}/{model_name}.zip_Archive.pkl"
-                                        try:
-                                            best_score = 0
-                                            best_reward = -1
-                                            best_arousal_score = 0
-                                            archive = load_model(model_type, model_path, env, "")
+                                        if model_type == "Explore":
+                                            model_name = f"MlpPolicy-Cluster{cluster}-{weight}λ-run{run}"
 
-
-                                            for cell in archive.values():
-                                                # if cell.cumulative_score > best_score:
-                                                #     best_score = cell.cumulative_score
-                                                if cell.reward > best_reward:
-                                                    best_reward = cell.reward
-                                                    best_score = cell.cumulative_score
-
-                                            run_scores.append(best_score)
-                                            run_arousals.append(np.abs(best_reward - best_score * weight) / (1 - weight) if weight != 1 else best_reward)
-                                            run_arousals[-1] /= 24
-
-                                        except:
-                                            pass
-
-                                    continue
-
-                                    if model_type != 'Random':
-                                        task_name = f"{task} Arousal"
-
-                                        if model_type == 'PPO':
-                                            model_name = f"MlpPolicy-Cluster0-{weight}λ-run{run}"
-                                        else:
-                                            model_name = f"DQN-Cluster0-{weight}λ-run{run}"
-
-                                        if weight != 0:
-                                            model_path = f"results/solid/{freq} Reward/{signal}/{prediction}/{task_name}/{model_type}/{model_name}-Episode-16000.zip"
-                                        else:
-                                            model_path = f"results/solid/Synchronized Reward/Ordinal/Classification/Minimize Arousal/{model_type}/{model_name}.zip"
-
-                                        if not Path(model_path).exists():
-                                            model_path = f"results/solid/{freq} Reward/{signal}/{prediction}/{task_name}/{model_type}/{model_name}.zip"
-                                            if not Path(model_path).exists():
-                                                print(f"Skipping: {model_path} (not found)")
-                                                continue
-
-                                    print(f"Evaluating: {model_type}, {signal}, {prediction}, {task}, weight={weight}, run={run}")
-
-                                    try:
-
-                                        target_arousal = 0 if task == 'Minimize' else 1
-
-                                        env.reset()
-                                        env.weight = weight
-                                        env.target_arousal = target_arousal
-                                        env.cluster = cluster
-                                        env.period_ra = freq == "Asynchronized"
-                                        env.decision_period = 10
-                                        env.discretize = False
-                                        env.classifier = (prediction == 'Classification')
-                                        env.preference = (signal == 'Ordinal')
-                                        env.reinit()
-
-                                        # Load model
-                                        if model_type != 'Random':
-                                            model = load_model(model_type, model_path, env, model_name)
-                                        else:
-                                            model = None  # Random agent
-
-                                        env.callback = TensorBoardCallback("", env, model)
-                                        arousal, score = run_evaluation(env, model, model_type, steps_per_episode=601)
-
-                                        run_scores.append(score)
-                                        run_arousals.append(arousal)
-
-                                        print(f"  Score: {score:.2f}, Arousal: {arousal:.3f}")
-
-
-                                    except Exception as e:
-                                        print(f"Raised: {e}")
-                                        raise
-                                        # Clean up
-                                        try:
-                                            if hasattr(env, 'env'):
-                                                env.env.close()
+                                            if weight != 0.0:
+                                                model_path = f"results/{game}/{freq} Reward/Ordinal/Classification/{task} Arousal/{model_type}/{model_name}.zipTS_16666.zip"
                                             else:
-                                                env.close()
-                                            print("✓ Environment closed")
-                                        except Exception as e:
-                                            print(f"Warning during env close: {e}")
+                                                model_path = f"results/{game}/{freq} Reward/Ordinal/Classification/Maximize Arousal/{model_type}/{model_name}.zipTS_16666.zip"
 
-                                # Compute statistics across runs (if we have any successful evaluations)
-                                if len(run_scores) > 0:
+                                            try:
+                                                best_score = 0
+                                                best_reward = -1
+                                                best_arousal = 0
+                                                cell_length = 0
+                                                archive = load_model(model_type, model_path, env, "")
+                                                arousal_trace = []
 
-                                    if len(run_scores) > 1:
-                                        score_mean, score_ci = compute_confidence_interval(run_scores)
-                                        arousal_mean, arousal_ci = compute_confidence_interval(run_arousals)
-                                    else:
-                                        score_mean, score_ci = run_scores[0], 0
-                                        arousal_mean, arousal_ci = run_arousals[0], 0
+                                                for cell in archive.values():
+                                                    # if cell.cumulative_score > best_score:
+                                                    #     best_score = cell.cumulative_score
+                                                    if cell.reward > best_reward:
+                                                        best_reward = cell.reward
+                                                        best_score = cell.behavior_reward
+                                                        best_arousal = cell.arousal_reward
 
-                                    # Store aggregated results
-                                    results.append({
-                                        'model': model_type,
-                                        'signal': signal,
-                                        'prediction': prediction,
-                                        'task': task,
-                                        'weight': weight,
-                                        'n_runs': len(run_scores),
-                                        'score_mean': score_mean,
-                                        'score_ci': score_ci,
-                                        'arousal_mean': arousal_mean,
-                                        'arousal_ci': arousal_ci,
-                                        'scores_raw': run_scores,
-                                        'arousal_raw': run_arousals,
-                                        "frequency": freq,
-                                        "cluster": cluster
-                                    })
+                                                        cell_length = len(cell.trajectory_dict['score_trajectory'])
+                                                        arousal_trace = cell.trajectory_dict['score_trajectory']
 
-                                    print(f"Summary for {model_type}/{signal}/{prediction}/{task}/λ={weight}:")
-                                    print(
-                                        f"  Score: {score_mean:.2f} ± {score_ci:.2f}, Arousal: {arousal_mean:.3f} ± {arousal_ci:.3f}\n")
+                                                run_scores.append(best_score)
+                                                run_arousals.append(best_arousal)
+                                                print(cell_length, arousal_trace)
+
+                                                if freq == "Synchronized":
+
+                                                    run_arousals[-1] /= best_score
+                                                    if weight == 0 and task == "Minimize":
+                                                        run_arousals[-1] = 1 - run_arousals[-1]
+                                                else:
+                                                    run_arousals[-1] *= 40
+                                                    run_scores[-1] *= 24
+
+                                            except:
+                                                raise
+                                                pass
+
+                                        elif model_type != 'Random':
+                                            task_name = f"{task} Arousal"
+
+                                            if model_type == 'PPO':
+                                                model_name = f"MlpPolicy-Cluster0-{weight}λ-run{run}"
+                                            else:
+                                                model_name = f"DQN-Cluster0-{weight}λ-run{run}"
+
+                                            if weight != 0:
+                                                model_path = f"results/{game}/{freq} Reward/{signal}/{prediction}/{task_name}/{model_type}/{model_name}-Episode-16000.zip"
+                                            else:
+                                                model_path = f"results/{game}/Synchronized Reward/Ordinal/Classification/Maximize Arousal/{model_type}/{model_name}.zip"
+
+                                            if not Path(model_path).exists():
+                                                model_path = f"results/{game}/{freq} Reward/{signal}/{prediction}/{task_name}/{model_type}/{model_name}.zip"
+                                                if not Path(model_path).exists():
+                                                    print(f"Skipping: {model_path} (not found)")
+                                                    continue
+
+                                            print(f"Evaluating: {model_type}, {signal}, {prediction}, {task}, weight={weight}, run={run}")
+
+                                            try:
+
+                                                target_arousal = 0 if task == 'Minimize' else 1
+
+                                                env.reset()
+                                                env.weight = weight
+                                                env.target_arousal = target_arousal
+                                                env.cluster = cluster
+                                                env.period_ra = freq == "Asynchronized"
+                                                env.decision_period = 10
+                                                env.discretize = False
+                                                env.classifier = (prediction == 'Classification')
+                                                env.preference = (signal == 'Ordinal')
+                                                env.reinit()
+
+                                                # Load model
+                                                if model_type != 'Random':
+                                                    model = load_model(model_type, model_path, env, model_name)
+                                                else:
+                                                    model = None  # Random agent
+
+                                                env.callback = TensorBoardCallback("", env, model)
+                                                arousal, score = run_evaluation(env, model, model_type, steps_per_episode=601)
+
+                                                run_scores.append(score)
+                                                run_arousals.append(arousal)
+
+                                                print(f"  Score: {score:.2f}, Arousal: {arousal:.3f}")
+
+
+                                            except Exception as e:
+                                                print(f"Raised: {e}")
+                                                raise
+                                                # Clean up
+                                                try:
+                                                    if hasattr(env, 'env'):
+                                                        env.env.close()
+                                                    else:
+                                                        env.close()
+                                                    print("✓ Environment closed")
+                                                except Exception as e:
+                                                    print(f"Warning during env close: {e}")
+
+                                    # Compute statistics across runs (if we have any successful evaluations)
+                                    if len(run_scores) > 0:
+
+                                        if len(run_scores) > 1:
+                                            score_mean, score_ci = compute_confidence_interval(run_scores)
+                                            arousal_mean, arousal_ci = compute_confidence_interval(run_arousals)
+                                        else:
+                                            score_mean, score_ci = run_scores[0], 0
+                                            arousal_mean, arousal_ci = run_arousals[0], 0
+
+                                        # Store aggregated results
+                                        results.append({
+                                            'model': model_type,
+                                            'signal': signal,
+                                            'prediction': prediction,
+                                            'task': task,
+                                            'weight': weight,
+                                            'n_runs': len(run_scores),
+                                            'score_mean': score_mean,
+                                            'score_ci': score_ci,
+                                            'arousal_mean': arousal_mean,
+                                            'arousal_ci': arousal_ci,
+                                            'scores_raw': run_scores,
+                                            'arousal_raw': run_arousals,
+                                            "frequency": freq,
+                                            "cluster": cluster,
+                                            'game': game
+                                        })
+
+                                        print(f"Summary for {freq} reward/{model_type}/{signal}/{prediction}/{task}/λ={weight}:")
+                                        print(
+                                            f"  Score: {score_mean:.2f} ± {score_ci:.2f}, Arousal: {arousal_mean:.3f} ± {arousal_ci:.3f}\n")
 
     df = pd.DataFrame(results)
 

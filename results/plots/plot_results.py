@@ -4,15 +4,15 @@ import numpy as np
 import pandas as pd
 
 if __name__ == "__main__":
-    results_path = './experiment_results.csv'
+    results_path = './solid_results.csv'
     df_raw = pd.read_csv(results_path)
 
     df_raw = df_raw[df_raw['prediction'] == 'Classification']
     df_raw = df_raw[df_raw['signal'] == 'Ordinal']
-    df_raw = df_raw[df_raw['Cluster'] == 0]
+    df_raw = df_raw[df_raw['cluster'] == 0]
 
-    df_sync  = df_raw[df_raw['reward schedule'] == 'Synchronized']
-    df_async = df_raw[df_raw['reward schedule'] == 'Asynchronized']
+    df_sync  = df_raw[df_raw['frequency'] == 'Synchronized']
+    df_async = df_raw[df_raw['frequency'] == 'Asynchronized']
 
     signals = ['Interval', 'Ordinal'] 
     predictions = ['Regression', 'Classification']
@@ -21,6 +21,8 @@ if __name__ == "__main__":
     weights = [0, 0.5, 1]
     targets = ['Minimize', 'Maximize']
 
+    game = "Solid"
+    max_score = 24
     bar_width = 0.2
     x = np.arange(len(weights))  
 
@@ -32,34 +34,34 @@ if __name__ == "__main__":
         means = []
         errors = []
         for weight in weights:
-            subset = df_sync[(df_sync['model'] == model) & (df_sync['lambda'] == weight)  & (df_sync['arousal target'] == "Minimize")]
-            means.append(subset['R_b'].mean()/24)
-            errors.append(subset['R_b_95%'].mean()/24)
+            subset = df_sync[(df_sync['model'] == model) & (df_sync['weight'] == weight)  & (df_sync['task'] == "Minimize")]
+            means.append(subset['score_mean'].mean()/max_score)
+            errors.append(subset['score_ci'].mean()/max_score)
         ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, label=model, edgecolor='black')
 
     ax.set_xticks(x + bar_width)  
     ax.set_xticklabels(weights)
     ax.set_xlabel('Weight')
     ax.set_ylabel('Mean $R_b$')
-    ax.set_title('Mean $R_b$ in Solid')
-    ax.set_ylim(-0.1, 1.2)
+    ax.set_title(f'Mean $R_b$ in {game}')
+    ax.set_ylim(-0.1, 1.1)
 
     ax = axs[1]
     for i, model in enumerate(models):
         means = []
         errors = []
         for weight in weights:
-            subset = df_sync[(df_sync['model'] == model) & (df_sync['lambda'] == weight)  & (df_sync['arousal target'] == "Minimize")]
-            means.append(subset['R_a'].mean())
-            errors.append(subset['R_a_95%'].mean())
+            subset = df_sync[(df_sync['model'] == model) & (df_sync['weight'] == weight)  & (df_sync['task'] == "Minimize")]
+            means.append(subset['arousal_mean'].mean())
+            errors.append(subset['arousal_ci'].mean())
         ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, edgecolor='black')
         
     ax.set_xticks(x + bar_width)
     ax.set_xticklabels(weights)
     ax.set_xlabel('Weight')
     ax.set_ylabel('Mean $R_a$')
-    ax.set_title('Mean $R_a$ in Solid (Minimize Arousal)')
-    ax.set_ylim(-0.1, 1.2)
+    ax.set_title(f'Mean $R_a$ in {game} (Minimize Arousal)')
+    ax.set_ylim(-0.1, 1.1)
 
     fig.legend(loc='upper center', ncol=len(models))
     plt.savefig('./average_score_by_model_type.png')
@@ -72,26 +74,26 @@ if __name__ == "__main__":
         means = []
         errors = []
         for weight in weights:
-            subset = df_sync[(df_sync['model'] == model) & (df_sync['lambda'] == weight)  & (df_sync['arousal target'] == "Maximize") ]
-            means.append(subset['R_b'].mean() / 24)
-            errors.append(subset['R_b_95%'].mean() / 24)
+            subset = df_sync[(df_sync['model'] == model) & (df_sync['weight'] == weight)  & (df_sync['task'] == "Maximize") ]
+            means.append(subset['score_mean'].mean() / max_score)
+            errors.append(subset['score_ci'].mean() / max_score)
         ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, label=model, edgecolor='black')
 
     ax.set_xticks(x + bar_width)
     ax.set_xticklabels(weights)
     ax.set_xlabel('Weight')
     ax.set_ylabel('Mean $R_b$')
-    ax.set_title('Mean $R_b$ in Solid')
-    ax.set_ylim(-0.1, 1.2)
+    ax.set_title(f'Mean $R_b$ in {game}')
+    ax.set_ylim(-0.1, 1.1)
 
     ax = axs[1]
     for i, model in enumerate(models):
         means = []
         errors = []
         for weight in weights:
-            subset = df_sync[(df_sync['model'] == model) & (df_sync['lambda'] == weight) & (df_sync['arousal target'] == "Maximize")]
-            means.append(subset['R_a'].mean())
-            errors.append(subset['R_a_95%'].mean())
+            subset = df_sync[(df_sync['model'] == model) & (df_sync['weight'] == weight) & (df_sync['task'] == "Maximize")]
+            means.append(subset['arousal_mean'].mean())
+            errors.append(subset['arousal_ci'].mean())
         ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, edgecolor='black')
 
     ax.set_xticks(x + bar_width)
@@ -99,7 +101,7 @@ if __name__ == "__main__":
     ax.set_xlabel('Weight')
     ax.set_ylabel('Mean $R_a$')
     ax.set_title('Mean $R_a$ (Maximize Arousal)')
-    ax.set_ylim(-0.1, 1.2)
+    ax.set_ylim(-0.1, 1.1)
 
     fig.legend(loc='upper center', ncol=len(models))
     plt.savefig('./average_score_by_model_type.png')
@@ -116,9 +118,9 @@ if __name__ == "__main__":
             means = []
             errors = []
             for prediction, signal in product(predictions, signals):
-                subset = df_sync[(df_sync['model'] == model) & (df_sync['prediction'] == prediction) & (df_sync['signal'] == signal) & (df_sync['lambda'] == weight)]
-                means.append(subset['R_b'].mean() / 24)
-                errors.append(subset['R_b_95%'].mean() / 24)
+                subset = df_sync[(df_sync['model'] == model) & (df_sync['prediction'] == prediction) & (df_sync['signal'] == signal) & (df_sync['weight'] == weight)]
+                means.append(subset['score_mean'].mean() / 24)
+                errors.append(subset['score_ci'].mean() / 24)
             ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, label=model, edgecolor='black')
 
         ax.set_xticks(x + bar_width) 
@@ -133,9 +135,9 @@ if __name__ == "__main__":
             means = []
             errors = []
             for prediction, signal in product(predictions, signals):
-                subset = df_sync[(df_sync['model'] == model) & (df_sync['prediction'] == prediction) & (df_sync['signal'] == signal) & (df_sync['lambda'] == weight)]
-                means.append(subset['R_a'].mean())
-                errors.append(subset['R_a_95%'].mean())
+                subset = df_sync[(df_sync['model'] == model) & (df_sync['prediction'] == prediction) & (df_sync['signal'] == signal) & (df_sync['weight'] == weight)]
+                means.append(subset['arousal_mean'].mean())
+                errors.append(subset['arousal_ci'].mean())
             ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, edgecolor='black')
 
         ax.set_xticks(x + bar_width)
@@ -157,16 +159,16 @@ if __name__ == "__main__":
         means = []
         errors = []
         for weight in targets:
-            subset = df_sync[(df_sync['model'] == model) & (df_sync['arousal target'] == weight)]
-            means.append(subset['R_b'].mean()/24)
-            errors.append(subset['R_b_95%'].mean()/24)
+            subset = df_sync[(df_sync['model'] == model) & (df_sync['task'] == weight)]
+            means.append(subset['score_mean'].mean()/max_score)
+            errors.append(subset['score_ci'].mean()/max_score)
         ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, label=model, edgecolor='black')
 
     ax.set_xticks(x + bar_width)  
     ax.set_xticklabels(targets)
     ax.set_xlabel('Target')
     ax.set_ylabel('Mean $R_b$')
-    ax.set_title('Mean $R_b$ in Solid')
+    ax.set_title(f'Mean $R_b$ in {game}')
     ax.set_ylim(-0.1, 1.2)
 
     ax = axs[1]
@@ -174,16 +176,16 @@ if __name__ == "__main__":
         means = []
         errors = []
         for weight in targets:
-            subset = df_sync[(df_sync['model'] == model) & (df_sync['arousal target'] == weight)]
-            means.append(subset['R_a'].mean())
-            errors.append(subset['R_a_95%'].mean())
+            subset = df_sync[(df_sync['model'] == model) & (df_sync['task'] == weight)]
+            means.append(subset['arousal_mean'].mean())
+            errors.append(subset['arousal_ci'].mean())
         ax.bar(x + i * bar_width, means, width=bar_width, yerr=errors, capsize=5, edgecolor='black')
         
     ax.set_xticks(x + bar_width)
     ax.set_xticklabels(targets)
     ax.set_xlabel('Target')
     ax.set_ylabel('Mean $R_a$')
-    ax.set_title('Mean $R_a$ in Solid')
+    ax.set_title(f'Mean $R_a$ in {game}')
     ax.set_ylim(-0.1, 1.2)
 
     fig.legend(loc='upper center', ncol=len(models))
@@ -197,9 +199,9 @@ ax = axs[0]
 for i, model in enumerate(models):
     means, errors = [], []
     for weight in weights:
-        subset = df_async[(df_async['model'] == model) & (df_async['lambda'] == weight)]
-        means.append(subset['R_b'].mean() / 24)
-        errors.append(subset['R_b_95%'].mean() / 24)
+        subset = df_async[(df_async['model'] == model) & (df_async['weight'] == weight)]
+        means.append(subset['score_mean'].mean() / 24)
+        errors.append(subset['score_ci'].mean() / 24)
 
     ax.bar(x + i * bar_width, means, bar_width,
            yerr=errors, capsize=5, edgecolor='black', label=model)
@@ -215,9 +217,9 @@ ax = axs[1]
 for i, model in enumerate(models):
     means, errors = [], []
     for weight in weights:
-        subset = df_async[(df_async['model'] == model) & (df_async['lambda'] == weight)]
-        means.append(subset['R_a'].mean())
-        errors.append(subset['R_a_95%'].mean())
+        subset = df_async[(df_async['model'] == model) & (df_async['weight'] == weight)]
+        means.append(subset['arousal_mean'].mean())
+        errors.append(subset['arousal_ci'].mean())
 
     ax.bar(x + i * bar_width, means, bar_width,
            yerr=errors, capsize=5, edgecolor='black')
@@ -242,12 +244,13 @@ df_sync = df_sync[df_sync['model'] != 'Random']
 df_async = df_async[df_async['model'] != 'Random']
 
 def agg(df_subset, metric):
-    return [df_subset[df_subset['lambda'] == w][metric].mean() for w in weights], [df_subset[df_subset['lambda'] == w][f"{metric}_95%"].mean() for w in weights]
+    ci = metric.split("_")[0]
+    return [df_subset[df_subset['weight'] == w][metric].mean() for w in weights], [df_subset[df_subset['weight'] == w][f"{ci}_ci"].mean() for w in weights]
 
-print(df_sync[df_sync['lambda'] == 0])
+print(df_sync[df_sync['weight'] == 0])
 
-axs[0].bar(x - bar_width/2, np.array(agg(df_sync, 'R_b')[0])/24, bar_width, yerr=np.array(agg(df_sync, 'R_b')[1])/24, label='Sync', edgecolor='black')
-axs[0].bar(x + bar_width/2, np.array(agg(df_async, 'R_b')[0])/24, bar_width, yerr=np.array(agg(df_async, 'R_b')[1])/24, label='Async', edgecolor='black')
+axs[0].bar(x - bar_width/2, np.array(agg(df_sync, 'score_mean')[0])/max_score, bar_width, yerr=np.array(agg(df_sync, 'score_mean')[1])/max_score, label='Sync', edgecolor='black')
+axs[0].bar(x + bar_width/2, np.array(agg(df_async, 'score_mean')[0])/max_score, bar_width, yerr=np.array(agg(df_async, 'score_mean')[1])/max_score, label='Async', edgecolor='black')
 
 axs[0].set_xticks(x)
 axs[0].set_xticklabels(weights)
@@ -256,8 +259,8 @@ axs[0].set_ylabel('Mean $R_b$')
 axs[0].set_title('Sync vs Async: $R_b$')
 axs[0].set_ylim(-0.1, 1.2)
 
-axs[1].bar(x - bar_width/2, agg(df_sync, 'R_a')[0], bar_width, yerr=agg(df_sync, 'R_a')[1], edgecolor='black')
-axs[1].bar(x + bar_width/2, agg(df_async, 'R_a')[0], bar_width, yerr=agg(df_async, 'R_a')[1], edgecolor='black')
+axs[1].bar(x - bar_width/2, agg(df_sync, 'arousal_mean')[0], bar_width, yerr=agg(df_sync, 'arousal_mean')[1], edgecolor='black')
+axs[1].bar(x + bar_width/2, agg(df_async, 'arousal_mean')[0], bar_width, yerr=agg(df_async, 'arousal_mean')[1], edgecolor='black')
 
 axs[1].set_xticks(x)
 axs[1].set_xticklabels(weights)
