@@ -39,7 +39,7 @@ class Cell:
         self.arousal = 0
         self.arousal_values = []
         self.uncertainty = 0
-
+        self.arousal_ep_length = 0
         self.arousal_reward = 0
         self.behavior_reward = 0
         self.reward = 0
@@ -142,6 +142,7 @@ class Explorer:
         self.env.estimated_position = self.current_cell.estimated_position
         self.env.surrogate_list = self.current_cell.human_vector
         self.env.episode_arousal_trace = self.current_cell.trajectory_dict['arousal_trajectory']
+        self.env.arousal_episode_length = self.current_cell.arousal_ep_length
 
         for j in range(explore_length):
 
@@ -150,7 +151,7 @@ class Explorer:
             if self.current_cell.get_cell_length() >= 600:
                 break
             if self.store_cell(self.current_cell):
-                self.save_digit = new_cell.key
+                self.save_digit = self.current_cell.key
             else:
                 self.save_digit = 0
 
@@ -161,24 +162,21 @@ class Explorer:
             new_cell = self.current_cell
             new_cell.trajectory_dict['behavior_trajectory'].append(action)
             new_cell.trajectory_dict['state_trajectory'].append(state)
-            new_cell.trajectory_dict['arousal_trajectory'] = self.env.episode_arousal_trace
+            new_cell.trajectory_dict['arousal_trajectory'] = list(self.env.episode_arousal_trace)
             new_cell.trajectory_dict['score_trajectory'].append(self.env.cumulative_rb)
             new_cell.human_vector = self.env.surrogate_list
-
             new_cell.final = new_cell.get_cell_length() >= 600
-
             new_cell.previous_score = self.env.previous_score
             new_cell.score = self.env.current_score
             new_cell.cumulative_score = self.env.cumulative_rb
             new_cell.behavior_reward = self.env.cumulative_rb
-            if self.env.period_ra:
-                new_cell.behavior_reward /= 24 # change for other games
+            new_cell.arousal_ep_length = self.env.arousal_episode_length
+
             new_cell.reward = self.env.cumulative_rl
             new_cell.arousal_reward = self.env.cumulative_ra
 
             if self.env.period_ra and len(new_cell.trajectory_dict['arousal_trajectory']) > 0:
-                new_cell.arousal_reward /= 40
-                new_cell.reward = new_cell.behavior_reward * (1 - self.env.weight) + (new_cell.arousal_reward * self.env.weight)
+                new_cell.reward = new_cell.behavior_reward * (1 - self.env.weight) / 24 + (new_cell.arousal_reward / 40 * self.env.weight)
 
             new_cell.estimated_position = self.env.estimated_position
             new_cell.update_key()
@@ -194,10 +192,13 @@ class Explorer:
             while self.num_timesteps < total_timesteps:
                 actions = self.explore_actions(explore_length)
                 pbar.set_postfix({
-                    "Archive": len(self.archive),
-                    "Best_Len": self.bestCell.get_cell_length() if self.bestCell else 0,
-                    "Reward": f"{self.bestCell.reward:.2f}" if self.bestCell else 0,
-                    "Updates": self.updates
+                    "Archive Size": len(self.archive),
+                    "Archive Updates": self.updates,
+                    "Best Length": self.bestCell.get_cell_length() if self.bestCell else 0,
+                    "Arousal Length": f"{len(self.bestCell.trajectory_dict['arousal_trajectory'])}" if self.bestCell else 0,
+                    "Best $Best R_λ$": f"{self.bestCell.reward:.2f}" if self.bestCell else 0,
+                    "Best $R_b$": f"{self.bestCell.behavior_reward:.2f}" if self.bestCell else 0,
+                    "Best $R_a$": f"{self.bestCell.arousal_reward:.2f}" if self.bestCell else 0,
                 })
                 pbar.update(actions)
         self.save(self.logdir, True)

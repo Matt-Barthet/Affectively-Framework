@@ -23,7 +23,7 @@ class SolidEnvironmentGameObs(SolidEnvironment):
 
         position_delta = np.asarray([game_obs[0], game_obs[2]])
         self.estimated_position = np.add(self.estimated_position, position_delta)
-        position_discrete = np.round(self.estimated_position / 80)
+        position_discrete = np.round(self.estimated_position / 70)
         position_discrete[0] = 0 if position_discrete[0] == -0 else position_discrete[0]
         position_discrete[1] = 0 if position_discrete[1] == -0 else position_discrete[1]
 

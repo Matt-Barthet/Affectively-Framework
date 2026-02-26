@@ -84,11 +84,12 @@ class BaseEnvironment(gym.Env, ABC):
         self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
         self.arousal_trace = []
 
-        self.episode_length = 0
         self.weight = weight
 
         self.save_digit, self.vector_digit, self.cell_name_digit = 0, 0, 0
         self.current_score, self.previous_score, = 0, 0
+
+        self.ra, self.rb, self.rl = [], [], []
         self.cumulative_ra, self.cumulative_rb, self.cumulative_rl = 0, 0, 0
 
         self.surrogate_list = []
@@ -156,13 +157,16 @@ class BaseEnvironment(gym.Env, ABC):
         If environment is in regression mode, reward using Mean Squared Error to target value.
         """
         mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0
+
         if self.classifier:
             mean_arousal_label = 0 if mean_arousal < 0.5 else 1
             r_a = 1 if mean_arousal_label == self.target_arousal else 0 # Binary classification
         else:
             r_a = (1 - np.abs(self.target_arousal - mean_arousal))**2 # MSE for regression tasks - Inverted to reward proximity 
 
+        self.ra = r_a
         self.cumulative_ra += r_a
+        # print("\n", self.period_arousal_trace, mean_arousal, r_a, self.cumulative_ra)
         self.period_arousal_trace.clear()
         return r_a
 
@@ -201,15 +205,13 @@ class BaseEnvironment(gym.Env, ABC):
 
     def step(self, action):
 
-        # If a load is called dont do the rest of the env logic.
+        # If a load is called don't do the rest of the env logic.
         if action[0] == np.inf and action[1] == np.inf:
             state, env_score, done, info = self.env.step((1,1,action[2]))
             return state, 0, done, info
 
         self.episode_length += 1
         self.arousal_episode_length += 1
-
-
         self.previous_score = self.current_score
 
         state, env_score, done, info = self.env.step(action)
@@ -227,7 +229,6 @@ class BaseEnvironment(gym.Env, ABC):
         change_in_score = (self.current_score - self.previous_score)
         self.score_change = self.score_change or change_in_score > 0
 
-
         if self.arousal_episode_length * self.decision_period % 150 == 0:  # Read the surrogate vector on the 15th tick
             self.generate_arousal()
             self.arousal_episode_length = 0
@@ -241,8 +242,10 @@ class BaseEnvironment(gym.Env, ABC):
                 final_reward = np.array([self.reward_behavior(), self.reward_affect()], dtype=np.float32)   
         else:
             final_reward = 0
+
             if self.period_ra and (len(self.period_arousal_trace) > 0):
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
+
             elif not self.period_ra and self.score_change:
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
             self.cumulative_rl += final_reward
