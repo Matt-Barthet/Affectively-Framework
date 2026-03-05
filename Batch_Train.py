@@ -81,6 +81,7 @@ def main():
             f"--policy={c.get('policy')} "
             f"--decision_period={c.get('decisionPeriod')} "
             f"--timesteps={c.get('timesteps')} "
+            f"--imitate={c.get('imitate')} "
         )
 
         if system == "Darwin":

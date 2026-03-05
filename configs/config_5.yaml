@@ -4,7 +4,7 @@
 runs: 5
 output_dir: "./results/"
 game: "solid"
-algorithm: "Explore"
+algorithm: "PPO"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 timesteps: 10_000_000
@@ -15,13 +15,14 @@ headless: 1
 
 # Specific game and agent parameters for this run
 weight: 0
-cluster: 0
+cluster: 1
 target_arousal: 1
 classifier: 1
 preference: 1
+imitate: 1
 
 # Specific algorithm parameters
-periodic_ra: 1
+periodic_ra: 0
 cv: 0
 grayscale: 0
 discretize: 0

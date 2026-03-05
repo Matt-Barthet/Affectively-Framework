@@ -15,7 +15,6 @@ from affectively.utils.logging import MORLTensorBoardCallback, TensorboardGoExpl
     close_progress_bar_safely, PersistentProgressBarCallback, close_callback_safely
 from agents import init_model
 from agents.game_obs.go_explore.agent import Explorer
-from agents.game_obs.rainbow_dqn.agent import RainbowAgent
 
 
 def train_with_recovery(model, callbacks, total_timesteps):

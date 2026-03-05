@@ -24,7 +24,7 @@ class BaseEnvironment(gym.Env, ABC):
 	"""
 
     def __init__(self, id_number, graphics, obs_space, weight, game, capture_fps=5, time_scale=1, args=None,
-                 target_arousal=1, cluster=0, period_ra=False, classifier=True, preference=True, decision_period=10):
+                 target_arousal=1, cluster=0, period_ra=False, classifier=True, preference=True, decision_period=10, imitate=False):
 
         super(BaseEnvironment, self).__init__()
         if args is None:
@@ -50,18 +50,7 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.action_space, self.action_size = self.env.action_space, self.env.action_space.shape
 
-        # Hide actions - not working.
-        if isinstance(self.env.action_space, gym.spaces.MultiDiscrete):
-            # self.action_space = gym.spaces.MultiDiscrete(self.env.action_space.nvec[:-2])
-            pass
-        elif isinstance(self.env.action_space, gym.spaces.Box):
-            # Exclude the last two actions for Box
-            # low = self.env.action_space.low[:-2] # Exclude the last two elements of low bounds
-            # high = self.env.action_space.high[:-2] # Exclude the last two elements of high bounds
-            # self.action_space = gym.spaces.Box(low=np.array(low), high=np.array(high), dtype=self.env.action_space.dtype)
-            pass
-        else:
-
+        if not isinstance(self.env.action_space, (gym.spaces.MultiDiscrete, gym.spaces.Discrete)):
             raise NotImplementedError("Action space type not supported")
 
         try:
@@ -69,7 +58,9 @@ class BaseEnvironment(gym.Env, ABC):
         except:
             dtype = np.float32
 
-        self.obs_size = obs_space['shape']
+        if imitate:
+            obs_space['shape'] = (obs_space['shape'][0] + 3,)
+
         self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'],
                                                 dtype=dtype)
         self.model = LinearSurrogateModel(game=game, cluster=cluster, classifier=classifier, preference=preference)
@@ -85,6 +76,8 @@ class BaseEnvironment(gym.Env, ABC):
         self.ra, self.rb, self.rl = [], [], []
         self.cumulative_ra, self.cumulative_rb, self.cumulative_rl = 0, 0, 0
 
+        self.prev_score_error = 0
+
         self.surrogate_list = []
         self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
         self.episode_arousal_trace, self.period_arousal_trace = [], []
@@ -98,7 +91,9 @@ class BaseEnvironment(gym.Env, ABC):
         self.classifier = classifier
         self.surrogate_length = self.model.surrogate_length
         self.callback = None
+        self.imitation_learning = imitate
         self.multi_objective = self.weight == -1
+        self.target_time_idx = 0
         if self.multi_objective:
             self.reward_space = gym.spaces.Box(
                 low=-np.inf,
@@ -106,6 +101,8 @@ class BaseEnvironment(gym.Env, ABC):
                 shape=(2,),
                 dtype=np.float32
             )
+
+        print(self.imitation_learning)
 
     def reinit(self):
         self.model = LinearSurrogateModel(game=self.game, cluster=self.cluster, classifier=self.classifier, preference=self.preference)
@@ -125,9 +122,11 @@ class BaseEnvironment(gym.Env, ABC):
         self.score_change = False
         self.episode_length, self.arousal_episode_length = 0, 0
         self.behavior_ticks = 0
+        self.prev_score_error = 0
         self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
         self.episode_arousal_trace.clear()
         self.period_arousal_trace.clear()
+        self.target_time_idx = 0
         return state
 
     def reward_behavior(self):
@@ -136,11 +135,29 @@ class BaseEnvironment(gym.Env, ABC):
         Assign behavior reward if the environment score increases.
         Zero rewards otherwise.
         """
-        r_b = 1 if self.score_change else 0
         self.behavior_ticks += 1 if self.score_change else 0
+        print("Rewarding behavior")
+
+        if self.imitation_learning == 0:
+            r_b = 1 if self.score_change else 0
+        else:
+            target_scores = list(self.model.behavior_reward_book.keys())
+            nearest_target_score = target_scores[np.argmin(np.abs(np.array(target_scores) - self.current_score))]
+
+            current_score_error = abs(self.current_score - nearest_target_score)
+            reward_proximity = self.prev_score_error - current_score_error
+            self.prev_score_error = current_score_error 
+
+            self.target_time_idx = self.model.behavior_reward_book[nearest_target_score]
+            pacing_error = abs(self.episode_length - self.target_time_idx)
+            reward_pacing = 1 if pacing_error < 10 else -pacing_error
+
+            print(reward_pacing, reward_proximity)
+            r_b = reward_pacing
+
+
         self.score_change = False
         self.cumulative_rb += r_b
-        # print(f"Behavior rewarded, cumulative reward: {self.cumulative_rb}")
         return r_b
 
     def reward_affect(self):
@@ -159,7 +176,6 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.ra = r_a
         self.cumulative_ra += r_a
-        # print("\n", self.period_arousal_trace, mean_arousal, r_a, self.cumulative_ra)
         self.period_arousal_trace.clear()
         return r_a
 
@@ -198,7 +214,6 @@ class BaseEnvironment(gym.Env, ABC):
 
     def step(self, action):
 
-        # If a load is called don't do the rest of the env logic.
         if action[0] == np.inf and action[1] == np.inf:
             state, env_score, done, info = self.env.step((1,1,action[2]))
             return state, 0, done, info
@@ -215,6 +230,10 @@ class BaseEnvironment(gym.Env, ABC):
                 arousal_window = self.episode_arousal_trace[-5:]
                 arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
                 state[modality] = np.concatenate((state[modality], arousal_window))
+
+                if self.imitation_learning == 1:
+                    added = [self.episode_length, len(self.episode_arousal_trace), self.target_time_idx]
+                    state[modality] = np.concatenate((added, state[modality]))
                 break
 
         self.surrogate_list.append(surrogate)
@@ -235,7 +254,6 @@ class BaseEnvironment(gym.Env, ABC):
                 final_reward = np.array([self.reward_behavior(), self.reward_affect()], dtype=np.float32)   
         else:
             final_reward = 0
-
             if self.period_ra and (len(self.period_arousal_trace) > 0):
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
 

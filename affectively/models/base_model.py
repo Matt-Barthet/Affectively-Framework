@@ -26,6 +26,10 @@ class AbstractSurrogateModel(ABC):
         
         self.data, self.x_train, self.y_train = None, None, None
         self.output_size = 2 if self.preference and self.classifier else 3
+
+        self.behavior_reward_book = {}
+        self.arousal_reward_book = {}
+
         self.load_data()
 
         self.load_model()
@@ -78,11 +82,10 @@ class AbstractSurrogateModel(ABC):
             state_scaled = scaler.transform(state)
             # if np.min(state_scaled) < 0 or np.max(state_scaled) > 1:
             #     print(f"Values outside of range: Max={np.max(state_scaled):.3f}@{self.columns[np.argmax(state_scaled)]}(other={np.where(state_scaled > 1)[0]})", end=", ")
-            #     print(f"Min={np.min(state_scaled):.3f}@{self.columns[np.argmin(state_scaled)]}(other={np.where(state_scaled < 0)[0]})")
-            
+            #     print(f"Min={np.min(state_scaled):.3f}@{self.columns[np.argmin(state_scaled)]}(other={np.where(state_scaled < 0)[0]})")  
             state_scaled = np.clip(state_scaled, 0, 1)
             predictions.append(self._predict_single(model, scaler, state_scaled))
-        
+    
         avg_prediction = np.mean(predictions, axis=0)
         if self.classifier:
             return np.argmax(avg_prediction, axis=1)[0]
@@ -123,8 +126,24 @@ class AbstractSurrogateModel(ABC):
 
         scores_stacked = np.stack(scores, axis=1)
         self.cluster_score = np.mean(scores_stacked, axis=1)
-        self.cluster_score = np.round(self.cluster_score)
+
+        if self.game.lower() != "solid" and self.game.lower() != "racing":
+            self.cluster_score = np.round(self.cluster_score / 10) * 10
+        else:
+            self.cluster_score = np.round(self.cluster_score)   
+
         self.cluster_score = np.repeat(self.cluster_score, repeat_factor)
+
+        for idx in range(len(self.cluster_score)):
+            score = self.cluster_score[idx]
+            if score not in self.behavior_reward_book:
+                self.behavior_reward_book[score] = idx
+
+        # print(self.behavior_reward_book)
+        # from matplotlib import pyplot as plt
+        # plt.errorbar(np.arange(len(self.cluster_score)), self.cluster_score, label='Cluster Score', alpha=0.7, color='orange')
+        # plt.show()
+        # exit() 
 
         if not self.preference:
             for player in self.players.unique():
