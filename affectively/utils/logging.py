@@ -1,4 +1,6 @@
 import os
+
+from stable_baselines3.common.callbacks import BaseCallback
 from tensorboardX import SummaryWriter
 import shutil
 import sys
@@ -7,6 +9,81 @@ from PyQt5 import QtWidgets, QtCore
 import pyqtgraph as pg
 import numpy as np
 from morl_baselines.common.performance_indicators import hypervolume
+from tqdm import tqdm
+
+
+class PersistentProgressBarCallback(BaseCallback):
+
+    def __init__(self, total_timesteps, env_wrapper, verbose=0):
+        super().__init__(verbose)
+        self.total_timesteps = total_timesteps
+        self.env_wrapper = env_wrapper
+        self.pbar = None
+        self.last_update_step = 0
+
+    def _on_training_start(self):
+        if self.pbar is not None:
+            try:
+                self.pbar.close()
+            except:
+                pass
+
+        self.pbar = tqdm(
+            total=self.total_timesteps,
+            initial=self.model.num_timesteps,
+            desc="Training",
+            unit=" steps"
+        )
+        self.last_update_step = self.model.num_timesteps
+
+    def _on_step(self):
+
+        if self.pbar is not None:
+            steps_since_last = self.model.num_timesteps - self.last_update_step
+            if steps_since_last > 0:
+                self.pbar.update(steps_since_last)
+                self.last_update_step = self.model.num_timesteps
+
+            if hasattr(self.env_wrapper, 'callback') and self.env_wrapper.callback is not None:
+                callback = self.env_wrapper.callback
+                postfix = {
+                    'Best Score': f"{callback.best_env_score:.1f}",
+                    'Best R_a': f"{callback.best_cumulative_ra:.2f}",
+                    'Best R_b': f"{callback.best_cumulative_rb:.2f}",
+                    'Episodes': callback.episode
+                }
+                self.pbar.set_postfix(postfix)
+
+        return True
+
+    def _on_training_end(self):
+        if self.pbar is not None:
+            self.pbar.close()
+            self.pbar = None
+
+
+def close_callback_safely(callback):
+    if callback is None:
+        return
+    try:
+        if hasattr(callback, 'writer') and callback.writer is not None:
+            callback.writer.close()
+            print("✓ TensorBoard writer closed")
+    except Exception as e:
+        print(f"Warning closing callback writer: {e}")
+
+
+def close_progress_bar_safely(callbacks):
+    if callbacks is None:
+        return
+    try:
+        if hasattr(callbacks, 'pbar') and callbacks.pbar is not None:
+            callbacks.pbar.close()
+            print("✓ Progress bar closed")
+    except Exception as e:
+        print(f"Warning closing progress bar: {e}")
+
+
 
 
 class HypervolumeTracker:

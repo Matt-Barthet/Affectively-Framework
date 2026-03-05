@@ -228,7 +228,7 @@ def learn(agent, env, num_episodes=500, batch_size=64, update_target_every=1000,
 
         for _ in tqdm(range(600), desc=f"Episode {episode+1}/{num_episodes} Steps", leave=False):
         # for _ in range(600):
-            action = agent.select_action(state)
+            action = agent.predict(state)
             next_state, reward, done, _ = env.step(action)
             next_state = np.array(next_state, dtype=np.float32)
             agent.append_sample(state, action, reward, next_state, done)

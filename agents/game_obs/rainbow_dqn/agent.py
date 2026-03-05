@@ -194,13 +194,13 @@ class RainbowAgent:
         self.num_timesteps = 0
         self.n_step_buffer = deque(maxlen=n_step)
 
-    def select_action(self, state):
+    def predict(self, state, deterministic=False):
         state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         self.policy_net.reset_noise()
         with torch.no_grad():
             q_values, _ = self.policy_net(state)
         action = [qv.argmax(1).item() for qv in q_values]
-        return action
+        return action, None
 
     def append_sample(self, state, action, reward, next_state, done):
         self.n_step_buffer.append((state, action, reward, next_state, done))
@@ -307,7 +307,7 @@ class RainbowAgent:
                 episode_reward = 0
                 episode_rewards.append(episode_reward)
 
-            action = self.select_action(state)
+            action = self.predict(state)
             next_state, reward, done, truncated, info = self.env.step(action)
             next_state = np.array(next_state, dtype=np.float32)
             self.append_sample(state, action, reward, next_state, done)

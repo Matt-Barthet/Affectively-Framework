@@ -16,14 +16,6 @@ from affectively.models.linear_model import LinearSurrogateModel
 from affectively.models.mlp_model import MLPSurrogateModel
 
 
-def compute_confidence_interval(data, confidence: float = 0.95):
-    data = np.array(data)
-    mean = np.mean(data)
-    sem = stats.sem(data)
-    ci = sem * stats.t.ppf((1 + confidence) / 2, len(data) - 1)
-    return np.round(mean, 4), np.round(ci, 4)
-
-
 class BaseEnvironment(gym.Env, ABC):
     """
 	This is the base unity-gym environment that all environments should inherit from. It sets up the
@@ -50,6 +42,7 @@ class BaseEnvironment(gym.Env, ABC):
             self.engineConfigChannel.set_configuration_parameters(target_frame_rate=-capture_fps, time_scale=time_scale)
         else:
             self.engineConfigChannel.set_configuration_parameters(capture_frame_rate=capture_fps, time_scale=time_scale)
+
         self.customSideChannel = AffectivelySideChannel(socket_id)
         self.env = self.load_environment(id_number, graphics, args)
 

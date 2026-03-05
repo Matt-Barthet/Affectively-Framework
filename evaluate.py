@@ -1,55 +1,20 @@
-import pickle
-
-import numpy as np
-import pandas as pd
 from pathlib import Path
-from stable_baselines3 import PPO
-import torch
 
-from affectively.environments.base import compute_confidence_interval
-from affectively.environments.gymnasium_wrapper import GymToGymnasiumWrapper
-from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
-from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
+import pandas as pd
+
+from affectively.utils import compute_confidence_interval
 from affectively.utils.logging import TensorBoardCallback
-from agents.game_obs.agent import Explorer
-# Update this import to match your actual module structure
-from agents.game_obs.agent import RainbowAgent
-
-
-def load_model(model_type, model_path, env, model_name):
-    """Load model based on type."""
-    if model_type == 'PPO':
-        model = PPO(policy=model_name.split("-")[0], env=env)
-        model.set_parameters(model_path)
-    elif model_type == 'DQN':
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model = RainbowAgent(env, device=device)
-        model.load(model_path)
-    elif model_type == 'Random':
-        return None
-    elif model_type == "Explore":
-        file = open(model_path, 'rb')
-        model = pickle.load(file)
-    else:
-        raise ValueError(f"Unknown model type: {model_type}")
-
-    return model
+from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
+from agents import load_model
 
 
 def run_evaluation(env, model, model_type, steps_per_episode=600):
-    """Run single evaluation trial for a given environment and model."""
     state = env.reset()
-    for i in range(steps_per_episode):
-        if model_type == 'PPO':
-            action, _ = model.predict(state, deterministic=True)
-        elif model_type == 'DQN':
-            action = model.select_action(state)
-        else:  # Random agent
-            action = env.action_space.sample()
+    for _ in range(steps_per_episode):
+        action = model.predict(state, deterministic=True)[0] if model_type != "random" else env.action_space.sample()
         state, reward, done, info = env.step(action)
         if done:
             break
-
     env.callback.on_episode_end()
     arousal = env.callback.best_mean_ra
     score = env.callback.best_env_score
@@ -108,8 +73,6 @@ if __name__ == "__main__":
                                                 arousal_trace = []
 
                                                 for cell in archive.values():
-                                                    # if cell.cumulative_score > best_score:
-                                                    #     best_score = cell.cumulative_score
                                                     if cell.reward > best_reward:
                                                         best_reward = cell.reward
                                                         best_score = cell.behavior_reward
@@ -233,8 +196,6 @@ if __name__ == "__main__":
                                             f"  Score: {score_mean:.2f} ± {score_ci:.2f}, Arousal: {arousal_mean:.3f} ± {arousal_ci:.3f}\n")
 
     df = pd.DataFrame(results)
-
-    # Save to CSV
     output_file = 'experiment_results.csv'
     df.to_csv(output_file, index=False)
     print(f"\nResults saved to {output_file}")

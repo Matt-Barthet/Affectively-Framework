@@ -6,13 +6,7 @@ from mlagents_envs.side_channel import SideChannel, IncomingMessage
 
 class AffectivelySideChannel(SideChannel, ABC):
 	
-	def __init__(self,
-	             socket_id: uuid.UUID):
-		"""
-		Creates an AffectivelySideChannel object.
-		Args:
-			socket_id: The socket ID of the side channel.
-		"""
+	def __init__(self, socket_id: uuid.UUID):
 		super().__init__(socket_id)
 		self.levelEnd = False
 		self.interactiveReset = False
@@ -20,12 +14,6 @@ class AffectivelySideChannel(SideChannel, ABC):
 	
 	def on_message_received(self,
 	                        msg: IncomingMessage) -> None:
-		"""
-		Process the incoming message from the side channel.
-		
-		Args:
-			msg: The incoming message from the side channel.
-		"""
 		test = msg.read_string()
 		self.levelEnd = False
 		
