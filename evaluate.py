@@ -11,9 +11,9 @@ from affectively.environments.gymnasium_wrapper import GymToGymnasiumWrapper
 from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
 from affectively.utils.logging import TensorBoardCallback
-from agents.game_obs.Explore import Explorer
+from agents.game_obs.agent import Explorer
 # Update this import to match your actual module structure
-from agents.game_obs.Rainbow_DQN import RainbowAgent
+from agents.game_obs.agent import RainbowAgent
 
 
 def load_model(model_type, model_path, env, model_name):

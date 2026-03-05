@@ -19,8 +19,8 @@ from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
 from affectively.utils.action_wrapper import FlattenMultiDiscreteAction
 from affectively.utils.logging import TensorBoardCallback, MORLTensorBoardCallback, TensorboardGoExplore
-from agents.game_obs.Explore import Explorer
-from agents.game_obs.Rainbow_DQN import RainbowAgent
+from agents.game_obs.go_explore.agent import Explorer
+from agents.game_obs.rainbow_dqn.agent import RainbowAgent
 import torch
 
 

@@ -168,7 +168,7 @@ class InteractiveDashboard(QtWidgets.QMainWindow):
 
     def on_pause(self):
         """
-        Called when the environment is paused. Pauses updating the plots.
+        Called when the environment is paused. Pauses updating the analysis.
         """
         self.pause = True
 
@@ -263,7 +263,7 @@ class InteractiveDashboard(QtWidgets.QMainWindow):
         return None
 
     # -------------------------------------------------------------
-    # Redraw plots (fast!)
+    # Redraw analysis (fast!)
     # -------------------------------------------------------------
     def _update_graph(self):
         if not self.times:
@@ -303,7 +303,7 @@ class InteractiveDashboard(QtWidgets.QMainWindow):
         Called when an episode ends. Clears the current traces and displays
         an overlay label instructing the user to "Press Pause to Restart".
 
-        The dashboard will pause updating plots until it detects the
+        The dashboard will pause updating analysis until it detects the
         environment has restarted (step/tick resets or env.paused toggles).
         """
 
