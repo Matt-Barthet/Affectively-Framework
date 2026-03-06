@@ -95,13 +95,14 @@ class AbstractSurrogateModel(ABC):
 
     def load_data(self):
 
+        interval_data = f'./affectively/datasets/{self.game.lower()}_3000ms.csv'
         pref_suff = '_downsampled_pairs' if self.preference else ''
         preff_suff_2 = '_pairs' if self.preference else ''
 
         fname = f'./affectively/datasets/{self.game.lower()}_3000ms{pref_suff}.csv'
         self.data = pd.read_csv(fname)
         self.unbalanced_data = pd.read_csv(f'./affectively/datasets/{self.game.lower()}_3000ms{preff_suff_2}.csv')
-
+        self.interval_data = pd.read_csv(interval_data)
         if self.cluster > 0:
             cluster_members = pd.read_csv(f"./affectively/datasets/{self.game.lower()}_cluster_book.csv")
             cluster_members = cluster_members[cluster_members['Cluster'] == self.cluster]
@@ -141,32 +142,40 @@ class AbstractSurrogateModel(ABC):
 
         # print(self.behavior_reward_book)
         # from matplotlib import pyplot as plt
-        # plt.errorbar(np.arange(len(self.cluster_score)), self.cluster_score, label='Cluster Score', alpha=0.7, color='orange')
+        # plt.errorbar(np.arange(len(self.c
+        # luster_score)), self.cluster_score, label='Cluster Score', alpha=0.7, color='orange')
         # plt.show()
         # exit() 
 
-        if not self.preference:
-            for player in self.players.unique():
-                try:
-                    player_mask = self.data['[control]player_id'] == player
-                    player_arousals = np.pad(self.data.loc[player_mask, '[output]arousal'].values[:40], (0, max(0, 40 - len(self.data.loc[player_mask, '[output]arousal'].values))), 'edge')
-                    scaler = MinMaxScaler()
-                    scaled_arousals = scaler.fit_transform(player_arousals.reshape(-1, 1)).flatten()
-                    arousals.append(scaled_arousals)
-                except:
-                    print("Skipping header error")
+        # if not self.preference:
+        for player in self.players.unique():
+            try:
+                player_mask = self.interval_data['[control]player_id'] == player
+                player_arousals = np.pad(self.interval_data.loc[player_mask, '[output]arousal'].values[:40], (0, max(0, 40 - len(self.interval_data.loc[player_mask, '[output]arousal'].values))), 'edge')
+                scaler = MinMaxScaler()
+                scaled_arousals = scaler.fit_transform(player_arousals.reshape(-1, 1)).flatten()
+                arousals.append(scaled_arousals)
+            except:
+                print("Skipping header error")
 
-            arousals_stacked = np.stack(arousals, axis=1)
-            self.cluster_arousal = np.mean(arousals_stacked, axis=1)
-            self.cluster_arousal = np.repeat(self.cluster_arousal, repeat_factor)
+        arousals_stacked = np.stack(arousals, axis=1)
+        self.cluster_arousal = np.mean(arousals_stacked, axis=1)
+        self.cluster_arousal = np.repeat(self.cluster_arousal, repeat_factor)
 
-            # from matplotlib import pyplot as plt
-            # plt.errorbar(np.arange(len(self.cluster_arousal)), self.cluster_arousal, label='Cluster Arousal', alpha=0.7)
-            # plt.errorbar(np.arange(len(self.cluster_score)), self.cluster_score / 24, label='Cluster Score', alpha=0.7, color='orange')
-            # plt.show()
+        # from matplotlib import pyplot as plt
+        # plt.errorbar(np.arange(len(self.cluster_arousal)), self.cluster_arousal, label='Cluster Arousal', alpha=0.7)
+        # plt.errorbar(np.arange(len(self.cluster_score)), self.cluster_score / 24, label='Cluster Score', alpha=0.7, color='orange')
+        # plt.show()
 
         if self.preference and self.classifier:
             arousals = self.data['[output]ranking'].values
+
+            prev_idx = 0
+            for score, idx in self.behavior_reward_book.items():
+                print(f"Score: {score}, Index range: {prev_idx} to {idx}, Arousal mean: {np.mean(self.cluster_arousal[prev_idx:int(idx)])}, arousals: {self.cluster_arousal[prev_idx:int(idx)]}")
+                self.arousal_reward_book[int(score)] = 1 if self.cluster_arousal[idx] - self.cluster_arousal[prev_idx] >= 0 else 0
+                prev_idx = idx
+
             self.data = self.data.drop(columns=['[output]ranking', '[output]delta'])
 
         elif self.preference and not self.classifier:

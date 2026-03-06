@@ -139,8 +139,6 @@ class BaseEnvironment(gym.Env, ABC):
             return 0
 
         self.behavior_ticks += 1
-
-        # Pre-calculate max score from the book keys
         all_target_scores = list(self.model.behavior_reward_book.keys())
         max_target_score = max(all_target_scores)
 
@@ -155,7 +153,6 @@ class BaseEnvironment(gym.Env, ABC):
                 self.target_time_idx = self.model.behavior_reward_book[nearest_target_score]
                 pacing_error = abs(self.episode_length - self.target_time_idx)
                 reward_pacing = max(0.0, 1 - (pacing_error / 600))
-                print(reward_pacing)
                 r_b = reward_pacing
         self.score_change = False
         self.previous_score = self.current_score
@@ -191,8 +188,8 @@ class BaseEnvironment(gym.Env, ABC):
         """
         arousal = 0
         stacked_surrogates = np.asarray(self.surrogate_list)
-        stacked_surrogates = np.stack(stacked_surrogates, axis=-1) # stack the surrogates vertically
-        self.current_surrogate = np.mean(stacked_surrogates, axis=1) # calculate the mean of each feature across the stack
+        stacked_surrogates = np.stack(stacked_surrogates, axis=-1) 
+        self.current_surrogate = np.mean(stacked_surrogates, axis=1) 
         if self.current_surrogate.size != 0:
             if self.previous_surrogate.size == 0:
                 self.previous_surrogate = np.zeros(len(self.current_surrogate))

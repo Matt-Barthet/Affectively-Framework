@@ -6,3 +6,6 @@ affectively_environments.egg-info/
 /examples/Results/
 /examples/Results
 *.lock
+*.DS_Store
+.DS_Store
+**/*.DS_Store
