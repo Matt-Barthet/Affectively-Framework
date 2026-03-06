@@ -9,6 +9,7 @@ from affectively.environments.pirates_cv import PiratesEnvironmentCV
 from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 from affectively.environments.solid_cv import SolidEnvironmentCV
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
+from affectively.utils.logging import TensorboardGoExplore, TensorBoardCallback
 
 
 def to_gymnasium_space(space):
@@ -41,11 +42,8 @@ class GymToGymnasiumWrapper(gymnasium.Env):
             self.reward_space = to_gymnasium_space(env.reward_space)
 
     def reset(self, *, seed=None, options=None):
-        try:
-            if self.env.callback is not None and len(self.env.episode_arousal_trace) > 0:
-                self.env.callback.on_episode_end()
-        except AttributeError:
-            raise
+        if self.env.callback is not None and len(self.env.episode_arousal_trace) > 0:
+            self.env.callback.on_episode_end()
         obs = self.env.reset()
         return obs, {}
 
@@ -93,10 +91,10 @@ class FlattenMultiDiscreteAction(gym.ActionWrapper):
         return int(np.dot(vec, self._radix))
 
 
-def create_environment(args, run):
+def create_environment(args, run, callback=None):
     if args.cv == 0:
         if args.game == "fps":
-            return HeistEnvironmentGameObs(
+            env = HeistEnvironmentGameObs(
                 id_number=run,
                 weight=args.weight,
                 graphics=args.headless == 0,
@@ -107,9 +105,10 @@ def create_environment(args, run):
                 classifier=args.classifier,
                 preference=args.preference,
                 decision_period=args.decision_period,
+                imitate=args.imitate
             )
         elif args.game == "solid":
-            return SolidEnvironmentGameObs(
+            env = SolidEnvironmentGameObs(
                 id_number=run,
                 weight=args.weight,
                 graphics=args.headless == 0,
@@ -120,9 +119,11 @@ def create_environment(args, run):
                 classifier=args.classifier,
                 preference=args.preference,
                 decision_period=args.decision_period,
+                imitate=args.imitate
+
             )
         elif args.game == "platform":
-            return PiratesEnvironmentGameObs(
+            env = PiratesEnvironmentGameObs(
                 id_number=run,
                 weight=args.weight,
                 graphics=True,
@@ -133,10 +134,12 @@ def create_environment(args, run):
                 classifier=args.classifier,
                 preference=args.preference,
                 decision_period=args.decision_period,
+                imitate=args.imitate
+
             )
     elif args.cv == 1:
         if args.game == "fps":
-            return HeistEnvironmentCV(
+            env = HeistEnvironmentCV(
                 id_number=run,
                 weight=args.weight,
                 cluster=args.cluster,
@@ -146,9 +149,11 @@ def create_environment(args, run):
                 classifier=args.classifier,
                 preference=args.preference,
                 decision_period=args.decision_period,
+                imitate=args.imitate
+
             )
         elif args.game == "solid":
-            return SolidEnvironmentCV(
+            env = SolidEnvironmentCV(
                 id_number=run,
                 weight=args.weight,
                 cluster=args.cluster,
@@ -158,9 +163,11 @@ def create_environment(args, run):
                 classifier=args.classifier,
                 preference=args.preference,
                 decision_period=args.decision_period,
+                imitate=args.imitate
+
             )
         elif args.game == "platform":
-            return PiratesEnvironmentCV(
+            env = PiratesEnvironmentCV(
                 id_number=run,
                 weight=args.weight,
                 cluster=args.cluster,
@@ -170,8 +177,10 @@ def create_environment(args, run):
                 classifier=args.classifier,
                 preference=args.preference,
                 decision_period=args.decision_period,
+                imitate=args.imitate
+
             )
-    return None
+    return env
 
 
 def close_environment_safely(env):

@@ -5,7 +5,7 @@ from tensorboardX import SummaryWriter
 import shutil
 import sys
 from collections import deque
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets
 import pyqtgraph as pg
 import numpy as np
 from morl_baselines.common.performance_indicators import hypervolume
@@ -23,11 +23,7 @@ class PersistentProgressBarCallback(BaseCallback):
 
     def _on_training_start(self):
         if self.pbar is not None:
-            try:
-                self.pbar.close()
-            except:
-                pass
-
+            self.pbar.close()
         self.pbar = tqdm(
             total=self.total_timesteps,
             initial=self.model.num_timesteps,
@@ -36,16 +32,14 @@ class PersistentProgressBarCallback(BaseCallback):
         )
         self.last_update_step = self.model.num_timesteps
 
-    def _on_step(self):
-
+    def on_episode_end(self):
         if self.pbar is not None:
             steps_since_last = self.model.num_timesteps - self.last_update_step
             if steps_since_last > 0:
                 self.pbar.update(steps_since_last)
                 self.last_update_step = self.model.num_timesteps
-
             if hasattr(self.env_wrapper, 'callback') and self.env_wrapper.callback is not None:
-                callback = self.env_wrapper.callback
+                callback = self.env_wrapper.env.callback
                 postfix = {
                     'Best Score': f"{callback.best_env_score:.1f}",
                     'Best R_a': f"{callback.best_cumulative_ra:.2f}",
@@ -53,7 +47,22 @@ class PersistentProgressBarCallback(BaseCallback):
                     'Episodes': callback.episode
                 }
                 self.pbar.set_postfix(postfix)
+        return True
 
+    def _on_step(self):
+        if self.pbar is not None:
+            steps_since_last = self.model.num_timesteps - self.last_update_step
+            if steps_since_last > 0:
+                self.pbar.update(steps_since_last)
+                self.last_update_step = self.model.num_timesteps
+                callback = self.env_wrapper.env.callback
+                postfix = {
+                    'Best Score': f"{callback.best_env_score:.1f}",
+                    'Best R_a': f"{callback.best_cumulative_ra:.2f}",
+                    'Best R_b': f"{callback.best_cumulative_rb:.2f}",
+                    'Episodes': callback.episode
+                }
+                self.pbar.set_postfix(postfix)
         return True
 
     def _on_training_end(self):
@@ -68,7 +77,7 @@ def close_callback_safely(callback):
     try:
         if hasattr(callback, 'writer') and callback.writer is not None:
             callback.writer.close()
-            print("✓ TensorBoard writer closed")
+            print("TensorBoard writer closed")
     except Exception as e:
         print(f"Warning closing callback writer: {e}")
 
@@ -84,8 +93,6 @@ def close_progress_bar_safely(callbacks):
         print(f"Warning closing progress bar: {e}")
 
 
-
-
 class HypervolumeTracker:
     def __init__(self, reference_point):
         self.reference_point = np.asarray(reference_point, dtype=np.float32)
@@ -97,6 +104,7 @@ class HypervolumeTracker:
             np.asarray(pareto_front, dtype=np.float32),
             self.reference_point
         )
+
 
 class MORLTensorBoardCallback:
     def __init__(self, log_dir, environment, agent, reference_point):
@@ -147,7 +155,6 @@ class MORLTensorBoardCallback:
 
     def on_step(self):
         pass
-
 
 
 class InteractiveDashboard(QtWidgets.QMainWindow):
@@ -446,7 +453,7 @@ class TensorBoardCallback:
 
     def __init__(self, log_dir, environment, model):
         self.log_dir = log_dir
-        self.environment = environment
+        self.environment = environment.env
         backup(log_dir)
         self.writer = SummaryWriter(log_dir)
         self.episode = 0

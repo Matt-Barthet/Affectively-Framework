@@ -94,6 +94,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.imitation_learning = imitate
         self.multi_objective = self.weight == -1
         self.target_time_idx = 0
+
         if self.multi_objective:
             self.reward_space = gym.spaces.Box(
                 low=-np.inf,
@@ -101,8 +102,6 @@ class BaseEnvironment(gym.Env, ABC):
                 shape=(2,),
                 dtype=np.float32
             )
-
-        print(self.imitation_learning)
 
     def reinit(self):
         self.model = LinearSurrogateModel(game=self.game, cluster=self.cluster, classifier=self.classifier, preference=self.preference)
@@ -115,6 +114,9 @@ class BaseEnvironment(gym.Env, ABC):
                 arousal_window = self.episode_arousal_trace[-5:]
                 arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
                 state[modality] = np.concatenate((state[modality], arousal_window))
+                if self.imitation_learning == 1:
+                    added = [self.episode_length, len(self.episode_arousal_trace), self.target_time_idx]
+                    state[modality] = np.concatenate((added, state[modality]))
                 break
 
         self.cumulative_ra, self.cumulative_rb, self.cumulative_rl = 0, 0, 0
@@ -131,32 +133,32 @@ class BaseEnvironment(gym.Env, ABC):
 
     def reward_behavior(self):
         """
-        Behavior reward component: optimize behavior and update reward statistics.
-        Assign behavior reward if the environment score increases.
-        Zero rewards otherwise.
+        Behavior reward component with boundary and pacing constraints.
         """
-        self.behavior_ticks += 1 if self.score_change else 0
-        print("Rewarding behavior")
+        if not self.score_change:
+            return 0
 
+        self.behavior_ticks += 1
+
+        # Pre-calculate max score from the book keys
+        all_target_scores = list(self.model.behavior_reward_book.keys())
+        max_target_score = max(all_target_scores)
+
+        r_b = 0
         if self.imitation_learning == 0:
-            r_b = 1 if self.score_change else 0
-        else:
-            target_scores = list(self.model.behavior_reward_book.keys())
-            nearest_target_score = target_scores[np.argmin(np.abs(np.array(target_scores) - self.current_score))]
-
-            current_score_error = abs(self.current_score - nearest_target_score)
-            reward_proximity = self.prev_score_error - current_score_error
-            self.prev_score_error = current_score_error 
-
-            self.target_time_idx = self.model.behavior_reward_book[nearest_target_score]
-            pacing_error = abs(self.episode_length - self.target_time_idx)
-            reward_pacing = 1 if pacing_error < 10 else -pacing_error
-
-            print(reward_pacing, reward_proximity)
-            r_b = reward_pacing
-
-
+            r_b = 1
+        elif self.current_score <= max_target_score:
+            all_target_scores = np.array(list(self.model.behavior_reward_book.keys()))
+            future_targets = all_target_scores[all_target_scores >= self.current_score]
+            if len(future_targets) > 0:
+                nearest_target_score = np.min(future_targets)
+                self.target_time_idx = self.model.behavior_reward_book[nearest_target_score]
+                pacing_error = abs(self.episode_length - self.target_time_idx)
+                reward_pacing = max(0.0, 1 - (pacing_error / 600))
+                print(reward_pacing)
+                r_b = reward_pacing
         self.score_change = False
+        self.previous_score = self.current_score
         self.cumulative_rb += r_b
         return r_b
 
@@ -167,13 +169,11 @@ class BaseEnvironment(gym.Env, ABC):
         If environment is in regression mode, reward using Mean Squared Error to target value.
         """
         mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0
-
         if self.classifier:
             mean_arousal_label = 0 if mean_arousal < 0.5 else 1
             r_a = 1 if mean_arousal_label == self.target_arousal else 0 # Binary classification
         else:
-            r_a = (1 - np.abs(self.target_arousal - mean_arousal))**2 # MSE for regression tasks - Inverted to reward proximity 
-
+            r_a = (1 - np.abs(self.target_arousal - mean_arousal))**2 # MSE for regression tasks - Inverted to reward proximity
         self.ra = r_a
         self.cumulative_ra += r_a
         self.period_arousal_trace.clear()
@@ -193,17 +193,14 @@ class BaseEnvironment(gym.Env, ABC):
         stacked_surrogates = np.asarray(self.surrogate_list)
         stacked_surrogates = np.stack(stacked_surrogates, axis=-1) # stack the surrogates vertically
         self.current_surrogate = np.mean(stacked_surrogates, axis=1) # calculate the mean of each feature across the stack
-
         if self.current_surrogate.size != 0:
             if self.previous_surrogate.size == 0:
                 self.previous_surrogate = np.zeros(len(self.current_surrogate))
             previous_scaler = np.array(self.previous_surrogate)
-
             if self.preference:
                 tensor = np.array(list(previous_scaler) + list(self.current_surrogate))
             else:
                 tensor = self.current_surrogate
-
             tensor= np.nan_to_num(torch.tensor(tensor), nan=0)
             arousal = np.clip(self.model(tensor), 0, 1)
             self.episode_arousal_trace.append(arousal)
@@ -211,6 +208,7 @@ class BaseEnvironment(gym.Env, ABC):
             self.previous_surrogate = self.current_surrogate.copy()
             self.customSideChannel.arousal_vector.clear()
         return arousal
+
 
     def step(self, action):
 
@@ -220,7 +218,6 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.episode_length += 1
         self.arousal_episode_length += 1
-        self.previous_score = self.current_score
 
         state, env_score, done, info = self.env.step(action)
 
@@ -230,7 +227,6 @@ class BaseEnvironment(gym.Env, ABC):
                 arousal_window = self.episode_arousal_trace[-5:]
                 arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
                 state[modality] = np.concatenate((state[modality], arousal_window))
-
                 if self.imitation_learning == 1:
                     added = [self.episode_length, len(self.episode_arousal_trace), self.target_time_idx]
                     state[modality] = np.concatenate((added, state[modality]))
@@ -238,7 +234,7 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.surrogate_list.append(surrogate)
         self.current_score = env_score  
-        change_in_score = (self.current_score - self.previous_score)
+        change_in_score = self.current_score - self.previous_score
         self.score_change = self.score_change or change_in_score > 0
 
         if self.arousal_episode_length * self.decision_period % 150 == 0:  # Read the surrogate vector on the 15th tick
@@ -256,12 +252,14 @@ class BaseEnvironment(gym.Env, ABC):
             final_reward = 0
             if self.period_ra and (len(self.period_arousal_trace) > 0):
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
-
             elif not self.period_ra and self.score_change:
+                print()
+                print(self.previous_score, self.current_score)
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
             self.cumulative_rl += final_reward
             
         return state, final_reward, done, info
+
 
     def handle_level_end(self):
         """
@@ -269,25 +267,30 @@ class BaseEnvironment(gym.Env, ABC):
 		"""
         pass
 
+
     def construct_state(self, state):
         """
 		Override this method to add any custom code for reading the state received from unity.
 		"""
         return state
 
+
     def create_and_send_message(self, contents):
         message = OutgoingMessage()
         message.write_string(contents)
         self.customSideChannel.queue_message_to_send(message)
 
+
     def sample_weighted_action(self):
         raise NotImplementedError()
+
 
     def sample_action(self):
         try:
             return self.sample_weighted_action()
         except NotImplementedError:
             return self.action_space.sample()
+
 
     def load_environment(self, identifier, graphics, args):
         system = platform.system()
@@ -298,7 +301,6 @@ class BaseEnvironment(gym.Env, ABC):
         else:
             game_suffix = "exe"
         system="Mac" if system == "Darwin" else system
-
         try:
             env = UnityEnvironment(f"./affectively/builds/{self.game.lower()}/{system}/{self.game.lower()}.{game_suffix}",
                                    side_channels=[self.engineConfigChannel, self.customSideChannel],
@@ -310,12 +312,14 @@ class BaseEnvironment(gym.Env, ABC):
             return self.load_environment(identifier + 1, graphics, args)
         return env
 
+
     @staticmethod
     def tuple_to_vector(s):
         obs = []
         for i in range(len(s)):
             obs.append(s[i])
         return obs
+
 
     @staticmethod
     def one_hot_encode(matrix_obs, num_categories):

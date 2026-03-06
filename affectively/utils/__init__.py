@@ -28,4 +28,5 @@ def init_parser(parser):
     parser.add_argument("--decision_period", required=False, help="Decision period for environments", type=int, default=10)
     parser.add_argument("--max_retries", required=False, help="Max retries for Unity timeout recovery", type=int, default=500)
     parser.add_argument("--timesteps", required=False, help="Total timesteps for training", type=int, default=5_000_000)
+    parser.add_argument("--imitate", required=True, help="Imitate reward function", type=int)
     return parser

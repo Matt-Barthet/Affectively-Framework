@@ -12,7 +12,7 @@ from affectively.environments import GymToGymnasiumWrapper, FlattenMultiDiscrete
     create_environment
 from affectively.utils import init_parser
 from affectively.utils.logging import MORLTensorBoardCallback, TensorboardGoExplore, \
-    close_progress_bar_safely, PersistentProgressBarCallback, close_callback_safely
+    close_progress_bar_safely, PersistentProgressBarCallback, close_callback_safely, TensorBoardCallback
 from agents import init_model
 from agents.game_obs.go_explore.agent import Explorer
 
@@ -34,8 +34,9 @@ def train_with_recovery(model, callbacks, total_timesteps):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
-    args = parser.parse_args(init_parser(parser))
+    parser = argparse.ArgumentParser(description="Experiment trainer arguments.")
+    parser = init_parser(parser)
+    args = parser.parse_args()
     agent_class = init_model(args)
     device = torch.device("cuda") if args.use_gpu else torch.device("cpu")
 
@@ -55,9 +56,11 @@ if __name__ == "__main__":
             continue
         os.open(f"{experiment_name}.lock", os.O_CREAT)
 
+
+        env = create_environment(args, run)
+        env = GymToGymnasiumWrapper(env)
+
         try:
-            env = create_environment(args, run)
-            env = GymToGymnasiumWrapper(env)
 
             if agent_class == "ENVELOPE_Q":
 
@@ -100,6 +103,13 @@ if __name__ == "__main__":
                 model = agent_class(policy=args.policy, env=env, device=device)
 
                 if agent_class == Explorer:
+                    callback = TensorboardGoExplore(experiment_name, env, model)
+                else:
+                    callback = TensorBoardCallback(experiment_name, env, model)
+
+                env.env.callback = callback
+
+                if agent_class == Explorer:
                     print(experiment_name.split('/')[-1])
                     env.env.callback = TensorboardGoExplore(experiment_name, env, model)
                     model.logdir = experiment_name
@@ -122,7 +132,7 @@ if __name__ == "__main__":
 
                 while not training_complete and recovery_attempts < max_recovery_attempts:
 
-                    success = train_with_recovery(model=model, callbacks=env.env.callback, total_timesteps=args.timesteps)
+                    success = train_with_recovery(model=model, callbacks=callbacks, total_timesteps=args.timesteps)
                     if success:
                         training_complete = True
                     else:
@@ -134,9 +144,6 @@ if __name__ == "__main__":
 
                         env = create_environment(args, run)
                         env = GymToGymnasiumWrapper(env)
-
-                        if agent_class == Explorer:
-                            env.env.callback = TensorboardGoExplore(experiment_name, env, model)
 
                         if hasattr(model, 'set_env'):
                             model.set_env(env)
