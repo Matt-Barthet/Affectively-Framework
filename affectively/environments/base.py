@@ -26,76 +26,103 @@ class BaseEnvironment(gym.Env, ABC):
     def __init__(self, id_number, graphics, obs_space, weight, game, capture_fps=5, time_scale=1, args=None,
                  target_arousal=1, cluster=0, period_ra=False, classifier=True, preference=True, decision_period=10, imitate=False):
 
-        super(BaseEnvironment, self).__init__()
+        # Setup socket ID and default arguments
         if args is None:
             args = []
+        
         socket_id = uuid.uuid4()
-
-        self.decision_period = decision_period
         args += [f"-socketID", str(socket_id), "-decisionPeriod", str(decision_period)]
-
-        self.game_obs = []
-        self.game = game
-        self.engineConfigChannel = EngineConfigurationChannel()
-
-        if np.sign(capture_fps) == -1:
-            self.engineConfigChannel.set_configuration_parameters(target_frame_rate=-capture_fps, time_scale=time_scale)
-        else:
-            self.engineConfigChannel.set_configuration_parameters(capture_frame_rate=capture_fps, time_scale=time_scale)
-
-        self.customSideChannel = AffectivelySideChannel(socket_id)
+        
+        super(BaseEnvironment, self).__init__()
+        
+        # Load and configure the Unity environment
         self.env = self.load_environment(id_number, graphics, args)
-
         self.env = UnityToGymWrapper(self.env, allow_multiple_obs=True)
-
+        
+        # Define action space
         self.action_space, self.action_size = self.env.action_space, self.env.action_space.shape
-
+        
         if not isinstance(self.env.action_space, (gym.spaces.MultiDiscrete, gym.spaces.Discrete)):
             raise NotImplementedError("Action space type not supported")
 
+        # Setup observation space
         try:
             dtype = obs_space['type']
         except:
             dtype = np.float32
-
+            
         if imitate:
             obs_space['shape'] = (obs_space['shape'][0] + 3,)
 
-        self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'],
-                                                dtype=dtype)
-        self.model = LinearSurrogateModel(game=game, cluster=cluster, classifier=classifier, preference=preference)
-        self.cluster = cluster
-        self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
-        self.arousal_trace = []
-
+        self.observation_space = gym.spaces.Box(
+            low=obs_space['low'], 
+            high=obs_space['high'], 
+            shape=obs_space['shape'],
+            dtype=dtype
+        )
+        
+        # Initialize surrogate model
+        self.model = LinearSurrogateModel(
+            game=game, 
+            cluster=cluster, 
+            classifier=classifier, 
+            preference=preference
+        )
+        
+        # Environment configuration
+        self.game = game
+        self.engineConfigChannel = EngineConfigurationChannel()
+        
+        if np.sign(capture_fps) == -1:
+            self.engineConfigChannel.set_configuration_parameters(
+                target_frame_rate=-capture_fps, 
+                time_scale=time_scale
+            )
+        else:
+            self.engineConfigChannel.set_configuration_parameters(
+                capture_frame_rate=capture_fps, 
+                time_scale=time_scale
+            )
+        
+        self.customSideChannel = AffectivelySideChannel(socket_id)
+        
+        # Scoring and reward tracking
         self.weight = weight
-
+        
+        # Episode state variables (initialized here to avoid duplication)
         self.save_digit, self.vector_digit, self.cell_name_digit = 0, 0, 0
-        self.current_score, self.previous_score, = 0, 0
-
-        self.ra, self.rb, self.rl = [], [], []
-        self.cumulative_ra, self.cumulative_rb, self.cumulative_rl = 0, 0, 0
-
+        self.current_score, self.previous_score = 0, 0
         self.prev_score_error = 0
-
+        
+        # Arousal and reward buffers
+        self.cumulative_ra, self.cumulative_rb, self.cumulative_rl = 0, 0, 0
+        self.ra, self.rb, self.rl = [], [], []
+        
+        # Trace arrays
         self.surrogate_list = []
-        self.previous_surrogate, self.current_surrogate = np.empty(0), np.empty(0)
-        self.episode_arousal_trace, self.period_arousal_trace = [], []
+        self.previous_surrogate = np.empty(0)
+        self.current_surrogate = np.empty(0)
+        self.episode_arousal_trace = []
+        self.period_arousal_trace = []
+        
+        # Decision period configuration
+        self.decision_period = decision_period
         self.behavior_ticks = 0
         self.score_change = False
         self.period_ra = period_ra
-
+        
+        # Reward structure
         self.episode_length, self.arousal_episode_length = 0, 0
-
         self.target_arousal = target_arousal
         self.preference = preference
         self.classifier = classifier
-        self.surrogate_length = self.model.surrogate_length
         self.callback = None
         self.imitation_learning = imitate
+        
+        # Multi-objective configuration
         self.multi_objective = self.weight == -1
         self.target_time_idx = 0
-
+        
         if self.multi_objective:
             self.reward_space = gym.spaces.Box(
                 low=-np.inf,
@@ -134,7 +161,15 @@ class BaseEnvironment(gym.Env, ABC):
 
     def reward_behavior(self):
         """
-        Behavior reward component with boundary and pacing constraints.
+        Return a behavior reward based on the agent's outward behavior in the level.
+
+        * If ``self.score_change`` is False, returns 0 immediately.
+        * With imitation learning disabled, always returns a flat reward of 1.
+        * Otherwise, if the current score is within the known target range,
+        compute the pacing reward where clipped to the [0, 1] interval.
+
+        The function then clears the score‑change flag, updates the previous score,
+        adds the reward to ``self.cumulative_rb``, and returns the reward value.
         """
         if not self.score_change:
             return 0
@@ -162,9 +197,28 @@ class BaseEnvironment(gym.Env, ABC):
 
     def reward_affect(self):
         """
-        Affect reward component: optimize behavior and update reward statistics.
-        If environment is in classifier mode, reward based on predicting correct target label.
-        If environment is in regression mode, reward using Mean Squared Error to target value.
+        Calculates an affect reward based on the agent’s arousal trace.
+
+        • When imitation learning is enabled:
+            – If we are rewarding arousal asynchronously to behavior, the target 
+            comes from the model’s arousal ordinal sequence for the current episode length.
+            – Otherwise, the target comes from the model’s arousal reward book
+            indexed by the current score.
+
+        • When imitation learning is disabled, the target is the explicit
+        target_arousal value.
+
+        • In classifier mode the reward is 1 when the predicted label matches
+        the target label (label 0 for mean arousal below 0.5, label 1 otherwise),
+        otherwise it is 0.
+
+        • In regression mode the reward is the squared proximity:
+        (1 – absolute difference between target and mean arousal) squared,
+        always clipped to the range 0–1.
+
+        After computing the reward, the method clears the arousal trace,
+        updates the current reward and the cumulative reward counter,
+        and returns the calculated reward value.
         """
         mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0
 
@@ -178,9 +232,9 @@ class BaseEnvironment(gym.Env, ABC):
 
         if self.classifier:
             mean_arousal_label = 0 if mean_arousal < 0.5 else 1
-            r_a = 1 if mean_arousal_label == target else 0 # Binary classification
+            r_a = 1 if mean_arousal_label == target else 0 
         else:
-            r_a = (1 - np.abs(target - mean_arousal))**2 # MSE for regression tasks - Inverted to reward proximity
+            r_a = (1 - np.abs(target - mean_arousal))**2 
 
         self.ra = r_a
         self.cumulative_ra += r_a
@@ -231,7 +285,7 @@ class BaseEnvironment(gym.Env, ABC):
 
         for modality in range(len(state)):
             if len(np.asarray(state[modality]).shape) == 1:
-                surrogate = state[modality][-self.surrogate_length:]
+                surrogate = state[modality][-self.model.surrogate_length:]
                 arousal_window = self.episode_arousal_trace[-5:]
                 arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
                 state[modality] = np.concatenate((state[modality], arousal_window))
