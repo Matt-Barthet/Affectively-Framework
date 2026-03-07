@@ -22,6 +22,7 @@ class AbstractSurrogateModel(ABC):
         self.models, self.scalers = [], []
         self.best_params = {}
         self.cluster_score, self.cluster_arousal = [], []
+        self.cluster_arousal_ordinal = []
         self._setup_paths()
         
         self.data, self.x_train, self.y_train = None, None, None
@@ -169,10 +170,13 @@ class AbstractSurrogateModel(ABC):
 
         if self.preference and self.classifier:
             arousals = self.data['[output]ranking'].values
+            diffs = np.diff(self.cluster_arousal)
+            ordinal_labels = np.where(diffs > 0, 1, 0)
+            self.cluster_arousal_ordinal = np.insert(ordinal_labels, 0, 1)
 
             prev_idx = 0
             for score, idx in self.behavior_reward_book.items():
-                print(f"Score: {score}, Index range: {prev_idx} to {idx}, Arousal mean: {np.mean(self.cluster_arousal[prev_idx:int(idx)])}, arousals: {self.cluster_arousal[prev_idx:int(idx)]}")
+                # print(f"Score: {score}, Index range: {prev_idx} to {idx}, Arousal mean: {np.mean(self.cluster_arousal[prev_idx:int(idx)])}, arousals: {self.cluster_arousal[prev_idx:int(idx)]}")
                 self.arousal_reward_book[int(score)] = 1 if self.cluster_arousal[idx] - self.cluster_arousal[prev_idx] >= 0 else 0
                 prev_idx = idx
 

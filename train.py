@@ -40,7 +40,9 @@ if __name__ == "__main__":
     agent_class = init_model(args)
     device = torch.device("cuda") if args.use_gpu else torch.device("cpu")
 
-    experiment_folder = f'{args.logdir}/{args.game}/{f"Synchronized Reward" if not args.periodic_ra else "Asynchronized Reward"}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{"Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"}/{args.algorithm}/'
+    task_folder = "Imitate Arousal" if args.imitate == 1 else "Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"
+
+    experiment_folder = f'{args.logdir}/{args.game}/{f"Synchronized Reward" if not args.periodic_ra else "Asynchronized Reward"}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{task_folder}/{args.algorithm}/'
     if not os.path.exists(experiment_folder):
         os.mkdir(experiment_folder)
 
@@ -101,12 +103,10 @@ if __name__ == "__main__":
             else:
 
                 model = agent_class(policy=args.policy, env=env, device=device)
-
                 if agent_class == Explorer:
                     callback = TensorboardGoExplore(experiment_name, env, model)
                 else:
                     callback = TensorBoardCallback(experiment_name, env, model)
-
                 env.env.callback = callback
 
                 if agent_class == Explorer:

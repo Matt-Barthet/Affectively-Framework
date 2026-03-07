@@ -86,6 +86,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.period_ra = period_ra
 
         self.episode_length, self.arousal_episode_length = 0, 0
+
         self.target_arousal = target_arousal
         self.preference = preference
         self.classifier = classifier
@@ -166,11 +167,21 @@ class BaseEnvironment(gym.Env, ABC):
         If environment is in regression mode, reward using Mean Squared Error to target value.
         """
         mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0
+
+        if self.imitation_learning:
+            if self.period_ra:
+                target = self.model.cluster_arousal_ordinal[self.episode_length]
+            else:
+                target = self.model.arousal_reward_book[self.current_score]
+        else:
+            target = int(self.target_arousal)
+
         if self.classifier:
             mean_arousal_label = 0 if mean_arousal < 0.5 else 1
-            r_a = 1 if mean_arousal_label == self.target_arousal else 0 # Binary classification
+            r_a = 1 if mean_arousal_label == target else 0 # Binary classification
         else:
-            r_a = (1 - np.abs(self.target_arousal - mean_arousal))**2 # MSE for regression tasks - Inverted to reward proximity
+            r_a = (1 - np.abs(target - mean_arousal))**2 # MSE for regression tasks - Inverted to reward proximity
+
         self.ra = r_a
         self.cumulative_ra += r_a
         self.period_arousal_trace.clear()
