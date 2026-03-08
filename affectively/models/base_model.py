@@ -136,6 +136,16 @@ class AbstractSurrogateModel(ABC):
 
         self.cluster_score = np.repeat(self.cluster_score, repeat_factor)
 
+        if self.game == "solid":
+            for i in range(1, 25):
+                self.behavior_reward_book[i] = 0
+        elif self.game == "platform":
+            for i in range(10, 470, 10):
+                self.behavior_reward_book[i] = 0
+        elif self.game == "fps":
+            for i in range(10, 510, 10):
+                self.behavior_reward_book[i] = 0
+
         for idx in range(len(self.cluster_score)):
             score = self.cluster_score[idx]
             if score not in self.behavior_reward_book:
@@ -143,8 +153,7 @@ class AbstractSurrogateModel(ABC):
 
         # print(self.behavior_reward_book)
         # from matplotlib import pyplot as plt
-        # plt.errorbar(np.arange(len(self.c
-        # luster_score)), self.cluster_score, label='Cluster Score', alpha=0.7, color='orange')
+        # plt.errorbar(np.arange(len(self.cluster_score)), self.cluster_score, label='Cluster Score', alpha=0.7, color='orange')
         # plt.show()
         # exit() 
 
@@ -184,7 +193,6 @@ class AbstractSurrogateModel(ABC):
 
         elif self.preference and not self.classifier:
             arousals = self.data['[output]delta'].values
-
             data_copy = self.data.copy()
 
             for player in self.players.unique():

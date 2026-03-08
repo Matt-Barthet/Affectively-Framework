@@ -115,10 +115,12 @@ if __name__ == "__main__":
                     model.logdir = experiment_name
                 else:
                     for i in range(16000, 0, -1000):
+                        print(f"{experiment_name}-Episode-{i}.zip")
                         if os.path.exists(f"{experiment_name}-Episode-{i}.zip"):
                             model.load(f"{experiment_name}-Episode-{i}.zip")
                             model.set_parameters(f"{experiment_name}-Episode-{i}.zip")
-                            print(f"Loaded at timestep: {i}")
+                            model.num_timesteps = i * 600
+                            # print(f"Loaded at timestep: {i}, {model.num_timesteps}")
                             break
 
                 training_complete = False
