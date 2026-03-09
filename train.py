@@ -29,6 +29,7 @@ def train_with_recovery(model, callbacks, total_timesteps):
         print(f"\nError: {e}")
         traceback.print_exc()
         close_progress_bar_safely(callbacks)
+        exit()
     return None
 
 
@@ -41,8 +42,10 @@ if __name__ == "__main__":
     device = torch.device("cuda") if args.use_gpu else torch.device("cpu")
 
     task_folder = "Imitate Arousal" if args.imitate == 1 else "Maximize Arousal" if args.target_arousal == 1 else "Minimize Arousal"
-
+    
     experiment_folder = f'{args.logdir}/{args.game}/{f"Synchronized Reward" if not args.periodic_ra else "Asynchronized Reward"}/{"Ordinal" if args.preference else "Raw"}/{"Classification" if args.classifier == 1 else "Regression"}/{task_folder}/{args.algorithm}/'
+    
+    print(experiment_folder)
     if not os.path.exists(experiment_folder):
         os.mkdir(experiment_folder)
 

@@ -2,7 +2,6 @@ import os
 
 from stable_baselines3.common.callbacks import BaseCallback
 from tensorboardX import SummaryWriter
-import shutil
 import sys
 from collections import deque
 from PyQt5 import QtWidgets
@@ -430,34 +429,14 @@ class InteractiveDashboard(QtWidgets.QMainWindow):
             pass
 
 
-def backup(log_dir):
-    if not os.path.exists("./results/backups"):
-        os.mkdir("./results/backups")
-    if os.path.exists(log_dir):
-        counter = 1
-        while True:
-            filename = f"./results/backups/{log_dir.split('/')[-1]}_{counter}"
-            if not os.path.exists(filename):
-                try:
-                    shutil.move(log_dir, f"{filename}")
-                except:
-                    counter += 1
-                    filename = f"./results/backups/{log_dir.split('/')[-1]}_{counter}"
-                    shutil.move(log_dir, f"{filename}")
-                break
-
-            counter += 1
-
-
 class TensorBoardCallback:
 
     def __init__(self, log_dir, environment, model):
         self.log_dir = log_dir
         self.environment = environment.env
-        backup(log_dir)
         self.writer = SummaryWriter(log_dir)
-        self.episode = 0
         self.model = model
+        self.episode = model.num_timesteps // 600
         self.best_cumulative_rb = 0
         self.best_env_score = 0
         self.best_cumulative_ra = 0
@@ -472,7 +451,6 @@ class TensorBoardCallback:
         self.best_env_score = np.max([self.environment.current_score, self.best_env_score])
 
         # print(f"End of episode, Best Cumulative Rb =  {self.best_cumulative_rb}")
-
         if self.environment.period_ra:
             # Normalize by length of the episodes arousal trace (static size due to fixed periodic reward)
             trace_len = len(self.environment.episode_arousal_trace)
@@ -487,7 +465,6 @@ class TensorBoardCallback:
             mean_rl = 0 if self.environment.behavior_ticks == 0 else self.environment.cumulative_rl / self.environment.behavior_ticks
             mean_ra = 0 if self.environment.behavior_ticks == 0 else self.environment.cumulative_ra / self.environment.behavior_ticks
             mean_rb = 0 if self.environment.behavior_ticks == 0 else self.environment.cumulative_rb / self.environment.behavior_ticks
-
 
         self.best_mean_ra = np.max([self.best_mean_ra, mean_ra])
         self.best_mean_rb = np.max([self.best_mean_rb, mean_rb])

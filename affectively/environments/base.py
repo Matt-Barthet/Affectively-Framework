@@ -11,9 +11,8 @@ from mlagents_envs.side_channel import OutgoingMessage
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
 from scipy import stats
 
-from affectively.utils.sidechannels import AffectivelySideChannel
+from affectively.utils import AffectivelySideChannel
 from affectively.models.linear_model import LinearSurrogateModel
-from affectively.models.mlp_model import MLPSurrogateModel
 
 
 class BaseEnvironment(gym.Env, ABC):
@@ -201,16 +200,22 @@ class BaseEnvironment(gym.Env, ABC):
         max_target_score = max(all_target_scores)
 
         if self.imitation_learning:
-            if self.period_ra:
-                target = self.model.cluster_arousal_ordinal[self.episode_length]
-            elif self.current_score <= max_target_score: # Only reward if we are only within the score range of the cluster
+            if self.period_ra and self.episode_length < 600:
+                if self.preference:
+                    target = self.model.cluster_arousal_ordinal[self.episode_length]
+                else:
+                    target = self.model.cluster_arousal[self.episode_length]
+            # Only reward if we are only within the score range of the cluster
+            elif not self.period_ra and  self.current_score <= max_target_score: 
                 target = self.model.arousal_reward_book[self.current_score]
+            else:
+                return 0
         else:
             target = int(self.target_arousal)
 
         if self.classifier:
             mean_arousal_label = 0 if mean_arousal < 0.5 else 1
-            r_a = 1 if mean_arousal_label == target else 0 
+            r_a = 1 if mean_arousal_label == target else -1
         else:
             r_a = (1 - np.abs(target - mean_arousal))**2 
 
@@ -268,6 +273,8 @@ class BaseEnvironment(gym.Env, ABC):
                 arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
                 state[modality] = np.concatenate((state[modality], arousal_window))
                 if self.imitation_learning == 1:
+                    # if self.episode_length < 600:
+                    #     target_arousal = self.model.cluster_arousal[self.episode_length + 1]
                     added = [self.episode_length, len(self.episode_arousal_trace), self.target_time_idx]
                     state[modality] = np.concatenate((added, state[modality]))
                 break
@@ -277,7 +284,7 @@ class BaseEnvironment(gym.Env, ABC):
         change_in_score = self.current_score - self.previous_score
         self.score_change = self.score_change or change_in_score > 0
 
-        if self.arousal_episode_length * self.decision_period % 150 == 0:  # Read the surrogate vector on the 15th tick
+        if self.arousal_episode_length * self.decision_period % 150 == 0:  
             self.generate_arousal()
             self.arousal_episode_length = 0
             self.surrogate_list.clear()

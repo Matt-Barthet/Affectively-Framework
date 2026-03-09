@@ -1,5 +1,9 @@
 import numpy as np
 import scipy.stats as stats
+import uuid
+from abc import ABC
+from mlagents_envs.side_channel import SideChannel, IncomingMessage
+
 
 def compute_confidence_interval(data, confidence: float = 0.95):
     data = np.array(data)
@@ -30,3 +34,24 @@ def init_parser(parser):
     parser.add_argument("--timesteps", required=False, help="Total timesteps for training", type=int, default=5_000_000)
     parser.add_argument("--imitate", required=True, help="Imitate reward function", type=int)
     return parser
+
+
+class AffectivelySideChannel(SideChannel, ABC):
+	
+	def __init__(self, socket_id: uuid.UUID):
+		super().__init__(socket_id)
+		self.levelEnd = False
+		self.interactiveReset = False
+		self.arousal_vector = []
+	
+
+	def on_message_received(self, msg: IncomingMessage) -> None:
+		message_text = msg.read_string()
+		self.levelEnd = False
+
+		if message_text == '[Level Ended]':
+			self.levelEnd = True
+			self.interactiveReset = True
+		elif '[Vector]' in message_text:
+			message_text = message_text.removeprefix("[Vector]:")
+			self.arousal_vector = [float(value) for value in message_text.split(",")[:-1]]
