@@ -41,6 +41,7 @@ if __name__ == "__main__":
             target_arousal=1,
             period_ra=False,
             decision_period=10,
+        imitate=0
         )
 
     for game in ['solid']:

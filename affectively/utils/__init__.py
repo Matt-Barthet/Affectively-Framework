@@ -37,21 +37,24 @@ def init_parser(parser):
 
 
 class AffectivelySideChannel(SideChannel, ABC):
-	
-	def __init__(self, socket_id: uuid.UUID):
-		super().__init__(socket_id)
-		self.levelEnd = False
-		self.interactiveReset = False
-		self.arousal_vector = []
-	
 
-	def on_message_received(self, msg: IncomingMessage) -> None:
-		message_text = msg.read_string()
-		self.levelEnd = False
+    def __init__(self, socket_id: uuid.UUID):
+        super().__init__(socket_id)
+        self.levelEnd = False
+        self.interactiveReset = False
+        self.arousal_vector = []
+        self.pos = []
 
-		if message_text == '[Level Ended]':
-			self.levelEnd = True
-			self.interactiveReset = True
-		elif '[Vector]' in message_text:
-			message_text = message_text.removeprefix("[Vector]:")
-			self.arousal_vector = [float(value) for value in message_text.split(",")[:-1]]
+
+    def on_message_received(self, msg: IncomingMessage) -> None:
+        message_text = msg.read_string()
+        self.levelEnd = False
+
+        if message_text == '[Level Ended]':
+            self.levelEnd = True
+            self.interactiveReset = True
+        elif '[Vector]' in message_text:
+            message_text = message_text.removeprefix("[Vector]:")
+            self.arousal_vector = [float(value) for value in message_text.split(",")[:-1]]
+        elif 'pos' in message_text:
+            self.pos = [float(value) for value in message_text.split(":")[1].split(",")]

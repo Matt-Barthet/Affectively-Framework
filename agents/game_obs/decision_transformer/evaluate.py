@@ -1,23 +1,21 @@
-import torch
-from transformers import (
-    DecisionTransformerConfig,
-    DecisionTransformerModel,
-)
-import numpy as np
-import random
+import csv
 import logging
 import os
-import json
-import matplotlib.pyplot as plt
-import seaborn as sns
+
+import imageio
+import numpy as np
+import torch
+from pandas import DataFrame
+from transformers import (
+    DecisionTransformerModel,
+)
+
+from affectively.environments.heist_game_obs import HeistEnvironmentGameObs
+from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
+from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
+from affectively.utils import compute_confidence_interval
 
 # import imageio
-
-from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
-from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
-from affectively.environments.heist_game_obs import HeistEnvironmentGameObs
-from affectively.environments.base import compute_confidence_interval
-import csv
 # from trainObsDT import plot_metrics
 
 # --- Configuration ---
@@ -105,6 +103,7 @@ def evaluate_online(env, model_path, target_rtg, num_episodes=10, output_attenti
         context_rtgs = [np.array([current_target_rtg], dtype=np.float32)] * CONTEXT_LENGTH
         context_timesteps = [np.array([0], dtype=np.int64)] * CONTEXT_LENGTH
 
+        pos_arousal = [[], [], []]
 
         while not done:
             # Prepare model input tensors from context
@@ -179,12 +178,16 @@ def evaluate_online(env, model_path, target_rtg, num_episodes=10, output_attenti
             # Step environment with action INDICES
             try:
                 next_state, reward, done, _ = env.step(predicted_action_indices)
+                pos_arousal[0].append(env.customSideChannel.pos)
+                pos_arousal[1].append(env.episode_arousal_trace[-1] if len(env.episode_arousal_trace) > 0 else 1)
+                pos_arousal[2].append(reward)
                 next_state = np.array(next_state, dtype=np.float32) # Ensure numpy float32
                 if next_state.size > STATE_DIM: #To manage extra info in observation
                     # logger.warning(f"Initial state shape mismatch: got {state.shape}, expected {STATE_DIM}. truncating.")
                     next_state = next_state[:STATE_DIM]
                 reward = float(reward) # Ensure float
             except Exception as e:
+                raise
                 logger.error(f"Environment step failed: {e}")
                 done = True # End episode if step fails
 
@@ -226,7 +229,9 @@ def evaluate_online(env, model_path, target_rtg, num_episodes=10, output_attenti
             #     dt_name_for_plot
             # )
             # exit()
-            
+
+        DataFrame(np.array(pos_arousal).T, columns=["positions", "arousals", "rewards"]).to_csv("DT_Pos_Arousal.csv")
+
         if len(env.episode_arousal_trace) == 0:
             print("No arousal data collected.") #To avoid env error if no arousal data collected
         else:
@@ -375,7 +380,7 @@ def record_gif_episode(env_creator, model_path, target_rtg, gif_path="episode.gi
 NUM_ACTIONS_PER_DIM = [3, 3, 2]  # <<< --- MUST BE SET CORRECTLY
 NUM_ACTION_DIMS = len(NUM_ACTIONS_PER_DIM)
 STATE_DIM = 86
-CONTEXT_LENGTH = 5 # K: How many steps the model sees
+CONTEXT_LENGTH = 20 # K: How many steps the model sees
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 ATTENTION_HISTORY_PATH = ""
 
@@ -385,15 +390,15 @@ if __name__ == "__main__":
     data_from = 'PPO' # 'PPO' or 'Explore'
     
     # Target return for evaluation
-    starting_target_reward = 40 
+    starting_target_reward = 60
     final_target_reward = starting_target_reward  # Set to same as starting for attention analysis
     
-    target_arousal = 0 # 1 to maximize arousal, 0 to minimize
+    target_arousal = 1 # 1 to maximize arousal, 0 to minimize
     period_ra = 0
-    label = 'Arousal' # 'Optimize', 'Blended', 'Arousal'
+    label = 'Optimize' # 'Optimize', 'Blended', 'Arousal'
     cluster = 0
     run = 0
-    env_name = "heist" # solid, pirates, heist, or dummy for testing
+    env_name = "pirates" # solid, pirates, heist, or dummy for testing
     plot_ep_attention = False # True or False for attention plotting during evaluation
     num_episodes = 30
 
@@ -411,8 +416,7 @@ if __name__ == "__main__":
         
     if plot_ep_attention:
         num_episodes = 1  # Only need one episode for attention plotting
-        
-        
+
     if env_name == "pirates":
         env = PiratesEnvironmentGameObs(
                     id_number=0,
@@ -421,7 +425,8 @@ if __name__ == "__main__":
                     cluster=cluster,
                     target_arousal=target_arousal,
                     period_ra=period_ra,
-                    discretize=discretize
+                    discretize=discretize,
+                    decision_period=10
                 )
         STATE_DIM = 288
         NUM_ACTIONS_PER_DIM = [3, 2, 2] 
@@ -444,22 +449,20 @@ if __name__ == "__main__":
                     cluster=cluster,
                     target_arousal=target_arousal,
                     period_ra=0,
-                    discretize=0
+                    discretize=0,
+
                 )
         STATE_DIM = 152
         NUM_ACTIONS_PER_DIM = [9, 9, 3, 3, 2, 2] 
         NUM_ACTION_DIMS = len(NUM_ACTIONS_PER_DIM)
-    elif env_name == "dummy":
-        env = create_dummy_env()
-        
         
     dt_name = f"DT_{env_name}_{data_from}_{label}_cluster{cluster}_run{run}_final"
     
     # Set the path to the saved model artifacts
-    final_model_path = f"agents\\game_obs\\DT\\Results\\{env_name}\\{dt_name}"
+    final_model_path = f"agents\\game_obs\\decision_transformer\\Results\\{env_name}\\{dt_name}"
     # final_model_path = f"examples\\Agents\\DT\\Results\\Explore_Blended_moreTrained_DT"
     
-    ATTENTION_HISTORY_PATH = f"agents\\game_obs\\DT\\Attentions\\{env_name}\\DT_{env_name}_{label}_attention_history.txt"
+    ATTENTION_HISTORY_PATH = f"agents\\game_obs\\decision_transformer\\Attentions\\{env_name}\\DT_{env_name}_{label}_attention_history.txt"
     
     print(f'Starting to evaluate {dt_name}')
 

@@ -148,8 +148,8 @@ class BaseEnvironment(gym.Env, ABC):
             return 0
 
         self.behavior_ticks += 1
-        all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
-        max_target_score = max(all_target_scores)
+        # all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
+        # max_target_score = max(all_target_scores)
 
         r_b = 0
         if self.imitation_learning == 0:
@@ -196,8 +196,8 @@ class BaseEnvironment(gym.Env, ABC):
         and returns the calculated reward value.
         """
         mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0
-        all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
-        max_target_score = max(all_target_scores)
+        # all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
+        # max_target_score = max(all_target_scores)
 
         if self.imitation_learning:
             if self.period_ra and self.episode_length < 600:
@@ -215,7 +215,7 @@ class BaseEnvironment(gym.Env, ABC):
 
         if self.classifier:
             mean_arousal_label = 0 if mean_arousal < 0.5 else 1
-            r_a = 1 if mean_arousal_label == target else -1
+            r_a = 1 if mean_arousal_label == target else 0
         else:
             r_a = (1 - np.abs(target - mean_arousal))**2 
 
@@ -300,8 +300,8 @@ class BaseEnvironment(gym.Env, ABC):
             if self.period_ra and (len(self.period_arousal_trace) > 0):
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
             elif not self.period_ra and self.score_change:
-                print()
-                print(self.previous_score, self.current_score)
+                # print()
+                # print(self.previous_score, self.current_score)
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
             self.cumulative_rl += final_reward
             
@@ -354,8 +354,8 @@ class BaseEnvironment(gym.Env, ABC):
                                    worker_id=identifier,
                                    no_graphics=not graphics,
                                    additional_args=args)
-        except:
-            print("Checking next ID!") 
+        except Exception as e:
+            print(f"Checking next ID! Error {e}")
             return self.load_environment(identifier + 1, graphics, args)
         return env
 

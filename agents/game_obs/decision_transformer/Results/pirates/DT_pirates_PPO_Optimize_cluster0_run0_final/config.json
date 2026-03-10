@@ -1,0 +1,31 @@
+{
+  "act_dim": 7,
+  "action_tanh": false,
+  "activation_function": "relu",
+  "architectures": [
+    "DecisionTransformerModel"
+  ],
+  "attn_pdrop": 0.1,
+  "bos_token_id": 50256,
+  "dropout": 0.1,
+  "embd_pdrop": 0.1,
+  "eos_token_id": 50256,
+  "hidden_size": 128,
+  "initializer_range": 0.02,
+  "layer_norm_epsilon": 1e-05,
+  "max_ep_len": 600,
+  "model_type": "decision_transformer",
+  "n_head": 4,
+  "n_inner": null,
+  "n_layer": 3,
+  "n_positions": 1024,
+  "reorder_and_upcast_attn": false,
+  "resid_pdrop": 0.1,
+  "scale_attn_by_inverse_layer_idx": false,
+  "scale_attn_weights": true,
+  "state_dim": 288,
+  "torch_dtype": "float32",
+  "transformers_version": "4.51.3",
+  "use_cache": true,
+  "vocab_size": 1
+}
