@@ -61,6 +61,7 @@ class BaseEnvironment(gym.Env, ABC):
         if imitate:
             obs_space['shape'] = (obs_space['shape'][0] + 3,)
 
+        self.obs_size = obs_space['shape']
         self.observation_space = gym.spaces.Box(low=obs_space['low'], high=obs_space['high'], shape=obs_space['shape'],
                                                 dtype=dtype)
         self.model = LinearSurrogateModel(game=game, cluster=cluster, classifier=classifier, preference=preference)
@@ -86,6 +87,9 @@ class BaseEnvironment(gym.Env, ABC):
         self.period_ra = period_ra
 
         self.episode_length, self.arousal_episode_length = 0, 0
+
+        all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
+        self.max_target_score = max(all_target_scores)
 
         self.target_arousal = target_arousal
         self.preference = preference
@@ -148,14 +152,13 @@ class BaseEnvironment(gym.Env, ABC):
             return 0
 
         self.behavior_ticks += 1
-        # all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
-        # max_target_score = max(all_target_scores)
+
 
         r_b = 0
         if self.imitation_learning == 0:
             r_b = 1
 
-        elif self.current_score <= max_target_score:
+        elif self.current_score <= self.max_target_score:
             all_target_scores = np.array([k for k, v in self.model.behavior_reward_book.items() if v != 0])
             future_targets = all_target_scores[all_target_scores >= self.current_score]
             if len(future_targets) > 0:
@@ -196,9 +199,6 @@ class BaseEnvironment(gym.Env, ABC):
         and returns the calculated reward value.
         """
         mean_arousal = np.mean(self.period_arousal_trace) if len(self.period_arousal_trace) > 0 else 0
-        # all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
-        # max_target_score = max(all_target_scores)
-
         if self.imitation_learning:
             if self.period_ra and self.episode_length < 600:
                 if self.preference:
@@ -206,7 +206,7 @@ class BaseEnvironment(gym.Env, ABC):
                 else:
                     target = self.model.cluster_arousal[self.episode_length]
             # Only reward if we are only within the score range of the cluster
-            elif not self.period_ra and  self.current_score <= max_target_score: 
+            elif not self.period_ra and  self.current_score <= self.max_target_score:
                 target = self.model.arousal_reward_book[self.current_score]
             else:
                 return 0

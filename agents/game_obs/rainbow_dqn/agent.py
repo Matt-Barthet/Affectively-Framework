@@ -167,9 +167,9 @@ class RainbowAgent:
                  n_step=3, gamma=0.99, lr=1e-4, alpha=0.6, beta_start=0.4, beta_frames=100000):
         
         self.device = device
-        self.env = env
+        self.env = env.env
 
-        self.observation_size = self.env.obs_size[0]
+        self.observation_size = self.env.observation_space.shape[0]
         self.atom_size = atom_size
         self.v_min = v_min
         self.v_max = v_max
@@ -293,36 +293,41 @@ class RainbowAgent:
         training_started = False
         episode_rewards = []
 
-        state = self.env.reset()[0]
+        state = self.env.reset()
         state = np.array(state, dtype=np.float32)
         episode_reward = 0
         done = False
-        truncated = False
-        for timestep in tqdm(range(1, total_timesteps+1), desc="Training Timesteps"):
-            self.num_timesteps += 1
-            if timestep % 600 == 0 or done or truncated:
-                state = self.env.reset()[0]
 
-                state = np.array(state, dtype=np.float32)
-                episode_reward = 0
-                episode_rewards.append(episode_reward)
+        with tqdm(total=total_timesteps, ) as pbar:
+            for timestep in range(1, total_timesteps+1):
+                self.num_timesteps += 1
+                if timestep % 600 == 0 or done:
+                    state = self.env.reset()
+                    state = np.array(state, dtype=np.float32)
+                    episode_reward = 0
+                    episode_rewards.append(episode_reward)
 
-            action = self.predict(state)
-            next_state, reward, done, truncated, info = self.env.step(action)
-            next_state = np.array(next_state, dtype=np.float32)
-            self.append_sample(state, action, reward, next_state, done)
-            state = next_state
-            episode_reward += reward
+                    pbar.set_postfix({
+                        "Best Best R_a": f"{self.env.callback.best_cumulative_ra:.2f}",
+                        "Best Best R_b": f"{self.env.callback.best_cumulative_rb:.2f}",
+                        "Best Best R_λ": f"{self.env.callback.best_cumulative_rl:.2f}",
+                    })
+                    pbar.update(600)
 
+                action, _ = self.predict(state)
+                next_state, reward, done, info = self.env.step(np.concatenate((action, [0])))
+                next_state = np.array(next_state, dtype=np.float32)
+                self.append_sample(state, action, reward, next_state, done)
+                state = next_state
+                episode_reward += reward
 
+                if len(self.memory) >= learning_starts:
+                    if not training_started:
+                        training_started = True
+                    if timestep % 10 == 0:
+                        _ = self.compute_td_loss(batch_size)
 
-            if len(self.memory) >= learning_starts:
-                if not training_started:
-                    training_started = True
-                if timestep % 10 == 0:
-                    _ = self.compute_td_loss(batch_size)
-
-            if timestep % update_target_every == 0 and training_started:
-                self.update_target()
+                if timestep % update_target_every == 0 and training_started:
+                    self.update_target()
 
         print("Training completed.")
