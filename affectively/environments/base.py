@@ -58,6 +58,7 @@ class BaseEnvironment(gym.Env, ABC):
         except:
             dtype = np.float32
 
+        self.discretize = False
         if imitate:
             obs_space['shape'] = (obs_space['shape'][0] + 3,)
 
@@ -272,7 +273,7 @@ class BaseEnvironment(gym.Env, ABC):
                 arousal_window = self.episode_arousal_trace[-5:]
                 arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
                 state[modality] = np.concatenate((state[modality], arousal_window))
-                if self.imitation_learning == 1:
+                if self.imitation_learning == 1 and not self.discretize:
                     # if self.episode_length < 600:
                     #     target_arousal = self.model.cluster_arousal[self.episode_length + 1]
                     added = [self.episode_length, len(self.episode_arousal_trace), self.target_time_idx]

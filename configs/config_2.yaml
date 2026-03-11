@@ -4,7 +4,7 @@
 runs: 10
 output_dir: "./results/"
 game: "solid"
-algorithm: "DQN"
+algorithm: "Explore"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 timesteps: 10_000_000
