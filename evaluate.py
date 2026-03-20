@@ -1,20 +1,31 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
+from pandas import DataFrame
 
+from affectively.environments import PiratesEnvironmentGameObs, GymToGymnasiumWrapper
 from affectively.utils import compute_confidence_interval
 from affectively.utils.logging import TensorBoardCallback
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
 from agents import load_model
 
 
-def run_evaluation(env, model, model_type, steps_per_episode=600):
+def run_evaluation(env, model, model_type, steps_per_episode=601):
     state = env.reset()
+    pos_arousal = [[], [], []]
     for _ in range(steps_per_episode):
         action = model.predict(state, deterministic=True)[0] if model_type != "random" else env.action_space.sample()
         state, reward, done, info = env.step(action)
+        if env.game == "platform":
+            pos_arousal[0].append(env.customSideChannel.pos)
+            pos_arousal[1].append(env.episode_arousal_trace[-1] if len(env.episode_arousal_trace) > 0 else 1)
+            pos_arousal[2].append(reward)
         if done:
             break
+
+    DataFrame(np.array(pos_arousal).T, columns=["positions", "arousals", "rewards"]).to_csv("DT_Pos_Arousal.csv")
+
     env.callback.on_episode_end()
     arousal = env.callback.best_mean_ra
     score = env.callback.best_env_score
@@ -23,28 +34,29 @@ def run_evaluation(env, model, model_type, steps_per_episode=600):
 
 if __name__ == "__main__":
 
-    weights = [0.0]
+    weights = [0.5]
     runs = 5
     signals = ['Ordinal', ]
-    tasks = ['Minimize']
-    models = ["Explore"]
+    tasks = ['Maximize']
+    models = ["PPO"]
     predictions = ['Classification']
     cluster = 3
     results = []
 
-    env = SolidEnvironmentGameObs(
+    env = PiratesEnvironmentGameObs(
             0,
-            graphics=False,
+            graphics=True,
             weight=0,
             discretize=False,
             cluster=cluster,
             target_arousal=1,
             period_ra=False,
             decision_period=10,
-        imitate=0
+        # imitate=0
         )
 
-    for game in ['solid']:
+    gymnasium_env = GymToGymnasiumWrapper(env)
+    for game in ['platform']:
         for freq in ['Synchronized']:
             for model_type in models:
                 for signal in signals:
@@ -97,7 +109,6 @@ if __name__ == "__main__":
 
                                             except:
                                                 raise
-                                                pass
 
                                         elif model_type != 'Random':
                                             task_name = f"{task} Arousal"
@@ -141,7 +152,7 @@ if __name__ == "__main__":
                                                 else:
                                                     model = None  # Random agent
 
-                                                env.callback = TensorBoardCallback("", env, model)
+                                                env.callback = TensorBoardCallback("", gymnasium_env, model)
                                                 arousal, score = run_evaluation(env, model, model_type, steps_per_episode=601)
 
                                                 run_scores.append(score)

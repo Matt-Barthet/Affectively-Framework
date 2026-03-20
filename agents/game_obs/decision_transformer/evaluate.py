@@ -395,7 +395,7 @@ if __name__ == "__main__":
     
     target_arousal = 1 # 1 to maximize arousal, 0 to minimize
     period_ra = 0
-    label = 'Optimize' # 'Optimize', 'Blended', 'Arousal'
+    label = 'Blended' # 'Optimize', 'Blended', 'Arousal'
     cluster = 0
     run = 0
     env_name = "pirates" # solid, pirates, heist, or dummy for testing
@@ -439,7 +439,8 @@ if __name__ == "__main__":
                     cluster=cluster,
                     target_arousal=target_arousal,
                     period_ra=period_ra,
-                    discretize=discretize
+                    discretize=discretize,
+                    imitate=False,
                 )
     elif env_name == "heist":
         env = HeistEnvironmentGameObs(

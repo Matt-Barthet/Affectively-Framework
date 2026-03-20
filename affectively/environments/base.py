@@ -89,8 +89,12 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.episode_length, self.arousal_episode_length = 0, 0
 
-        all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
-        self.max_target_score = max(all_target_scores)
+        if self.decision_period != 1 or self.game == "solid":
+            # all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
+            # self.max_target_score = max(all_target_scores)
+            pass
+        else:
+            self.max_target_score = 100
 
         self.target_arousal = target_arousal
         self.preference = preference
