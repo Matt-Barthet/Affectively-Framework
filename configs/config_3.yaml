@@ -4,7 +4,7 @@
 runs: 10
 output_dir: "./results/"
 game: "solid"
-algorithm: "Explore"
+algorithm: "DQN"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 timesteps: 10_000_000
@@ -15,7 +15,7 @@ headless: 1
 
 # Specific game and agent parameters for this run
 weight: 1
-cluster: 1
+cluster: 3
 target_arousal: 1
 classifier: 1
 preference: 1
