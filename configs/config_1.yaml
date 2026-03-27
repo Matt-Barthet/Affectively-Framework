@@ -3,8 +3,8 @@
 # General experiment settings
 runs: 10
 output_dir: "./results/"
-game: "solid"
-algorithm: "DQN"
+game: "platform"
+algorithm: "Explore"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 timesteps: 10_000_000
@@ -15,15 +15,15 @@ headless: 1
 
 # Specific game and agent parameters for this run
 weight: 0
-cluster: 3
+cluster: 0
 target_arousal: 1
 classifier: 1
 preference: 1
-imitate: 1
+imitate: 0
 
 # Specific algorithm parameters
 periodic_ra: 0
 cv: 0
 grayscale: 0
-discretize: 0
+discretize: 1
 decisionPeriod: 10

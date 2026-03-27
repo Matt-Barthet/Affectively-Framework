@@ -4,6 +4,7 @@ import random
 import copy
 import tqdm
 import numpy as np
+from gym_unity.envs import UnityGymException
 from tensorboardX import SummaryWriter
 
 from affectively.utils.logging import TensorboardGoExplore
@@ -30,7 +31,8 @@ class Cell:
                                 "arousal_trajectory": [],
                                 "uncertainty_trajectory": [],
                                 "arousal_vectors": [],
-                                "score_trajectory": []}
+                                "score_trajectory": [],
+                                "raw_state":[]}
 
         self.human_vector = []
 
@@ -67,6 +69,7 @@ class Explorer:
         self.updates = 0
         self.bestCell = None
         self.current_cell = Cell([0, 0, 0, 'Start'])
+        self.root_cell = Cell([0, 0, 0, 'Start'])
         null_action = self.env.action_space.sample()
         null_action[-1] = -1
         self.env.step(null_action)
@@ -74,6 +77,7 @@ class Explorer:
         self.num_timesteps = 0
         self.store_cell(self.current_cell)
         self.logdir=logdir
+        self.num_episodes = 0
 
     def select_cell(self):
         # weights = []
@@ -129,10 +133,19 @@ class Explorer:
         if self.current_cell.get_cell_length() >= 600:
             return
 
-        null_action = self.gymnasium_env.action_space.sample()
-        null_action[-1] = self.current_cell.key
+        if self.num_episodes % 200 == 0 and self.num_episodes > 0 :
+            self.gymnasium_env.reset()
+            self.current_cell.key = self.root_cell.key
+        else:
+            try:
+                null_action = self.gymnasium_env.action_space.sample()
+                null_action[-1] = self.current_cell.key
+                self.gymnasium_env.step(null_action)
+            except UnityGymException:
+                # print("UnityGymException")
+                return 0
 
-        self.gymnasium_env.step(null_action)
+        # print(f"Loading Cell: {self.current_cell.key}")
         self.env.episode_length = len(self.current_cell.trajectory_dict['state_trajectory'])
         self.env.previous_score = self.current_cell.previous_score
         self.env.current_score = self.current_cell.score
@@ -156,7 +169,13 @@ class Explorer:
                 self.save_digit = 0
 
             action[-1] = -self.save_digit
-            state, _, _, _, _ = self.gymnasium_env.step(action)
+
+            try:
+                state, _, _, done, _ = self.gymnasium_env.step(action)
+            except UnityGymException:
+                # print("UnityGymException")
+                return j
+
             self.num_timesteps += 1
 
             new_cell = self.current_cell
@@ -164,6 +183,7 @@ class Explorer:
             new_cell.trajectory_dict['state_trajectory'].append(state)
             new_cell.trajectory_dict['arousal_trajectory'] = list(self.env.episode_arousal_trace)
             new_cell.trajectory_dict['score_trajectory'].append(self.env.cumulative_rb)
+            new_cell.trajectory_dict['raw_state'].append(self.gymnasium_env.env.raw_state)
             new_cell.human_vector = self.env.surrogate_list
             new_cell.final = new_cell.get_cell_length() >= 600
             new_cell.previous_score = self.env.previous_score
@@ -191,6 +211,7 @@ class Explorer:
         with tqdm.tqdm(total=total_timesteps, ) as pbar:
             while self.num_timesteps < total_timesteps:
                 actions = self.explore_actions(explore_length)
+                self.num_episodes += 1
                 pbar.set_postfix({
                     "Archive Size": len(self.archive),
                     "Archive Updates": self.updates,

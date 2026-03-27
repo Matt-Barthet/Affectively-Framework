@@ -24,13 +24,14 @@ class BaseEnvironment(gym.Env, ABC):
 
     def __init__(self, id_number, graphics, obs_space, weight, game, capture_fps=5, time_scale=1, args=None,
                  target_arousal=1, cluster=0, period_ra=False, classifier=True, preference=True, decision_period=10,
-                 imitate=False):
+                 imitate=False, absolute=False):
 
         super(BaseEnvironment, self).__init__()
         if args is None:
             args = []
         socket_id = uuid.uuid4()
 
+        self.absolute = absolute
         self.decision_period = decision_period
         args += [f"-socketID", str(socket_id), "-decisionPeriod", str(decision_period)]
 
@@ -104,7 +105,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.imitation_learning = imitate
         self.multi_objective = self.weight == -1
         self.target_time_idx = 0
-
+        self.raw_state = []
         if self.multi_objective:
             self.reward_space = gym.spaces.Box(
                 low=-np.inf,
@@ -309,7 +310,9 @@ class BaseEnvironment(gym.Env, ABC):
                 # print(self.previous_score, self.current_score)
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
             self.cumulative_rl += final_reward
-            
+
+        if self.customSideChannel.levelEnd:
+            done = True
         return state, final_reward, done, info
 
 
@@ -354,7 +357,8 @@ class BaseEnvironment(gym.Env, ABC):
             game_suffix = "exe"
         system="Mac" if system == "Darwin" else system
         try:
-            env = UnityEnvironment(f"./affectively/builds/{self.game.lower()}/{system}/{self.game.lower()}.{game_suffix}",
+            abs = "_absolute" if self.absolute else ""
+            env = UnityEnvironment(f"./affectively/builds/{self.game.lower()}/{system}{abs}/{self.game.lower()}.{game_suffix}",
                                    side_channels=[self.engineConfigChannel, self.customSideChannel],
                                    worker_id=identifier,
                                    no_graphics=not graphics,

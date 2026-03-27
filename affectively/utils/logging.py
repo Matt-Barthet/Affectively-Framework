@@ -519,11 +519,12 @@ class TensorboardGoExplore:
     def best_cell_lambda(self):
         return self.archive.bestCell.reward
 
-    def on_episode_end(self):
+    def on_episode_end(self, j=40):
         self.writer.add_scalar('archive/archive size', self.size(), self.step_count)
         self.writer.add_scalar('archive/archive updates', self.archive.updates, self.step_count)
         self.writer.add_scalar('best cell/trajectory length', self.best_cell_length(), self.step_count)
         self.writer.add_scalar('best cell/blended reward', self.best_cell_lambda(), self.step_count)
         self.writer.add_scalar('best cell/arousal reward', self.archive.bestCell.arousal_reward, self.step_count)
         self.writer.add_scalar('best cell/behavior reward', self.archive.bestCell.behavior_reward, self.step_count)
-        self.step_count += 100_000
+        self.writer.add_scalar('best cell/environment reward', self.archive.bestCell.score, self.step_count)
+        self.step_count += j

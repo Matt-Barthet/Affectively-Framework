@@ -13,11 +13,13 @@ class SolidEnvironment(BaseEnvironment):
                          target_arousal=target_arousal, period_ra=period_ra, classifier=classifier, preference=preference, decision_period=decision_period, imitate=imitate)
 
     def sample_weighted_action(self):
-        steering_distribution = [0, 0, 0, 0, 1, 1, 1, -1, -1, -1]
-        pedal_distribution = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1]
+        steering_options = [0, 1, 2]
+        steering_weights = [26.0, 56.8, 17.2]
+        pedal_options = [0, 1, 2]
+        pedal_weights = [0.3, 37.3, 62.4]
         action = self.action_space.sample()
-        action[0] = random.choice(steering_distribution) + 1
-        action[1] = random.choice(pedal_distribution) + 1
+        action[0] = random.choices(steering_options, weights=steering_weights)[0]
+        action[1] = random.choices(pedal_options, weights=pedal_weights)[0]
         return action
 
     def reset(self, **kwargs):
