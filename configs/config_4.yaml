@@ -23,7 +23,7 @@ preference: 1
 imitate: 0
 
 # Specific algorithm parameters
-periodic_ra: 0
+periodic_ra: 1
 cv: 0
 grayscale: 0
 discretize: 1
