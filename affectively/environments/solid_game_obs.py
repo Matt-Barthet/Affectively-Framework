@@ -5,7 +5,7 @@ from affectively.environments.solid import SolidEnvironment
 class SolidEnvironmentGameObs(SolidEnvironment):
 
     def __init__(self, id_number, graphics, weight, discretize, cluster, target_arousal, period_ra, imitate, classifier=True, preference=True, decision_period=10, capture_fps=5):
-        super().__init__(id_number=id_number, graphics=graphics,
+        super().__init__(id_number=id_number, graphics=graphics, args=['-relativeObs', 'True' if discretize else 'False'],
                          obs={"low": -np.inf, "high": np.inf, "shape": (86,), "type": np.float32},
                         weight=weight, frame_buffer=False, cluster=cluster, 
                         target_arousal=target_arousal, period_ra=period_ra, classifier=classifier, preference=preference, decision_period=decision_period, capture_fps=capture_fps, imitate=imitate)
@@ -21,14 +21,12 @@ class SolidEnvironmentGameObs(SolidEnvironment):
 
     def discretize_observations(self, game_obs):
 
-        position_delta = np.asarray([game_obs[0], game_obs[2]])
-        self.estimated_position = np.add(self.estimated_position, position_delta)
-        position_discrete = np.round(self.estimated_position / 70)
+        position_discrete = np.round(np.array([game_obs[0], game_obs[1], game_obs[2]]) / 25)
         position_discrete[0] = 0 if position_discrete[0] == -0 else position_discrete[0]
         position_discrete[1] = 0 if position_discrete[1] == -0 else position_discrete[1]
 
-        velocity = game_obs[3:6]
-        velocity_discrete = np.round(np.linalg.norm(velocity) / 30)
+        velocity = np.array(game_obs[3:6])
+        velocity_discrete = np.round(velocity / 30)
 
         score = game_obs[47]
         if score < 8:
@@ -42,12 +40,9 @@ class SolidEnvironmentGameObs(SolidEnvironment):
         is_in_loop_zone = game_obs[49]
 
         discrete_obs = (
-            list(position_discrete) +
+            list(position_discrete) + list(velocity_discrete) +
             [
-                velocity_discrete,
                 score_bin,
-                is_off_road,
-                is_in_loop_zone,
             ]
         )
         return discrete_obs
