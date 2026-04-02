@@ -19,7 +19,7 @@ class PiratesEnvironmentGameObs(PiratesEnvironment):
                          obs={"low": -np.inf, "high": np.inf, "shape": obs_shape, "type": np.float32},
                          weight=weight, frame_buffer=False, cluster=cluster, absolute=discretize==1,
                          period_ra=period_ra, target_arousal=target_arousal, classifier=classifier, preference=preference,
-                         args=['-gridWidth', f"{self.gridWidth}", '-gridHeight', f"{self.gridHeight}", '-reloadEvery', f"{3 if discretize else 10}"], capture_fps=capture_fps, decision_period=decision_period)
+                         args=['-gridWidth', f"{self.gridWidth}", '-gridHeight', f"{self.gridHeight}", '-reloadEvery', f"{3 if discretize else 10}", '-relativeObs', 'True' if discretize else 'False'], capture_fps=capture_fps, decision_period=decision_period)
         """ ---- Pirates! specific code ---- """
         self.discretize = discretize
         self.estimated_position = [0, 0]

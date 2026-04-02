@@ -21,12 +21,12 @@ class SolidEnvironmentGameObs(SolidEnvironment):
 
     def discretize_observations(self, game_obs):
 
-        position_discrete = np.round(np.array([game_obs[0], game_obs[1], game_obs[2]]) / 25)
+        position_discrete = np.round(np.array([game_obs[0], game_obs[1], game_obs[2]]) / 20)
         position_discrete[0] = 0 if position_discrete[0] == -0 else position_discrete[0]
         position_discrete[1] = 0 if position_discrete[1] == -0 else position_discrete[1]
 
         velocity = np.array(game_obs[3:6])
-        velocity_discrete = np.round(velocity / 30)
+        velocity_discrete = np.round(velocity / 20)
 
         score = game_obs[47]
         if score < 8:
