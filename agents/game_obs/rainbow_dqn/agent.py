@@ -315,7 +315,8 @@ class RainbowAgent:
                     pbar.update(600)
 
                 action, _ = self.predict(state)
-                next_state, reward, done, info = self.env.step(np.concatenate((action, [0])))
+                next_state, reward, done, info = self.env.step(action)
+                # next_state, reward, done, info = self.env.step(np.concatenate((action, [0])))
                 next_state = np.array(next_state, dtype=np.float32)
                 self.append_sample(state, action, reward, next_state, done)
                 state = next_state

@@ -5,13 +5,13 @@ from affectively.environments.pirates import PiratesEnvironment
 class PiratesEnvironmentGameObs(PiratesEnvironment):
 
     def __init__(self, id_number, graphics, weight, discretize, cluster, period_ra, target_arousal, classifier=True, preference=True, capture_fps=60, decision_period=10, imitate=False):
-        self.gridWidth = 3 if discretize else 7
-        self.gridHeight = 3 if discretize else 7
-        self.elementSize = 3
+        self.gridWidth = 3 if discretize == 1 else 7
+        self.gridHeight = 3 if discretize == 1 else 7
+        self.elementSize = 3 if discretize == 1 else 1.5
+
         print(self.gridWidth, self.gridHeight, self.elementSize)
-        if not (
-                discretize):
-            obs_shape = (9 + self.gridWidth * self.gridHeight * 5,)
+        if discretize==0:
+            obs_shape = (288,)
         else:
             obs_shape = (2 + 1 + self.gridWidth * self.gridHeight * 2,)
 
