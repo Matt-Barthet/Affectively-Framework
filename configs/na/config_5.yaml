@@ -1,0 +1,34 @@
+# configs/run_A.yaml
+
+# General experiment settings
+runs: 10
+output_dir: "./results/"
+<<<<<<< Updated upstream:configs/config_5.yaml
+game: "solid"
+algorithm: "Explore"
+=======
+game: "platform"
+algorithm: "DQN"
+>>>>>>> Stashed changes:configs/na/config_5.yaml
+policy: "MlpPolicy"
+conda_env: "affect-envs"
+timesteps: 10_000_000
+
+# Hardware settings
+use_gpu: 1
+headless: 1
+
+# Specific game and agent parameters for this run
+weight: 1
+cluster: 0
+target_arousal: 0
+classifier: 1
+preference: 1
+imitate: 0
+
+# Specific algorithm parameters
+periodic_ra: 1
+cv: 0
+grayscale: 0
+discretize: 1
+decisionPeriod: 10
