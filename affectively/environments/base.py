@@ -90,12 +90,13 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.episode_length, self.arousal_episode_length = 0, 0
 
-        if self.decision_period != 1 or self.game == "solid":
-            # all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
-            # self.max_target_score = max(all_target_scores)
-            pass
-        else:
-            self.max_target_score = 100
+        if self.decision_period != 1:
+            all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
+            try:
+                self.max_target_score = max(all_target_scores)
+            except:
+                self.max_target_score = 100
+        
 
         self.target_arousal = target_arousal
         self.preference = preference
@@ -358,7 +359,7 @@ class BaseEnvironment(gym.Env, ABC):
         system="Mac" if system == "Darwin" else system
         try:
             abs = "_absolute" if self.absolute else ""
-            env = UnityEnvironment(f"./affectively/builds/{self.game.lower()}/{system}{abs}/{self.game.lower()}.{game_suffix}",
+            env = UnityEnvironment(f"./affectively/builds/{self.game.lower()}/{system}/{self.game.lower()}.{game_suffix}",
                                    side_channels=[self.engineConfigChannel, self.customSideChannel],
                                    worker_id=identifier,
                                    no_graphics=not graphics,
