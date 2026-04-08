@@ -21,28 +21,30 @@ class SolidEnvironmentGameObs(SolidEnvironment):
 
     def discretize_observations(self, game_obs):
 
-        position_discrete = np.round(np.array([game_obs[0], game_obs[1], game_obs[2]]) / 20)
+        position_discrete = np.round(np.array([game_obs[0], game_obs[1], game_obs[2]]) / 50)
         position_discrete[0] = 0 if position_discrete[0] == -0 else position_discrete[0]
         position_discrete[1] = 0 if position_discrete[1] == -0 else position_discrete[1]
+        position_discrete[2] = 0 if position_discrete[2] == -0 else position_discrete[2]
 
         velocity = np.array(game_obs[3:6])
-        velocity_discrete = np.round(velocity / 20)
+        velocity_discrete = np.round(velocity / 50)
+
+        velocity_discrete[0] = 0 if velocity_discrete[0] == -0 else velocity_discrete[0]
+        velocity_discrete[1] = 0 if velocity_discrete[1] == -0 else velocity_discrete[1]
+        velocity_discrete[2] = 0 if velocity_discrete[2] == -0 else velocity_discrete[2]
 
         score = game_obs[47]
-        if score < 8:
-            score_bin = 0
-        elif score < 16:
-            score_bin = 1
-        else:
-            score_bin = 2
-
-        is_off_road = game_obs[48]
-        is_in_loop_zone = game_obs[49]
+        # if score < 8:
+        #     score_bin = 0
+        # elif score < 16:
+        #     score_bin = 1
+        # else:
+        #     score_bin = 2
 
         discrete_obs = (
             list(position_discrete) + list(velocity_discrete) +
             [
-                score_bin,
+                score,
             ]
         )
         return discrete_obs

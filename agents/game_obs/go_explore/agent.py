@@ -119,7 +119,7 @@ class Explorer:
         elif cell.reward == self.bestCell.reward and cell.get_cell_length() < self.bestCell.get_cell_length():
             self.bestCell = copy.deepcopy(cell)
 
-    def save(self, name, final=False):
+    def save(self, name, final=True):
         if not final:
             name += f'TS_{self.num_timesteps // 600}'
         pickle.dump(self.archive | self.final, open(f'{name}.zip', 'wb'))
@@ -183,6 +183,7 @@ class Explorer:
             new_cell.trajectory_dict['arousal_trajectory'] = list(self.env.episode_arousal_trace)
             new_cell.trajectory_dict['score_trajectory'].append(self.env.cumulative_rb)
             new_cell.trajectory_dict['raw_state'].append(self.gymnasium_env.env.raw_state)
+            new_cell.trajectory_dict['arousal_vectors'].append(self.env.current_surrogate)
             new_cell.human_vector = self.env.surrogate_list
             new_cell.final = new_cell.get_cell_length() >= 600
             new_cell.previous_score = self.env.previous_score
