@@ -169,7 +169,7 @@ class RainbowAgent:
         self.device = device
         self.env = env.env
 
-        self.observation_size = self.env.observation_space.shape[0]
+        self.observation_size = env.observation_space.shape[0]
         self.atom_size = atom_size
         self.v_min = v_min
         self.v_max = v_max

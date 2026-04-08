@@ -90,13 +90,12 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.episode_length, self.arousal_episode_length = 0, 0
 
-        if self.decision_period != 1:
+        if self.decision_period != 1 and self.game == "solid":
             all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
-            try:
-                self.max_target_score = max(all_target_scores)
-            except:
-                self.max_target_score = 100
-        
+            self.max_target_score = max(all_target_scores)
+            pass
+        else:
+            self.max_target_score = 100
 
         self.target_arousal = target_arousal
         self.preference = preference
@@ -213,7 +212,7 @@ class BaseEnvironment(gym.Env, ABC):
                 else:
                     target = self.model.cluster_arousal[self.episode_length]
             # Only reward if we are only within the score range of the cluster
-            elif not self.period_ra and  self.current_score <= self.max_target_score:
+            elif not self.period_ra and  self.current_score <= self.max_target_score and self.current_score in self.model.behavior_reward_book:
                 target = self.model.arousal_reward_book[self.current_score]
             else:
                 return 0
@@ -287,7 +286,7 @@ class BaseEnvironment(gym.Env, ABC):
                 break
 
         self.surrogate_list.append(surrogate)
-        self.current_score = env_score  
+        self.current_score = env_score if env_score >= self.current_score else self.current_score # score cannot go down.
         change_in_score = self.current_score - self.previous_score
         self.score_change = self.score_change or change_in_score > 0
 

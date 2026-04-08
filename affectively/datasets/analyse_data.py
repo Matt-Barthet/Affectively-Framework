@@ -1,6 +1,24 @@
 import pandas as pd
 import numpy as np
 
+
+membership = {}
+beginner = {'fps': 3.0, 'solid': 1.0, 'platform': 4.0}
+for game in ['fps', 'solid', 'platform']:
+    cluster_book = pd.read_csv(f"./{game}_cluster_book.csv")
+    for player in cluster_book['[control]player_id'].unique():
+        cluster = cluster_book[cluster_book['[control]player_id']==player]['Cluster'].values[0]
+        if cluster == beginner[game]:
+            if player in membership:
+                membership[player].append(cluster)
+            else:
+                membership[player] = [cluster]
+
+print(len(membership))
+for member, cluster in membership.items():
+    print(member, cluster)
+exit()
+
 # Read the datasets
 cluster_book = pd.read_csv('fps_cluster_book.csv')
 fps_data = pd.read_csv('fps_3000ms.csv')

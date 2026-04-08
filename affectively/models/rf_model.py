@@ -54,8 +54,9 @@ class RFSurrogateModel(AbstractSurrogateModel):
         with open(path, 'rb') as f:
             model = pickle.load(f)
         print(f"Model loaded to {path}")
-
-        return model, None
+        params = model.get_params() if hasattr(model, 'get_params') else None
+        print(params)
+        return model, params
     
     def get_hyperparameter_space(self):
         return {
@@ -71,8 +72,8 @@ if __name__ == "__main__":
     
     results = []
     
-    for classifier in [False, True]:
-        for pref in [True, False]:
+    for classifier in [True]:
+        for pref in [True]:
             for game in ['solid', 'fps', 'platform']:
                 for cluster in [0, 1, 2, 3, 4]:
                     print(f"\nTraining RF for game={game}, cluster={cluster}, classifier={classifier}, preference={pref}")

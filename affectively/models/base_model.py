@@ -247,7 +247,6 @@ class AbstractSurrogateModel(ABC):
         if self.preference:
             self.surrogate_length = int(self.surrogate_length / 2)
 
-        print(self.cluster_score[-1])
         self.arousals = arousals
 
     def load_model(self):
@@ -267,9 +266,11 @@ class AbstractSurrogateModel(ABC):
                 break
             
             model, params = self._load_single_model(model_path_counter, scaler_path)
+
             if params:
                 self.best_params = params
-            
+            elif hasattr(model, 'get_params') and callable(getattr(model, 'get_params')):
+                self.best_params = model.get_params()
             self.models.append(copy.deepcopy(model))
             self.scalers.append(copy.deepcopy(scaler))
             

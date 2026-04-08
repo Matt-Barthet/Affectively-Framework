@@ -142,7 +142,6 @@ class Explorer:
                 null_action[-1] = self.current_cell.key
                 self.gymnasium_env.step(null_action)
             except UnityGymException:
-                # print("UnityGymException")
                 return 0
 
         # print(f"Loading Cell: {self.current_cell.key}")

@@ -4,109 +4,146 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
-from affectively.environments import PiratesEnvironmentGameObs, GymToGymnasiumWrapper
+from affectively.environments import GymToGymnasiumWrapper
 from affectively.utils import compute_confidence_interval
 from affectively.utils.logging import TensorBoardCallback
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
+from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 from agents import load_model
 
 
-def run_evaluation(env, model, model_type, steps_per_episode=601):
+def run_evaluation(env, model, model_type, steps_per_episode=600):
     state = env.reset()
     pos_arousal = [[], [], []]
-    for _ in range(steps_per_episode):
+
+    speed = 0
+    off_road = 0
+    gas_pedal = {-1: 0, 0: 0, 1: 0}
+    steering = {-1: 0, 0: 0, 1: 0}
+    distance_to_cars = 0
+    final_position = 0
+
+    for steps in range(steps_per_episode):
         action = model.predict(state, deterministic=True)[0] if model_type != "random" else env.action_space.sample()
         state, reward, done, info = env.step(action)
         if env.game == "platform":
             pos_arousal[0].append(env.customSideChannel.pos)
             pos_arousal[1].append(env.episode_arousal_trace[-1] if len(env.episode_arousal_trace) > 0 else 1)
             pos_arousal[2].append(reward)
+        if len(env.current_surrogate > 0):
+            off_road += int(env.current_surrogate[7])
+            gas_pedal[int(env.current_surrogate[8])] += 1
+            steering[int(env.current_surrogate[9])] += 1
+            speed += env.current_surrogate[2]
+            distance_to_cars += env.current_surrogate[25]
+        # print(env.current_score)
         if done:
             break
 
-    DataFrame(np.array(pos_arousal).T, columns=["positions", "arousals", "rewards"]).to_csv("DT_Pos_Arousal.csv")
+    final_position = env.current_surrogate[0]
+    off_road /= steps * 100
+    speed /= steps
+    gas_pedal = np.asarray(list(gas_pedal.values())) / steps
+    steering = np.asarray(list(steering.values()) )/ steps
+    distance_to_cars /= steps
+    
+    print(f"Final Position: {final_position}, Off-road: {off_road:.2f}, Gas Distribution: {gas_pedal}, Steering Distribution: {steering}, Distance to Cars: {distance_to_cars:.2f}")
+    # DataFrame(np.array(pos_arousal).T, columns=["positions", "arousals", "rewards"]).to_csv("DT_Pos_Arousal.csv")
+    score = env.current_score
+    arousal = env.cumulative_ra
+    behavior = env.cumulative_rb
 
-    env.callback.on_episode_end()
-    arousal = env.callback.best_mean_ra
-    score = env.callback.best_env_score
-    return arousal, score
+    return arousal, behavior, score, final_position, off_road, speed, gas_pedal, steering, distance_to_cars
 
 
 if __name__ == "__main__":
 
-    weights = [0.5]
-    runs = 5
-    signals = ['Ordinal', ]
-    tasks = ['Maximize']
-    models = ["PPO"]
-    predictions = ['Classification']
-    cluster = 3
+    runs = 10
     results = []
-
-    env = PiratesEnvironmentGameObs(
+    env = SolidEnvironmentGameObs(
             0,
-            graphics=True,
+            graphics=False,
             weight=0,
             discretize=False,
-            cluster=cluster,
+            cluster=0,
             target_arousal=1,
             period_ra=False,
             decision_period=10,
-        # imitate=0
+            imitate=1,
         )
 
     gymnasium_env = GymToGymnasiumWrapper(env)
-    for game in ['platform']:
+    for game in ['solid']:
         for freq in ['Synchronized']:
-            for model_type in models:
-                for signal in signals:
-                    for prediction in predictions:
-                        for task in tasks:
-                            for weight in weights:
+            for model_type in ['PPO', 'DQN']:
+                for signal in ['Ordinal']:
+                    for prediction in ['Classification']:
+                        for task in ['Imitate']:
+                            for weight in [0.0, 0.5, 1.0]:
 
-                                for cluster in [0]:
+                                for cluster in [1, 2, 3, 4]:
+
                                     run_scores = []
                                     run_arousals = []
+                                    run_behaviors= []
+                                    run_final_positions = []
+                                    run_off_road = []
+                                    run_speeds = []
+                                    run_gas_pedals = []
+                                    run_steerings = []
+                                    run_distance_to_cars = []
                                     for run in range(runs):
 
                                         if model_type == "Explore":
                                             model_name = f"MlpPolicy-Cluster{cluster}-{weight}λ-run{run}"
-
-                                            if weight != 0.0:
-                                                model_path = f"results/{game}/{freq} Reward/Ordinal/Classification/{task} Arousal/{model_type}/{model_name}.zipTS_16666.zip"
-                                            else:
-                                                model_path = f"results/{game}/{freq} Reward/Ordinal/Classification/Maximize Arousal/{model_type}/{model_name}.zipTS_16666.zip"
+                                            model_path = f"results/{game}/{freq} Reward/Ordinal/Classification/{task} Arousal/{model_type}/{model_name}.zip"
 
                                             try:
                                                 best_score = 0
+                                                best_behavior = 0
                                                 best_reward = -1
                                                 best_arousal = 0
                                                 cell_length = 0
+                                                best_cell = None
                                                 archive = load_model(model_type, model_path, env, "")
                                                 arousal_trace = []
 
                                                 for cell in archive.values():
                                                     if cell.reward > best_reward:
-                                                        best_reward = cell.reward
-                                                        best_score = cell.behavior_reward
-                                                        best_arousal = cell.arousal_reward
+                                                        best_cell = cell
 
-                                                        cell_length = len(cell.trajectory_dict['score_trajectory'])
-                                                        arousal_trace = cell.trajectory_dict['score_trajectory']
+                                                off_road = 0
+                                                print(best_cell.reward)
+                                                print(best_cell.trajectory_dict['arousal_vectors'])
+                                                for state in best_cell.trajectory_dict['arousal_vectors']:
+                                                    print(state)
 
-                                                run_scores.append(best_score)
-                                                run_arousals.append(best_arousal)
-                                                print(cell_length, arousal_trace)
+                                                print(off_road / len(best_cell.trajectory_dict['state_trajectory']))
+                                                best_reward = best_cell.reward
+                                                best_score = best_cell.score
+                                                best_behavior = best_cell.behavior_reward
+                                                best_arousal = best_cell.arousal_reward
+                                                cell_length = len(best_cell.trajectory_dict['state_trajectory'])
+                                                arousal_trace = best_cell.trajectory_dict['arousal_trajectory']
+
+                                                if task == "Imitate":
+                                                    normalizer = env.model.cluster_score[-1] if cluster > 0 else best_score
+                                                else:
+                                                    if game == "platform":
+                                                        run_scores.append(best_score / 460)
+                                                        run_arousals.append(best_arousal / 40)
+                                                    elif game == "solid":
+                                                        run_scores.append(best_score / 24)
+                                                        run_arousals.append(best_arousal / 24 if freq == "Synchronized" else best_arousal / 40)
 
                                                 if freq == "Synchronized":
-
-                                                    run_arousals[-1] /= best_score
                                                     if weight == 0 and task == "Minimize":
                                                         run_arousals[-1] = 1 - run_arousals[-1]
-                                                else:
-                                                    run_arousals[-1] *= 40
-                                                    run_scores[-1] *= 24
 
+                                                print(cell_length, len(arousal_trace), run_arousals[-1], run_scores[-1])
+
+                                            except FileNotFoundError:
+                                                continue
                                             except:
                                                 raise
 
@@ -114,15 +151,12 @@ if __name__ == "__main__":
                                             task_name = f"{task} Arousal"
 
                                             if model_type == 'PPO':
-                                                model_name = f"MlpPolicy-Cluster0-{weight}λ-run{run}"
+                                                model_name = f"MlpPolicy-Cluster{cluster}-{weight}λ-run{run}"
                                             else:
-                                                model_name = f"DQN-Cluster0-{weight}λ-run{run}"
+                                                model_name = f"DQN-Cluster{cluster}-{weight}λ-run{run}"
 
-                                            if weight != 0:
-                                                model_path = f"results/{game}/{freq} Reward/{signal}/{prediction}/{task_name}/{model_type}/{model_name}-Episode-16000.zip"
-                                            else:
-                                                model_path = f"results/{game}/Synchronized Reward/Ordinal/Classification/Maximize Arousal/{model_type}/{model_name}.zip"
-
+                                           
+                                            model_path = f"results/{game}/Synchronized Reward/Ordinal/Classification/{task} Arousal/{model_type}/{model_name}.zip"
                                             if not Path(model_path).exists():
                                                 model_path = f"results/{game}/{freq} Reward/{signal}/{prediction}/{task_name}/{model_type}/{model_name}.zip"
                                                 if not Path(model_path).exists():
@@ -134,8 +168,6 @@ if __name__ == "__main__":
                                             try:
 
                                                 target_arousal = 0 if task == 'Minimize' else 1
-
-                                                env.reset()
                                                 env.weight = weight
                                                 env.target_arousal = target_arousal
                                                 env.cluster = cluster
@@ -144,6 +176,7 @@ if __name__ == "__main__":
                                                 env.discretize = False
                                                 env.classifier = (prediction == 'Classification')
                                                 env.preference = (signal == 'Ordinal')
+                                                env.imitation_learning = (task == 'Imitate')
                                                 env.reinit()
 
                                                 # Load model
@@ -153,26 +186,38 @@ if __name__ == "__main__":
                                                     model = None  # Random agent
 
                                                 env.callback = TensorBoardCallback("", gymnasium_env, model)
-                                                arousal, score = run_evaluation(env, model, model_type, steps_per_episode=601)
+                                                arousal, behavior, score, final_position, off_road, speed, gas_pedal, steering, distance_to_cars = run_evaluation(env, model, model_type, steps_per_episode=600)
+                                                
+                                                if task == "Imitate" and freq == "Synchronized":
+                                                    behavior /= env.model.cluster_score[-1]
+                                                    arousal /= env.model.cluster_score[-1]
 
+                                                elif task != "Imitate":
+                                                    if game == "platform":
+                                                        arousal /= 40
+                                                        score /= 460
+                                                    elif game == "solid":
+                                                        arousal /= 24
+                                                        score /= 24
+
+                                                
+
+                                                run_behaviors.append(behavior)
                                                 run_scores.append(score)
                                                 run_arousals.append(arousal)
+                                                run_final_positions.append(final_position)
+                                                run_off_road.append(off_road)
+                                                run_speeds.append(speed)
+                                                run_gas_pedals.append(gas_pedal)
+                                                run_steerings.append(steering)
+                                                run_distance_to_cars.append(distance_to_cars)
 
-                                                print(f"  Score: {score:.2f}, Arousal: {arousal:.3f}")
+                                                print(f"Behavior: {behavior:.2f}, Score: {score:.2f}, Arousal: {arousal:.3f}")
 
 
                                             except Exception as e:
                                                 print(f"Raised: {e}")
                                                 raise
-                                                # Clean up
-                                                try:
-                                                    if hasattr(env, 'env'):
-                                                        env.env.close()
-                                                    else:
-                                                        env.close()
-                                                    print("✓ Environment closed")
-                                                except Exception as e:
-                                                    print(f"Warning during env close: {e}")
 
                                     # Compute statistics across runs (if we have any successful evaluations)
                                     if len(run_scores) > 0:
@@ -180,9 +225,28 @@ if __name__ == "__main__":
                                         if len(run_scores) > 1:
                                             score_mean, score_ci = compute_confidence_interval(run_scores)
                                             arousal_mean, arousal_ci = compute_confidence_interval(run_arousals)
+                                            behavior_mean, behavior_ci = compute_confidence_interval(run_behaviors)
+                                            final_position_mean, final_position_ci = compute_confidence_interval(run_final_positions)
+                                            off_road_mean, off_road_ci = compute_confidence_interval(run_off_road)
+                                            speed_mean, speed_ci = compute_confidence_interval(run_speeds)
+                                            distance_to_cars_mean, distance_to_cars_ci = compute_confidence_interval(run_distance_to_cars)
+                                            # Average gas_pedal and steering distributions and calculate confidence intervals
+                                            gas_pedal_mean = np.mean(run_gas_pedals, axis=0)
+                                            steering_mean = np.mean(run_steerings, axis=0)
+                                            gas_pedal_ci = np.array([compute_confidence_interval([run[i] for run in run_gas_pedals])[1] for i in range(3)])
+                                            steering_ci = np.array([compute_confidence_interval([run[i] for run in run_steerings])[1] for i in range(3)])
                                         else:
                                             score_mean, score_ci = run_scores[0], 0
                                             arousal_mean, arousal_ci = run_arousals[0], 0
+                                            behavior_mean, behavior_ci = run_behaviors[0], 0
+                                            final_position_mean, final_position_ci = run_final_positions[0], 0
+                                            off_road_mean, off_road_ci = run_off_road[0], 0
+                                            speed_mean, speed_ci = run_speeds[0], 0
+                                            distance_to_cars_mean, distance_to_cars_ci = run_distance_to_cars[0], 0
+                                            gas_pedal_mean = run_gas_pedals[0]
+                                            steering_mean = run_steerings[0]
+                                            gas_pedal_ci = np.zeros(3)
+                                            steering_ci = np.zeros(3)
 
                                         # Store aggregated results
                                         results.append({
@@ -194,8 +258,22 @@ if __name__ == "__main__":
                                             'n_runs': len(run_scores),
                                             'score_mean': score_mean,
                                             'score_ci': score_ci,
+                                            'behavior_mean': behavior_mean,
+                                            'behavior_ci': behavior_ci,
                                             'arousal_mean': arousal_mean,
                                             'arousal_ci': arousal_ci,
+                                            'final_position_mean': final_position_mean,
+                                            'final_position_ci': final_position_ci,
+                                            'off_road_mean': off_road_mean,
+                                            'off_road_ci': off_road_ci,
+                                            'speed_mean': speed_mean,
+                                            'speed_ci': speed_ci,
+                                            'distance_to_cars_mean': distance_to_cars_mean,
+                                            'distance_to_cars_ci': distance_to_cars_ci,
+                                            'gas_pedal_mean': str(gas_pedal_mean),
+                                            'gas_pedal_ci': str(gas_pedal_ci),
+                                            'steering_mean': str(steering_mean),
+                                            'steering_ci': str(steering_ci),
                                             'scores_raw': run_scores,
                                             'arousal_raw': run_arousals,
                                             "frequency": freq,
@@ -205,7 +283,9 @@ if __name__ == "__main__":
 
                                         print(f"Summary for {freq} reward/{model_type}/{signal}/{prediction}/{task}/λ={weight}:")
                                         print(
-                                            f"  Score: {score_mean:.2f} ± {score_ci:.2f}, Arousal: {arousal_mean:.3f} ± {arousal_ci:.3f}\n")
+                                            f"Behavior: {behavior_mean:.2f} ± {behavior_ci:.2f}, Score: {score_mean:.2f} ± {score_ci:.2f}, Arousal: {arousal_mean:.3f} ± {arousal_ci:.3f}")
+                                        print(
+                                            f"Final Position: {final_position_mean:.2f} ± {final_position_ci:.2f}, Off-road: {off_road_mean:.2f} ± {off_road_ci:.2f}, Speed: {speed_mean:.2f} ± {speed_ci:.2f}, Distance to Cars: {distance_to_cars_mean:.2f} ± {distance_to_cars_ci:.2f}\n")
 
     df = pd.DataFrame(results)
     output_file = 'experiment_results.csv'
