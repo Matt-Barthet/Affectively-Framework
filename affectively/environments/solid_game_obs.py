@@ -27,24 +27,25 @@ class SolidEnvironmentGameObs(SolidEnvironment):
         position_discrete[2] = 0 if position_discrete[2] == -0 else position_discrete[2]
 
         velocity = np.array(game_obs[3:6])
-        velocity_discrete = np.round(velocity / 50)
+        velocity_discrete = np.round(velocity / 40)
 
         velocity_discrete[0] = 0 if velocity_discrete[0] == -0 else velocity_discrete[0]
         velocity_discrete[1] = 0 if velocity_discrete[1] == -0 else velocity_discrete[1]
         velocity_discrete[2] = 0 if velocity_discrete[2] == -0 else velocity_discrete[2]
 
         score = game_obs[47]
-        # if score < 8:
-        #     score_bin = 0
-        # elif score < 16:
-        #     score_bin = 1
-        # else:
-        #     score_bin = 2
+        if score < 8:
+            score_bin = 0
+        elif score < 16:
+            score_bin = 1
+        else:
+            score_bin = 2
 
         discrete_obs = (
             list(position_discrete) + list(velocity_discrete) +
             [
-                score,
+                # velocity_discrete,
+                score_bin,
             ]
         )
         return discrete_obs

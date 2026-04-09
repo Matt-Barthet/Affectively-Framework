@@ -80,12 +80,28 @@ class Explorer:
         self.num_episodes = 0
 
     def select_cell(self):
-        # weights = []
-        # for key, cell in non_final_cells:
-        #     cell_length = cell.get_cell_length() if cell.get_cell_length() > 0 else 1
-        #     weight = cell.reward + 1 / cell_length
-        #     weights.append(weight)
-        _, chosen_cell = random.choices(list(self.archive.items()), k=1)[0]
+        non_final_cells = [cell for cell in self.archive.values() if not cell.final]
+        if not non_final_cells:
+            non_final_cells = list(self.archive.values())
+        if not non_final_cells:
+            return copy.deepcopy(self.current_cell)
+
+        weights = []
+        for cell in non_final_cells:
+            cell_length = max(cell.get_cell_length(), 1)
+
+            reward_term = cell.reward / self.bestCell.reward
+            short_bonus = 1.0 / cell_length
+
+            weight = reward_term + short_bonus
+            weights.append(weight)
+
+        # random.choices requires non-negative weights
+        if any(w < 0 for w in weights):
+            min_weight = min(weights)
+            weights = [w - min_weight + 1e-6 for w in weights]
+
+        chosen_cell = random.choices(non_final_cells, weights=weights, k=1)[0]
         return copy.deepcopy(chosen_cell)
 
     def store_cell(self, cell):
@@ -104,9 +120,9 @@ class Explorer:
             return True
         if cell.reward < self.archive[cell.key].reward:
             return False
-        if cell.reward > self.archive[cell.key].reward:
+        if cell.reward > self.archive[cell.key].reward and cell.score <= self.archive[cell.key].score + 1:
             return True
-        if cell.get_cell_length() < self.archive[cell.key].get_cell_length():
+        if cell.get_cell_length() < self.archive[cell.key].get_cell_length() and cell.score <= self.archive[cell.key].score + 1:
             self.updates += 1
             return True
         return False
