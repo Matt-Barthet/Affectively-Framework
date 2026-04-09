@@ -27,9 +27,9 @@ def train_with_recovery(model, callbacks, total_timesteps):
     except Exception as e:
         print(f"\nUnity timeout at timestep {model.num_timesteps}")
         print(f"\nError: {e}")
-        traceback.print_exc()
+        # traceback.print_exc()
         close_progress_bar_safely(callbacks)
-        exit()
+        # exit()
     return None
 
 
@@ -59,7 +59,7 @@ if __name__ == "__main__":
         if os.path.exists(f"{experiment_name}.lock"):
             print("Other experiment is running here, skipping...")
             continue
-        os.open(f"{experiment_name}.lock", os.O_CREAT)
+        lock_fd = os.open(f"{experiment_name}.lock", os.O_CREAT)
 
 
         env = create_environment(args, run)
@@ -165,7 +165,6 @@ if __name__ == "__main__":
                     print(f"Finished run {run} - Model saved!")
                 else:
                     print(f"Run {run} failed after {recovery_attempts} recovery attempts")
-                os.remove(f"{experiment_name}.lock")
 
         except Exception as e:
             print(f"\nFatal error in run {run}: {e}")
@@ -177,5 +176,7 @@ if __name__ == "__main__":
                 if hasattr(env, 'callback'):
                     close_callback_safely(env.callback)
                 close_environment_safely(env)
+            os.close(lock_fd)
+            os.remove(f"{experiment_name}.lock")
             print(f"{'=' * 60}\n")
 
