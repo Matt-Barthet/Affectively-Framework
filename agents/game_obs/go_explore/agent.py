@@ -1,5 +1,6 @@
 import hashlib
 import pickle
+import gzip
 import random
 import copy
 import tqdm
@@ -138,7 +139,8 @@ class Explorer:
     def save(self, name, final=True):
         if not final:
             name += f'TS_{self.num_timesteps // 600}'
-        pickle.dump(self.archive | self.final, open(f'{name}.zip', 'wb'))
+        with gzip.open(f'{name}.zip', 'wb') as f:
+            pickle.dump(self.archive | self.final, f)
 
     def explore_actions(self, explore_length):
         """

@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     runs = 10
     results = []
-    env = PiratesEnvironmentGameObs(
+    env = SolidEnvironmentGameObs(
             0,
             graphics=True,
             weight=0,
@@ -80,13 +80,13 @@ if __name__ == "__main__":
             period_ra=False,
             decision_period=10,
             imitate=1,
-            reloadEvery=100
+            # reloadEvery=100
         )
 
     gymnasium_env = GymToGymnasiumWrapper(env)
-    for game in ['platform']:
+    for game in ['solid']:
         for freq in ['Synchronized', 'Asynchronized']:
-            for model_type in ['PPO', 'DQN', 'Explore']:
+            for model_type in ['Explore']:
                 for signal in ['Ordinal']:
                     for prediction in ['Classification']:
                         for task in ['Maximize', 'Minimize']:
@@ -126,13 +126,6 @@ if __name__ == "__main__":
                                                     if cell.reward > best_reward:
                                                         best_cell = cell
 
-                                                off_road = 0
-                                                print(best_cell.reward)
-                                                print(best_cell.trajectory_dict['arousal_vectors'])
-                                                for state in best_cell.trajectory_dict['arousal_vectors']:
-                                                    print(state)
-
-                                                print(off_road / len(best_cell.trajectory_dict['state_trajectory']))
                                                 best_reward = best_cell.reward
                                                 best_score = best_cell.score
                                                 best_behavior = best_cell.behavior_reward
@@ -159,7 +152,7 @@ if __name__ == "__main__":
                                             except FileNotFoundError:
                                                 continue
                                             except:
-                                                raise
+                                                continue
 
                                         elif model_type != 'Random':
                                             task_name = f"{task} Arousal"

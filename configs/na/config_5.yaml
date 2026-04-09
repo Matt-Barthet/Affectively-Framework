@@ -3,13 +3,8 @@
 # General experiment settings
 runs: 10
 output_dir: "./results/"
-<<<<<<< Updated upstream:configs/config_5.yaml
 game: "solid"
 algorithm: "Explore"
-=======
-game: "platform"
-algorithm: "DQN"
->>>>>>> Stashed changes:configs/na/config_5.yaml
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 timesteps: 10_000_000
