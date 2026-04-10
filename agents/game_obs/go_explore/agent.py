@@ -1,5 +1,6 @@
 import hashlib
 import pickle
+import gzip
 import random
 import copy
 import tqdm
@@ -138,7 +139,8 @@ class Explorer:
     def save(self, name, final=True):
         if not final:
             name += f'TS_{self.num_timesteps // 600}'
-        pickle.dump(self.archive | self.final, open(f'{name}.zip', 'wb'))
+        with gzip.open(f'{name}.zip', 'wb') as f:
+            pickle.dump(self.archive | self.final, f)
 
     def explore_actions(self, explore_length):
         """
@@ -212,7 +214,7 @@ class Explorer:
             new_cell.arousal_reward = self.env.cumulative_ra
 
             if self.env.period_ra and len(new_cell.trajectory_dict['arousal_trajectory']) > 0:
-                new_cell.reward = new_cell.behavior_reward * (1 - self.env.weight) / 24 + (new_cell.arousal_reward / 40 * self.env.weight)
+                new_cell.reward = (new_cell.behavior_reward / 24) * (1 - self.env.weight)  + ((new_cell.arousal_reward / 40) * self.env.weight)
 
             new_cell.estimated_position = self.env.estimated_position
             new_cell.update_key()
@@ -223,7 +225,7 @@ class Explorer:
 
         return j+1
 
-    def learn(self, total_timesteps, callback = None, explore_length=40, reset_num_timesteps=False):
+    def learn(self, total_timesteps, callback = None, explore_length=20, reset_num_timesteps=False):
         with tqdm.tqdm(total=total_timesteps, ) as pbar:
             while self.num_timesteps < total_timesteps:
                 actions = self.explore_actions(explore_length)
@@ -233,9 +235,10 @@ class Explorer:
                     "Archive Updates": self.updates,
                     "Best Length": self.bestCell.get_cell_length() if self.bestCell else 0,
                     "Arousal Length": f"{len(self.bestCell.trajectory_dict['arousal_trajectory'])}" if self.bestCell else 0,
-                    "Best $Best R_λ$": f"{self.bestCell.reward:.2f}" if self.bestCell else 0,
-                    "Best $R_b$": f"{self.bestCell.behavior_reward:.2f}" if self.bestCell else 0,
-                    "Best $R_a$": f"{self.bestCell.arousal_reward:.2f}" if self.bestCell else 0,
+                    "Best Best R_λ": f"{self.bestCell.reward:.2f}" if self.bestCell else 0,
+                    "Best R_b": f"{self.bestCell.behavior_reward:.2f}" if self.bestCell else 0,
+                    "Best R_a": f"{self.bestCell.arousal_reward:.2f}" if self.bestCell else 0,
+                    "Best Score": f"{self.bestCell.score:.2f}" if self.bestCell else 0,
                 })
                 pbar.update(actions)
         self.save(self.logdir, True)
