@@ -1,6 +1,0 @@
-model,signal,prediction,task,weight,n_runs,score_mean,score_ci,arousal_mean,arousal_ci,scores_raw,arousal_raw,frequency,cluster,game
-Explore,Ordinal,Classification,Maximize,0.0,4,0.1033,0.0173,0.6625,0.1237,"[0.08695652173913043, 0.10869565217391304, 0.10869565217391304, 0.10869565217391304]","[0.6, 0.625, 0.65, 0.775]",Asynchronized,0,platform
-Explore,Ordinal,Classification,Maximize,0.5,2,0.087,0.0,0.9125,0.1588,"[0.08695652173913043, 0.08695652173913043]","[0.925, 0.9]",Asynchronized,0,platform
-Explore,Ordinal,Classification,Maximize,1.0,2,0.0761,0.1381,0.925,0.0,"[0.06521739130434782, 0.08695652173913043]","[0.925, 0.925]",Asynchronized,0,platform
-Explore,Ordinal,Classification,Minimize,0.5,2,0.0761,0.1381,0.375,0.3177,"[0.06521739130434782, 0.08695652173913043]","[0.35, 0.4]",Asynchronized,0,platform
-Explore,Ordinal,Classification,Minimize,1.0,2,0.0543,0.1381,0.7125,0.1588,"[0.06521739130434782, 0.043478260869565216]","[0.725, 0.7]",Asynchronized,0,platform

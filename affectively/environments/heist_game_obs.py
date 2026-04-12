@@ -36,17 +36,17 @@ class HeistEnvironmentGameObs(HeistEnvironment):
         position_discrete[2] = 0 if position_discrete[2] == -0 else position_discrete[2]
 
         velocity = game_obs[8:10]
-        velocity_discrete = np.round(np.linalg.norm(velocity) / 10)
+        velocity_discrete = int(np.round(np.linalg.norm(velocity) / 10)) * 10
 
         score_bin = np.round(self.current_score / 40)
 
-        health = np.round(game_obs[3] / 30)
-        mouse_x = np.round(game_obs[11] / 45)
-        mouse_y = np.round(game_obs[12] / 45)
-        rot_x = np.round(game_obs[13] / 45)
-        rot_y = np.round(game_obs[14] / 45)
+        health = int(np.round(game_obs[3] / 30)) * 30
+        mouse_x = int(np.round(game_obs[11] / 45)) * 45
+        mouse_y = int(np.round(game_obs[12] / 45)) * 45
+        rot_x = int(np.round(game_obs[13] / 45)) * 45
+        rot_y = int(np.round(game_obs[14] / 45)) * 45
 
-        discrete_obs = (
+        discrete_obs = np.array(
             list(position_discrete) +
             [
                 velocity_discrete,
@@ -55,8 +55,4 @@ class HeistEnvironmentGameObs(HeistEnvironment):
                 mouse_x, mouse_y, rot_x, rot_y
             ]
         )
-
-        discrete_obs = np.array(discrete_obs)
-        discrete_obs = np.where(discrete_obs == -0, 0, discrete_obs)
-
-        return discrete_obs
+        return np.where(discrete_obs == -0, 0, discrete_obs)

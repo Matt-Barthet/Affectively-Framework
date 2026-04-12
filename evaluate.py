@@ -16,13 +16,9 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
     state = env.reset()
     pos_arousal = [[], [], []]
 
-    speed = 0
-    off_road = 0
-    gas_pedal = {-1: 0, 0: 0, 1: 0}
-    steering = {-1: 0, 0: 0, 1: 0}
-    distance_to_cars = 0
-    final_position = 0
-    arousal_return = 0
+    results = {'score': 0, 'arousal': 0, 'behavior': 0, 'arousal_return': 0,
+               'speed': 0, 'off_road': 0, 'gas_pedal': {-1: 0, 0: 0, 1: 0}, 'steering': {-1: 0, 0: 0, 1: 0}, 'distance_to_cars': 0, 'final_position': 0}
+
 
     for steps in range(steps_per_episode):
         action = model.predict(state, deterministic=True)[0] if model_type != "random" else env.action_space.sample()
@@ -31,72 +27,72 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
             pos_arousal[0].append(env.customSideChannel.pos)
             pos_arousal[1].append(env.episode_arousal_trace[-1] if len(env.episode_arousal_trace) > 0 else 1)
             pos_arousal[2].append(reward)
-        if imitation and env.game == "solid" and len(env.current_surrogate > 0):
-            off_road += int(env.current_surrogate[7])
-            gas_pedal[int(env.current_surrogate[8])] += 1
-            steering[int(env.current_surrogate[9])] += 1
-            speed += env.current_surrogate[2]
-            distance_to_cars += env.current_surrogate[25]
+        if imitation and env.game == "solid" and len(env.current_surrogate) > 0:
+            results['off_road'] += int(env.current_surrogate[7])
+            results['gas_pedal'][int(env.current_surrogate[8])] += 1
+            results['steering'][int(env.current_surrogate[9])] += 1
+            results['speed'] += env.current_surrogate[2]
+            results['distance_to_cars'] += env.current_surrogate[25]
         # print(env.current_score)
         if done:
             break
 
     for arousal in env.episode_arousal_trace:
         if arousal == env.target_arousal:
-            arousal_return += 1
+            results['arousal_return'] += 1
     
-    arousal_return /= len(env.episode_arousal_trace)
+    results['arousal_return'] /= len(env.episode_arousal_trace)
 
     if imitation and env.game == "solid":
         final_position = env.current_surrogate[0]
-        off_road /= steps * 100
-        speed /= steps
-        gas_pedal = np.asarray(list(gas_pedal.values())) / steps
-        steering = np.asarray(list(steering.values()) )/ steps
-        distance_to_cars /= steps
-        
+        results['off_road'] /= steps * 100
+        results['speed'] /= steps
+        results['gas_pedal'] = np.asarray(list(results['gas_pedal'].values())) / steps
+        results['steering'] = np.asarray(list(results['steering'].values())) / steps
+        results['distance_to_cars'] /= steps
+
     # print(f"Final Position: {final_position}, Off-road: {off_road:.2f}, Gas Distribution: {gas_pedal}, Steering Distribution: {steering}, Distance to Cars: {distance_to_cars:.2f}")
     # DataFrame(np.array(pos_arousal).T, columns=["positions", "arousals", "rewards"]).to_csv("DT_Pos_Arousal.csv")
-    score = env.current_score
-    arousal = env.cumulative_ra
-    behavior = env.cumulative_rb
-
-    print(f"r_a={arousal/behavior} vs R_a={arousal_return}")
-
-    return arousal, behavior, score, final_position, off_road, speed, gas_pedal, steering, distance_to_cars
+    results['score'] = env.current_score
+    results['arousal'] = env.cumulative_ra
+    results['behavior'] = env.cumulative_rb
+    return results
 
 
 if __name__ == "__main__":
 
     runs = 10
     results = []
-    env = SolidEnvironmentGameObs(
-            0,
-            graphics=True,
-            weight=0,
-            discretize=False,
-            cluster=0,
-            target_arousal=1,
-            period_ra=False,
-            decision_period=10,
-            imitate=1,
-            # reloadEvery=100
-        )
 
-    gymnasium_env = GymToGymnasiumWrapper(env)
-    for game in ['solid']:
-        for freq in ['Synchronized', 'Asynchronized']:
-            for model_type in ['Explore']:
-                for signal in ['Ordinal']:
-                    for prediction in ['Classification']:
-                        for task in ['Maximize', 'Minimize']:
-                            for weight in [0.0, 0.5, 1.0]:
+    for game in ['platform']:
+        for model_type in ['PPO', 'DQN']:
+            for task in ['Maximize', 'Minimize']:
 
+                env = PiratesEnvironmentGameObs(
+                    0,
+                    graphics=True,
+                    weight=0,
+                    discretize=False,
+                    cluster=0,
+                    target_arousal=1,
+                    period_ra=False,
+                    decision_period=10,
+                    imitate=task == "Imitate",
+                    reloadEvery=100,
+                    capture_fps=-60,
+                )
+                gymnasium_env = GymToGymnasiumWrapper(env)
+
+                for freq in ['Synchronized']:
+                    for signal in ['Ordinal']:
+                        for prediction in ['Classification']:
+                            for weight in [0.0,]:
                                 for cluster in [0]:
 
                                     run_scores = []
                                     run_arousals = []
                                     run_behaviors= []
+                                    run_arousal_returns = []
 
                                     if task == "Imitate" and game == "solid":
                                         run_final_positions = []
@@ -193,33 +189,34 @@ if __name__ == "__main__":
                                                     model = None  # Random agent
 
                                                 env.callback = TensorBoardCallback("", gymnasium_env, model)
-                                                arousal, behavior, score, final_position, off_road, speed, gas_pedal, steering, distance_to_cars = run_evaluation(env, model, model_type, steps_per_episode=600)
+                                                run_results = run_evaluation(env, model, model_type, steps_per_episode=600)
                                                 
                                                 if task == "Imitate" and freq == "Synchronized":
-                                                    behavior /= env.model.cluster_score[-1]
-                                                    arousal /= env.model.cluster_score[-1]
+                                                    run_results['behavior'] /= env.model.cluster_score[-1]
+                                                    run_results['arousal'] /= env.model.cluster_score[-1]
 
                                                 elif task != "Imitate":
                                                     if game == "platform":
-                                                        arousal /= 40
-                                                        score /= 460
+                                                        run_results['arousal'] /= 40
+                                                        run_results['score'] /= 460
                                                     elif game == "solid":
-                                                        arousal /= 24
-                                                        score /= 24
+                                                        run_results['arousal'] /= 24
+                                                        run_results['score'] /= 24
 
-                                                run_behaviors.append(behavior)
-                                                run_scores.append(score)
-                                                run_arousals.append(arousal)
+                                                run_behaviors.append(run_results['behavior'])
+                                                run_scores.append(run_results['score'])
+                                                run_arousals.append(run_results['arousal'])
+                                                run_arousal_returns.append(run_results['arousal_return'])       
 
                                                 if task == "Imitate" and game == "solid":
-                                                    run_final_positions.append(final_position)
-                                                    run_off_road.append(off_road)
-                                                    run_speeds.append(speed)
-                                                    run_gas_pedals.append(gas_pedal)
-                                                    run_steerings.append(steering)
-                                                    run_distance_to_cars.append(distance_to_cars)
+                                                    run_final_positions.append(run_results['final_position'])
+                                                    run_off_road.append(run_results['off_road'])
+                                                    run_speeds.append(run_results['speed'])
+                                                    run_gas_pedals.append(run_results['gas_pedal'])
+                                                    run_steerings.append(run_results['steering'])
+                                                    run_distance_to_cars.append(run_results['distance_to_cars'])
 
-                                                print(f"Behavior: {behavior:.2f}, Score: {score:.2f}, Arousal: {arousal:.3f}")
+                                                print(f"Behavior: {run_results['behavior']:.2f}, Score: {run_results['score']:.2f}, Arousal: {run_results['arousal']:.3f}, Arousal Return: {run_results['arousal_return']:.3f}")
 
 
                                             except Exception as e:
@@ -233,6 +230,7 @@ if __name__ == "__main__":
                                             score_mean, score_ci = compute_confidence_interval(run_scores)
                                             arousal_mean, arousal_ci = compute_confidence_interval(run_arousals)
                                             behavior_mean, behavior_ci = compute_confidence_interval(run_behaviors)
+                                            arousal_return_mean, arousal_return_ci = compute_confidence_interval(run_arousal_returns)
 
                                             if task == "Imitate" and game == "solid":
                                                 final_position_mean, final_position_ci = compute_confidence_interval(run_final_positions)
@@ -248,6 +246,7 @@ if __name__ == "__main__":
                                             score_mean, score_ci = run_scores[0], 0
                                             arousal_mean, arousal_ci = run_arousals[0], 0
                                             behavior_mean, behavior_ci = run_behaviors[0], 0
+                                            arousal_return_mean, arousal_return_ci = run_arousal_returns[0], 0
 
                                             if task == "Imitate" and game == "solid":
                                                 final_position_mean, final_position_ci = run_final_positions[0], 0
@@ -275,6 +274,8 @@ if __name__ == "__main__":
                                                 'behavior_ci': behavior_ci,
                                                 'arousal_mean': arousal_mean,
                                                 'arousal_ci': arousal_ci,
+                                                'arousal_return_mean': arousal_return_mean,
+                                                'arousal_return_ci': arousal_return_ci,
                                                 'final_position_mean': final_position_mean,
                                                 'final_position_ci': final_position_ci,
                                                 'off_road_mean': off_road_mean,
@@ -314,6 +315,8 @@ if __name__ == "__main__":
                                                 'behavior_ci': behavior_ci,
                                                 'arousal_mean': arousal_mean,
                                                 'arousal_ci': arousal_ci,
+                                                'arousal_return_mean': arousal_return_mean,
+                                                'arousal_return_ci': arousal_return_ci,
                                                 'scores_raw': run_scores,
                                                 'arousal_raw': run_arousals,
                                                 "frequency": freq,
@@ -324,6 +327,9 @@ if __name__ == "__main__":
                                             print(f"Summary for {freq} reward/{model_type}/{signal}/{prediction}/{task}/λ={weight}:")
                                             print(
                                                 f"Behavior: {behavior_mean:.2f} ± {behavior_ci:.2f}, Score: {score_mean:.2f} ± {score_ci:.2f}, Arousal: {arousal_mean:.3f} ± {arousal_ci:.3f}")       
+
+                env.env.close()
+                env.close()
 
     df = pd.DataFrame(results)
     output_file = 'experiment_results.csv'
