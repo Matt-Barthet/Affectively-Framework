@@ -1,2 +1,0 @@
-model,signal,prediction,task,weight,score_mean,score_ci,arousal_mean,arousal_ci,scores_raw,arousal_raw,frequency,cluster,game
-Explore,Ordinal,Classification,Minimize,0.0,18.0,2.4833,0.0118,0.0327,"[15, 19, 17, 20, 19]","[0.0, 0.0, 0.05882352941176472, 0.0, 0.0]",Synchronized,0,solid
