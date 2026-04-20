@@ -4,7 +4,7 @@ import numpy as np
 
 class HeistEnvironmentGameObs(HeistEnvironment):
 
-    def __init__(self, id_number, graphics, weight, discretize=False, cluster=0, target_arousal=0, period_ra=False, classifier=True, preference=True, decision_period=10, capture_fps=10,sensitivity=1):
+    def __init__(self, id_number, graphics, weight, discretize=False, cluster=0, target_arousal=0, period_ra=False, classifier=True, preference=True, decision_period=10, capture_fps=10,sensitivity=1, imitate=False):
         self.gridWidth = 5
         self.gridHeight = 5
         self.elementSize = 1

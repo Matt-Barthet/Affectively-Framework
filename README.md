@@ -20,6 +20,8 @@ Install dependencies
 pip install -r requirements.txt
 ```
 
+If you have a CUDA-capable GPU, the requirements file now installs the CUDA-enabled PyTorch wheel (`torch==2.8.0+cu118`) using PyTorch's extra index URL.
+
 If on MacOS (Tested on an Apple Silicon machine)
 ```
 pip install stable_baselines3==1.8.0 sb3_contrib==1.8.0 --no-deps
