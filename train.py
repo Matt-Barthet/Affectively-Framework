@@ -117,7 +117,7 @@ if __name__ == "__main__":
                     env.env.callback = TensorboardGoExplore(experiment_name, env, model)
                     model.logdir = experiment_name
                 else:
-                    for i in range(16000, 0, -1000):
+                    for i in range(16000, 0, -500):
                         print(f"{experiment_name}-Episode-{i}.zip")
                         if os.path.exists(f"{experiment_name}-Episode-{i}.zip"):
                             model.load(f"{experiment_name}-Episode-{i}.zip")
@@ -144,7 +144,6 @@ if __name__ == "__main__":
                         recovery_attempts += 1
                         print(f"\nRecovery attempt {recovery_attempts}/{max_recovery_attempts}")
                         old_callback = env.callback if hasattr(env, 'callback') else None
-                        close_callback_safely(old_callback)
                         close_environment_safely(env)
 
                         env = create_environment(args, run)

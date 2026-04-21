@@ -185,10 +185,8 @@ def create_environment(args, run, callback=None):
 
 def close_environment_safely(env):
     try:
-        if hasattr(env, 'env'):
-            env.env.close()
-        else:
-            env.close()
+        env.env.close()
+        env.close()
         print("Environment closed")
     except Exception as e:
         print(f"Warning during env close: {e}")

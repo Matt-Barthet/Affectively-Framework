@@ -65,7 +65,7 @@ if __name__ == "__main__":
     results = []
 
     for game in ['platform']:
-        for model_type in ['PPO', 'DQN']:
+        for model_type in ['DQN', 'PPO']:
             for task in ['Maximize', 'Minimize']:
 
                 env = PiratesEnvironmentGameObs(
@@ -78,7 +78,7 @@ if __name__ == "__main__":
                     period_ra=False,
                     decision_period=10,
                     imitate=task == "Imitate",
-                    reloadEvery=100,
+                    # reloadEvery=100,
                     capture_fps=-60,
                 )
                 gymnasium_env = GymToGymnasiumWrapper(env)

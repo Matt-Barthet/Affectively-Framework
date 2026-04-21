@@ -496,6 +496,9 @@ class TensorBoardCallback:
         if self.episode % 1000 == 0 and self.log_dir != "":
             self.model.save(f"{self.log_dir}-Episode-{self.episode}.zip")
 
+        elif self.episode % 500 == 0 and self.log_dir != "" and self.environment.game == 'fps':
+            self.model.save(f"{self.log_dir}-Episode-{self.episode}.zip")
+
         self.writer.flush()
 
     def on_step(self):
