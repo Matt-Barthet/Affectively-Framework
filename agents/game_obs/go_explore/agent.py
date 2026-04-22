@@ -223,6 +223,10 @@ class Explorer:
                 print("Timestep: ", self.num_timesteps, len(self.archive), self.bestCell.get_cell_length(), self.bestCell.reward, self.updates)
                 self.env.callback.on_episode_end()
 
+        if len(self.archive) > 10_000:
+            self.save(self.logdir, False)
+            self.num_timesteps = np.inf # Failsafe
+
         return j+1
 
     def learn(self, total_timesteps, callback = None, explore_length=20, reset_num_timesteps=False):
@@ -241,5 +245,6 @@ class Explorer:
                     "Best Score": f"{self.bestCell.score:.2f}" if self.bestCell else 0,
                 })
                 pbar.update(actions)
-        self.save(self.logdir, True)
+        if self.num_timesteps != np.inf:
+            self.save(self.logdir, True)
         return self.archive
