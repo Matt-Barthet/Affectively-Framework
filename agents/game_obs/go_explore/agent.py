@@ -142,7 +142,7 @@ class Explorer:
         with gzip.open(f'{name}.zip', 'wb') as f:
             pickle.dump(self.archive | self.final, f)
 
-    def explore_actions(self, explore_length):
+    def explore_actions(self, explore_length=20):
         """
         Return to the current cell using a context load.
         Explore a fixed number of random actions from the current cell.
@@ -228,7 +228,7 @@ class Explorer:
     def learn(self, total_timesteps, callback = None, explore_length=20, reset_num_timesteps=False):
         with tqdm.tqdm(total=total_timesteps, ) as pbar:
             while self.num_timesteps < total_timesteps:
-                actions = self.explore_actions(explore_length)
+                actions = self.explore_actions()
                 self.num_episodes += 1
                 pbar.set_postfix({
                     "Archive Size": len(self.archive),
