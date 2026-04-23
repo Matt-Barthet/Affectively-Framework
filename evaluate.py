@@ -64,11 +64,11 @@ if __name__ == "__main__":
     runs = 10
     results = []
 
-    for game in ['platform']:
+    for game in ['solid']:
         for model_type in ['DQN', 'PPO']:
             for task in ['Maximize', 'Minimize']:
 
-                env = PiratesEnvironmentGameObs(
+                env = SolidEnvironmentGameObs(
                     0,
                     graphics=True,
                     weight=0,
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                 for freq in ['Synchronized']:
                     for signal in ['Ordinal']:
                         for prediction in ['Classification']:
-                            for weight in [0.0,]:
+                            for weight in [0.5,]:
                                 for cluster in [0]:
 
                                     run_scores = []
