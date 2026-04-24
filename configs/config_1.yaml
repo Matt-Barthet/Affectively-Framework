@@ -1,5 +1,3 @@
-# configs/run_A.yaml
-
 # General experiment settings
 runs: 10
 output_dir: "./results/"

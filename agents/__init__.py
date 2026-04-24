@@ -1,6 +1,7 @@
 from stable_baselines3 import PPO
 import torch
 import pickle
+import gzip
 
 from .game_obs.go_explore.agent import Explorer
 from .game_obs.rainbow_dqn.agent import RainbowAgent
@@ -19,8 +20,12 @@ def load_model(model_type, model_path, env, model_name):
         elif model_type == 'Random':
             return None
         elif model_type == "Explore":
-            file = open(model_path, 'rb')
-            model = pickle.load(file)
+            try:
+                with open(model_path, 'rb') as file:
+                    model = pickle.load(file)
+            except:
+                with gzip.open(f'{model_path}.zip', 'rb') as f:
+                    model = pickle.load(f)
         else:
             raise ValueError(f"Unknown model type: {model_type}")
         return model

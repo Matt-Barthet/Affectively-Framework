@@ -1,3 +1,5 @@
+from random import random
+
 from affectively.environments.base import BaseEnvironment
 import numpy as np
 
@@ -14,6 +16,22 @@ class HeistEnvironment(BaseEnvironment):
     def reset(self, **kwargs):
         state = super().reset()
         return self.construct_state(state)
+
+    def sample_weighted_action(self):
+        movementlr_weights = [27.4, 46.2, 26.4]
+        movement_fb_weights = [5.5, 37.8, 56.7]
+        shooting_weights = [26.3, 73.7]
+
+        movementlr_options = [0, 1, 2]
+        movement_fb_options = [0, 1, 2]
+        shooting_options = [0, 1]
+
+        action = self.action_space.sample()
+        action[3] = random.choices(movementlr_options, weights=movementlr_weights)[0]
+        action[2] = random.choices(movement_fb_options, weights=movement_fb_weights)[0]
+        action[4] = random.choices(shooting_options, weights=shooting_weights)[0]
+        return action
+
 
     def step(self, action):
         transformed_action = [

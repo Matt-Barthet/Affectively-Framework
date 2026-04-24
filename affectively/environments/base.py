@@ -258,6 +258,7 @@ class BaseEnvironment(gym.Env, ABC):
             self.period_arousal_trace.append(arousal)
             self.previous_surrogate = self.current_surrogate.copy()
             self.customSideChannel.arousal_vector.clear()
+        # print(f"Arousal: {arousal}")
         return arousal
 
 

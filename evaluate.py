@@ -5,6 +5,7 @@ import pandas as pd
 from pandas import DataFrame
 
 from affectively.environments import GymToGymnasiumWrapper
+from affectively.environments.heist_game_obs import HeistEnvironmentGameObs
 from affectively.utils import compute_confidence_interval
 from affectively.utils.logging import TensorBoardCallback
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
@@ -23,19 +24,21 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
     for steps in range(steps_per_episode):
         action = model.predict(state, deterministic=True)[0] if model_type != "random" else env.action_space.sample()
         state, reward, done, info = env.step(action)
+
         if env.game == "platform":
             pos_arousal[0].append(env.customSideChannel.pos)
             pos_arousal[1].append(env.episode_arousal_trace[-1] if len(env.episode_arousal_trace) > 0 else 1)
             pos_arousal[2].append(reward)
+
         if imitation and env.game == "solid" and len(env.current_surrogate) > 0:
             results['off_road'] += int(env.current_surrogate[7])
             results['gas_pedal'][int(env.current_surrogate[8])] += 1
             results['steering'][int(env.current_surrogate[9])] += 1
             results['speed'] += env.current_surrogate[2]
             results['distance_to_cars'] += env.current_surrogate[25]
-        # print(env.current_score)
+
         if done:
-            break
+            env.reset()
 
     for arousal in env.episode_arousal_trace:
         if arousal == env.target_arousal:
@@ -59,35 +62,106 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
     return results
 
 
+def process_archive(model_type, model_path):
+    try:
+        best_score = 0
+        best_behavior = 0
+        best_reward = -1
+        best_arousal = 0
+        cell_length = 0
+        best_cell = None
+        archive = load_model(model_type, model_path, env, "")
+        arousal_trace = []
+
+        for cell in archive.values():
+            if cell.reward > best_reward:
+                best_cell = cell
+
+        best_reward = best_cell.reward
+        best_score = best_cell.score
+        best_behavior = best_cell.behavior_reward
+        best_arousal = best_cell.arousal_reward
+        cell_length = len(best_cell.trajectory_dict['state_trajectory'])
+        arousal_trace = best_cell.trajectory_dict['arousal_trajectory']
+
+        if task == "Imitate":
+            normalizer = env.model.cluster_score[-1] if cluster > 0 else best_score
+        else:
+            if game == "platform":
+                run_scores.append(best_score / 460)
+                run_arousals.append(best_arousal / 40)
+            elif game == "solid":
+                run_scores.append(best_score / 24)
+                run_arousals.append(best_arousal / 24 if freq == "Synchronized" else best_arousal / 40)
+
+        if freq == "Synchronized":
+            if weight == 0 and task == "Minimize":
+                run_arousals[-1] = 1 - run_arousals[-1]
+
+        print(cell_length, len(arousal_trace), run_arousals[-1], run_scores[-1])
+
+    except FileNotFoundError:
+        return None
+    except:
+        return None
+
+
+
 if __name__ == "__main__":
 
     runs = 10
     results = []
 
-    for game in ['solid']:
-        for model_type in ['DQN', 'PPO']:
-            for task in ['Maximize', 'Minimize']:
+    for game in ['fps', 'platform', 'fps']:
+        for model_type in ['random', 'DQN', 'PPO', 'Explore']:
+            for task in ['Maximize', 'Minimize', 'Imitate']:
 
-                env = SolidEnvironmentGameObs(
-                    0,
-                    graphics=True,
-                    weight=0,
-                    discretize=False,
-                    cluster=0,
-                    target_arousal=1,
-                    period_ra=False,
-                    decision_period=10,
-                    imitate=task == "Imitate",
-                    # reloadEvery=100,
-                    capture_fps=-60,
-                )
-                gymnasium_env = GymToGymnasiumWrapper(env)
+                if model_type != "Explore":
+                    if game == 'solid':
+                        env = SolidEnvironmentGameObs(
+                            0,
+                            graphics=True,
+                            weight=0,
+                            discretize=False,
+                            cluster=0,
+                            target_arousal=1,
+                            period_ra=False,
+                            decision_period=10,
+                            imitate=task == "Imitate",
+                        )
+                    elif game == 'platform':
+                        env = PiratesEnvironmentGameObs(
+                            0,
+                            graphics=True,
+                            weight=0,
+                            discretize=False,
+                            cluster=0,
+                            target_arousal=1,
+                            period_ra=False,
+                            decision_period=10,
+                            reloadEvery=100,
+                        )
+                    elif game == 'fps':
+                        env = HeistEnvironmentGameObs(
+                            0,
+                            graphics=True,
+                            weight=0,
+                            discretize=False,
+                            cluster=0,
+                            target_arousal=1,
+                            period_ra=False,
+                            decision_period=10,
+                        )
+                    gymnasium_env = GymToGymnasiumWrapper(env)
 
-                for freq in ['Synchronized']:
+                for freq in ['Synchronized', 'Asynchronized']:
                     for signal in ['Ordinal']:
                         for prediction in ['Classification']:
-                            for weight in [0.5,]:
-                                for cluster in [0]:
+                            for weight in [0, 0.5, 1.0]:
+
+                                clusters = [0] if task != 'Imitate' else [1, 2, 3, 4]
+
+                                for cluster in clusters:
 
                                     run_scores = []
                                     run_arousals = []
@@ -102,55 +176,18 @@ if __name__ == "__main__":
                                         run_steerings = []
                                         run_distance_to_cars = []
 
+                                    if model_type == "random" and (task != "Maximize" or weight != 0 or cluster != 0 or freq != "Synchronized"):
+                                        print("Skipping random runs...")
+                                        break
+
                                     for run in range(runs):
 
                                         if model_type == "Explore":
                                             model_name = f"MlpPolicy-Cluster{cluster}-{weight}λ-run{run}"
                                             model_path = f"results/{game}/{freq} Reward/Ordinal/Classification/{task} Arousal/{model_type}/{model_name}.zip"
-
-                                            try:
-                                                best_score = 0
-                                                best_behavior = 0
-                                                best_reward = -1
-                                                best_arousal = 0
-                                                cell_length = 0
-                                                best_cell = None
-                                                archive = load_model(model_type, model_path, env, "")
-                                                arousal_trace = []
-
-                                                for cell in archive.values():
-                                                    if cell.reward > best_reward:
-                                                        best_cell = cell
-
-                                                best_reward = best_cell.reward
-                                                best_score = best_cell.score
-                                                best_behavior = best_cell.behavior_reward
-                                                best_arousal = best_cell.arousal_reward
-                                                cell_length = len(best_cell.trajectory_dict['state_trajectory'])
-                                                arousal_trace = best_cell.trajectory_dict['arousal_trajectory']
-
-                                                if task == "Imitate":
-                                                    normalizer = env.model.cluster_score[-1] if cluster > 0 else best_score
-                                                else:
-                                                    if game == "platform":
-                                                        run_scores.append(best_score / 460)
-                                                        run_arousals.append(best_arousal / 40)
-                                                    elif game == "solid":
-                                                        run_scores.append(best_score / 24)
-                                                        run_arousals.append(best_arousal / 24 if freq == "Synchronized" else best_arousal / 40)
-
-                                                if freq == "Synchronized":
-                                                    if weight == 0 and task == "Minimize":
-                                                        run_arousals[-1] = 1 - run_arousals[-1]
-
-                                                print(cell_length, len(arousal_trace), run_arousals[-1], run_scores[-1])
-
-                                            except FileNotFoundError:
-                                                continue
-                                            except:
-                                                continue
-
-                                        elif model_type != 'Random':
+                                            scores, r_a, r_b, metrics = process_archive(model_name, model_path)
+                                           
+                                        elif model_type != 'random':
                                             task_name = f"{task} Arousal"
 
                                             if model_type == 'PPO':
@@ -166,64 +203,60 @@ if __name__ == "__main__":
                                                     print(f"Skipping: {model_path} (not found)")
                                                     continue
 
-                                            print(f"Evaluating: {model_type}, {signal}, {prediction}, {task}, weight={weight}, run={run}")
+                                        print(f"Evaluating: {model_type}, {signal}, {prediction}, {task}, weight={weight}, run={run}")
 
-                                            try:
+                                        try:
 
-                                                target_arousal = 0 if task == 'Minimize' else 1
-                                                env.weight = weight
-                                                env.target_arousal = target_arousal
-                                                env.cluster = cluster
-                                                env.period_ra = freq == "Asynchronized"
-                                                env.decision_period = 10
-                                                env.discretize = False
-                                                env.classifier = (prediction == 'Classification')
-                                                env.preference = (signal == 'Ordinal')
-                                                env.imitation_learning = (task == 'Imitate')
-                                                env.reinit()
+                                            target_arousal = 0 if task == 'Minimize' else 1
+                                            env.weight = weight
+                                            env.target_arousal = target_arousal
+                                            env.cluster = cluster
+                                            env.period_ra = freq == "Asynchronized"
+                                            env.decision_period = 10
+                                            env.discretize = False
+                                            env.classifier = (prediction == 'Classification')
+                                            env.preference = (signal == 'Ordinal')
+                                            env.imitation_learning = (task == 'Imitate')
+                                            env.reinit()
+                                            model = load_model(model_type, model_path, env, model_name) if model_type != "random" else None
+                                            env.callback = TensorBoardCallback("", gymnasium_env, model)
+                                            run_results = run_evaluation(env, model, model_type, steps_per_episode=600)
+                                            
+                                            if task == "Imitate" and freq == "Synchronized":
+                                                run_results['behavior'] /= env.model.cluster_score[-1]
+                                                run_results['arousal'] /= env.model.cluster_score[-1]
 
-                                                # Load model
-                                                if model_type != 'Random':
-                                                    model = load_model(model_type, model_path, env, model_name)
-                                                else:
-                                                    model = None  # Random agent
+                                            elif task != "Imitate":
+                                                if game == "platform":
+                                                    run_results['arousal'] /= 40
+                                                    run_results['score'] /= 460
+                                                elif game == "solid":
+                                                    run_results['arousal'] /= 24
+                                                    run_results['score'] /= 24
+                                                elif game == "fps":
+                                                    run_results['arousal'] /= 25
+                                                    run_results['score'] /= 500
 
-                                                env.callback = TensorBoardCallback("", gymnasium_env, model)
-                                                run_results = run_evaluation(env, model, model_type, steps_per_episode=600)
-                                                
-                                                if task == "Imitate" and freq == "Synchronized":
-                                                    run_results['behavior'] /= env.model.cluster_score[-1]
-                                                    run_results['arousal'] /= env.model.cluster_score[-1]
+                                            run_behaviors.append(run_results['behavior'])
+                                            run_scores.append(run_results['score'])
+                                            run_arousals.append(run_results['arousal'])
+                                            run_arousal_returns.append(run_results['arousal_return'])       
 
-                                                elif task != "Imitate":
-                                                    if game == "platform":
-                                                        run_results['arousal'] /= 40
-                                                        run_results['score'] /= 460
-                                                    elif game == "solid":
-                                                        run_results['arousal'] /= 24
-                                                        run_results['score'] /= 24
+                                            if task == "Imitate" and game == "solid":
+                                                run_final_positions.append(run_results['final_position'])
+                                                run_off_road.append(run_results['off_road'])
+                                                run_speeds.append(run_results['speed'])
+                                                run_gas_pedals.append(run_results['gas_pedal'])
+                                                run_steerings.append(run_results['steering'])
+                                                run_distance_to_cars.append(run_results['distance_to_cars'])
 
-                                                run_behaviors.append(run_results['behavior'])
-                                                run_scores.append(run_results['score'])
-                                                run_arousals.append(run_results['arousal'])
-                                                run_arousal_returns.append(run_results['arousal_return'])       
-
-                                                if task == "Imitate" and game == "solid":
-                                                    run_final_positions.append(run_results['final_position'])
-                                                    run_off_road.append(run_results['off_road'])
-                                                    run_speeds.append(run_results['speed'])
-                                                    run_gas_pedals.append(run_results['gas_pedal'])
-                                                    run_steerings.append(run_results['steering'])
-                                                    run_distance_to_cars.append(run_results['distance_to_cars'])
-
-                                                print(f"Behavior: {run_results['behavior']:.2f}, Score: {run_results['score']:.2f}, Arousal: {run_results['arousal']:.3f}, Arousal Return: {run_results['arousal_return']:.3f}")
+                                            print(f"Behavior: {run_results['behavior']:.2f}, Score: {run_results['score']:.2f}, Arousal: {run_results['arousal']:.3f}, Arousal Return: {run_results['arousal_return']:.3f}")
 
 
-                                            except Exception as e:
-                                                print(f"Raised: {e}")
-                                                raise
+                                        except Exception as e:
+                                            print(f"Raised: {e}")
+                                            raise
 
-                                    # Compute statistics across runs (if we have any successful evaluations)
                                     if len(run_scores) > 0:
 
                                         if len(run_scores) > 1:

@@ -436,7 +436,7 @@ class TensorBoardCallback:
         self.environment = environment.env
         self.writer = SummaryWriter(log_dir)
         self.model = model
-        self.episode = model.num_timesteps // 600
+        self.episode = model.num_timesteps // 600 if model is not None else 0
         self.best_cumulative_rb = 0
         self.best_env_score = 0
         self.best_cumulative_ra = 0
