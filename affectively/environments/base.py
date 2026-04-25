@@ -287,7 +287,7 @@ class BaseEnvironment(gym.Env, ABC):
                 break
 
         self.surrogate_list.append(surrogate)
-        self.current_score = env_score # if env_score >= self.current_score else self.current_score # score cannot go down.
+        self.current_score = env_score if env_score >= self.current_score else self.current_score # score cannot go down.
         change_in_score = self.current_score - self.previous_score
         self.score_change = self.score_change or change_in_score > 0
 
