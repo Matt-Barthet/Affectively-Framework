@@ -1,7 +1,5 @@
 from random import random
-
 from affectively.environments.base import BaseEnvironment
-import numpy as np
 
 
 class HeistEnvironment(BaseEnvironment):
