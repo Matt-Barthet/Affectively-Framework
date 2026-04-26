@@ -49,8 +49,8 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
     results['score'].append(env.current_score)
     prev_length = len(env.episode_arousal_trace)
 
-    for arousal in env.episode_arousal_trace:
-        if arousal == env.target_arousal:
+    for idx in range(len(env.episode_arousal_trace)-1):
+        if env.episode_arousal_trace[idx] == 0 if np.sign(env.model.cluster_arousal[idx+1] - env.model.cluster_arousal[idx]) <= 0 else 1:
             results['arousal_return'] += 1
     
     results['arousal_return'] /= len(env.episode_arousal_trace)
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     results = []
     df = pd.read_csv('experiment_results.csv')
 
-    for model_type in ['DQN', 'PPO', 'Explore']:
+    for model_type in ['random','DQN','PPO']:
         env = SolidEnvironmentGameObs(
             0,
             graphics=True,
@@ -260,20 +260,20 @@ if __name__ == "__main__":
                 print(f"Behavior: {behavior_mean:.2f} ± {behavior_ci:.2f}, Score: {score_mean:.2f} ± {score_ci:.2f}, Arousal: {arousal_mean:.3f} ± {arousal_ci:.3f}")
                 print(f"Final Position: {final_position_mean:.2f} ± {final_position_ci:.2f}, Off-road: {off_road_mean:.2f} ± {off_road_ci:.2f}, Speed: {speed_mean:.2f} ± {speed_ci:.2f}, Distance to Cars: {distance_to_cars_mean:.2f} ± {distance_to_cars_ci:.2f}\n")
                 
-                df = pd.concat([df, pd.DataFrame(results)])
-                output_file = 'experiment_results.csv'
-                df.to_csv(output_file, index=False)
-                print(f"\nResults saved to {output_file}")
-                print(f"Total parameter combinations evaluated: {len(results)}")
+        df = pd.concat([df, pd.DataFrame(results)])
+        output_file = 'experiment_results.csv'
+        df.to_csv(output_file, index=False)
+        print(f"\nResults saved to {output_file}")
+        print(f"Total parameter combinations evaluated: {len(results)}")
 
-                if len(results) > 0:
-                    print("\n=== Summary Statistics ===")
-                    summary = df.groupby(['model', 'signal', 'prediction', 'task', 'weight']).agg({
-                        'score_mean': 'mean',
-                        'arousal_mean': 'mean',
-                        'n_runs': 'first'
-                    }).round(3)
-                    print(summary)
+        if len(results) > 0:
+            print("\n=== Summary Statistics ===")
+            summary = df.groupby(['model', 'signal', 'prediction', 'task', 'weight']).agg({
+                'score_mean': 'mean',
+                'arousal_mean': 'mean',
+                'n_runs': 'first'
+            }).round(3)
+            print(summary)
 
         env.env.close()
         env.close()
