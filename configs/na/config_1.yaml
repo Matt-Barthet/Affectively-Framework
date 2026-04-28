@@ -3,14 +3,14 @@
 # General experiment settings
 runs: 10
 output_dir: "./results/"
-game: "fps"
-algorithm: "Explore"
+game: "platform"
+algorithm: "PPO"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 timesteps: 10_000_000
 
 # Hardware settings
-use_gpu: 1
+use_gpu: 0
 headless: 1
 
 # Specific game and agent parameters for this run
