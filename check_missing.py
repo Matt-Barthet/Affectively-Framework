@@ -4,10 +4,10 @@ def check_missing_experiments():
     results = []
 
     for game in ['solid', 'platform', 'fps']:
-        for model_type in ['PPO', 'DQN', 'Explore']:
-            for freq in ['Synchronized', 'Asynchronized']:
-                for signal in ['Ordinal']:
-                    for prediction in ['Classification']:
+        for freq in ['Synchronized', 'Asynchronized']:
+            for signal in ['Ordinal']:
+                for prediction in ['Classification']:
+                    for model_type in ['PPO', 'DQN', 'Explore']:
                         for weight in [0.0, 0.5, 1.0]:
                             clusters = [0] if game != 'solid' or weight != 0.0 else [0]  # adjust if needed, but for now
                             for cluster in clusters:
