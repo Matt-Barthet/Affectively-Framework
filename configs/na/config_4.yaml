@@ -4,7 +4,7 @@
 runs: 10
 output_dir: "./results/"
 game: "platform"
-algorithm: "PPO"
+algorithm: "Explore"
 policy: "MlpPolicy"
 conda_env: "affect-envs"
 timesteps: 10_000_000
@@ -26,5 +26,5 @@ imitate: 0
 periodic_ra: 1
 cv: 0
 grayscale: 0
-discretize: 0
+discretize: 1
 decisionPeriod: 10
