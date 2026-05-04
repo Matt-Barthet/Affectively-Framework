@@ -5,13 +5,13 @@ from affectively.environments.base import BaseEnvironment
 
 class PiratesEnvironment(BaseEnvironment):
 
-    def __init__(self, id_number, graphics, weight, obs, frame_buffer, cluster, period_ra, target_arousal, absolute=False, args=None, classifier=True, preference=True, capture_fps=60, decision_period=10):
+    def __init__(self, id_number, graphics, weight, obs, frame_buffer, cluster, period_ra, target_arousal, absolute=False, args=None, classifier=True, preference=True, capture_fps=60, decision_period=10, correct_step_bug=True):
         args = ["-frameBuffer", f"{frame_buffer}"] if args is None else args +  ["-frameBuffer", f"{frame_buffer}"]
         self.frameBuffer = frame_buffer
         time_scale = 5 if np.sign(capture_fps) > 0 else 1
         super().__init__(id_number=id_number, game='platform', graphics=graphics, obs_space=obs, args=args,
                          capture_fps=capture_fps, time_scale=time_scale, weight=weight, cluster=cluster, absolute=absolute,
-                         period_ra=period_ra, target_arousal=target_arousal, classifier=classifier, preference=preference, decision_period=decision_period)
+                         period_ra=period_ra, target_arousal=target_arousal, classifier=classifier, preference=preference, decision_period=decision_period, correct_step_bug=correct_step_bug)
 
     def sample_weighted_action(self):
         movement_options = [0, 1, 2]

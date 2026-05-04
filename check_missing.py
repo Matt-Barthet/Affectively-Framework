@@ -12,7 +12,6 @@ def check_missing_experiments():
                             clusters = [0] if game != 'solid' or weight != 0.0 else [0]  # adjust if needed, but for now
                             for cluster in clusters:
                                 if weight == 0.0:
-                                    # Combine Maximize and Minimize
                                     missing_max = 0
                                     missing_min = 0
                                     for task in ['Maximize', 'Minimize']:

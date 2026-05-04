@@ -167,6 +167,7 @@ class RainbowAgent:
                  n_step=3, gamma=0.99, lr=1e-4, alpha=0.6, beta_start=0.4, beta_frames=100000):
         
         self.device = device
+        self.gym_env = env
         self.env = env.env
 
         self.observation_size = env.observation_space.shape[0]
@@ -316,7 +317,6 @@ class RainbowAgent:
 
                 action, _ = self.predict(state)
                 next_state, reward, done, info = self.env.step(action)
-                # next_state, reward, done, info = self.env.step(np.concatenate((action, [0])))
                 next_state = np.array(next_state, dtype=np.float32)
                 self.append_sample(state, action, reward, next_state, done)
                 state = next_state

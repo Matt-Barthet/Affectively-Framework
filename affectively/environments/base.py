@@ -24,7 +24,7 @@ class BaseEnvironment(gym.Env, ABC):
 
     def __init__(self, id_number, graphics, obs_space, weight, game, capture_fps=5, time_scale=1, args=None,
                  target_arousal=1, cluster=0, period_ra=False, classifier=True, preference=True, decision_period=10,
-                 imitate=False, absolute=False):
+                 imitate=False, absolute=False, correct_step_bug=True):
 
         super(BaseEnvironment, self).__init__()
         if args is None:
@@ -113,6 +113,8 @@ class BaseEnvironment(gym.Env, ABC):
                 shape=(2,),
                 dtype=np.float32
             )
+
+        self.correct_step_bug = correct_step_bug
 
     def reinit(self):
         self.model = LinearSurrogateModel(game=self.game, cluster=self.cluster, classifier=self.classifier, preference=self.preference)
@@ -208,7 +210,7 @@ class BaseEnvironment(gym.Env, ABC):
         if self.imitation_learning:
             if self.period_ra and self.episode_length < 600:
                 if self.preference:
-                    target = self.model.cluster_arousal_ordinal[self.episode_length]
+                    target = self.model.cluster_arousal_ordinal[self.episode_length] # THIS NEEDS TO BE FIXED FOR FUTURE EXPERIMENTS
                 else:
                     target = self.model.cluster_arousal[self.episode_length]
             # Only reward if we are only within the score range of the cluster
@@ -280,14 +282,17 @@ class BaseEnvironment(gym.Env, ABC):
                 arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
                 state[modality] = np.concatenate((state[modality], arousal_window))
                 if self.imitation_learning == 1 and not self.discretize:
-                    # if self.episode_length < 600:
-                    #     target_arousal = self.model.cluster_arousal[self.episode_length + 1]
                     added = [self.episode_length, len(self.episode_arousal_trace), self.target_time_idx]
                     state[modality] = np.concatenate((added, state[modality]))
                 break
 
         self.surrogate_list.append(surrogate)
-        self.current_score = env_score if env_score >= self.current_score else self.current_score # score cannot go down.
+
+        if self.correct_step_bug:
+            self.current_score = env_score if env_score >= self.current_score else self.current_score # score cannot go down.
+        else:
+            self.current_score = env_score
+            
         change_in_score = self.current_score - self.previous_score
         self.score_change = self.score_change or change_in_score > 0
 
@@ -312,6 +317,7 @@ class BaseEnvironment(gym.Env, ABC):
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
             self.cumulative_rl += final_reward
 
+        self.raw_state = state
         if self.customSideChannel.levelEnd:
             done = True
         return state, final_reward, done, info
@@ -358,7 +364,6 @@ class BaseEnvironment(gym.Env, ABC):
             game_suffix = "exe"
         system="Mac" if system == "Darwin" else system
         try:
-            abs = "_absolute" if self.absolute else ""
             env = UnityEnvironment(f"./affectively/builds/{self.game.lower()}/{system}/{self.game.lower()}.{game_suffix}",
                                    side_channels=[self.engineConfigChannel, self.customSideChannel],
                                    worker_id=identifier,

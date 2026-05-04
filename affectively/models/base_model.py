@@ -30,7 +30,7 @@ class AbstractSurrogateModel(ABC):
 
         self.behavior_reward_book = {}
         self.arousal_reward_book = {}
-
+        self.plot_labels = []
         self.load_data()
 
         self.load_model()
@@ -84,6 +84,7 @@ class AbstractSurrogateModel(ABC):
             # if np.min(state_scaled) < 0 or np.max(state_scaled) > 1:
             #     print(f"Values outside of range: Max={np.max(state_scaled):.3f}@{self.columns[np.argmax(state_scaled)]}(other={np.where(state_scaled > 1)[0]})", end=", ")
             #     print(f"Min={np.min(state_scaled):.3f}@{self.columns[np.argmin(state_scaled)]}(other={np.where(state_scaled < 0)[0]})")  
+            # print(state_scaled)
             state_scaled = np.clip(state_scaled, 0, 1)
             predictions.append(self._predict_single(model, scaler, state_scaled))
     
@@ -172,23 +173,21 @@ class AbstractSurrogateModel(ABC):
         self.cluster_arousal = np.mean(arousals_stacked, axis=1)
         self.cluster_arousal = np.repeat(self.cluster_arousal, repeat_factor)
 
-        # from matplotlib import pyplot as plt
-        # plt.errorbar(np.arange(len(self.cluster_arousal)), self.cluster_arousal, label='Cluster Arousal', alpha=0.7)
-        # plt.errorbar(np.arange(len(self.cluster_score)), self.cluster_score / 24, label='Cluster Score', alpha=0.7, color='orange')
-        # plt.show()
+        from matplotlib import pyplot as plt
 
         if self.preference and self.classifier:
             arousals = self.data['[output]ranking'].values
             diffs = np.diff(self.cluster_arousal)
             ordinal_labels = np.where(diffs > 0, 1, 0)
             self.cluster_arousal_ordinal = np.insert(ordinal_labels, 0, 1)
-
             prev_idx = 0
             for score, idx in self.behavior_reward_book.items():
-                # print(f"Score: {score}, Index range: {prev_idx} to {idx}, Arousal mean: {np.mean(self.cluster_arousal[prev_idx:int(idx)])}, arousals: {self.cluster_arousal[prev_idx:int(idx)]}")
                 self.arousal_reward_book[int(score)] = 1 if self.cluster_arousal[idx] - self.cluster_arousal[prev_idx] >= 0 else 0
                 prev_idx = idx
 
+            self.arousal_reward_book[int(score)+1] = 1 if self.cluster_arousal[-1] - self.cluster_arousal[idx] >= 0 else 0
+
+            self.plot_labels = np.where(np.array(list(self.arousal_reward_book.values())) == 0, -1, 1)
             self.data = self.data.drop(columns=['[output]ranking', '[output]delta'])
 
         elif self.preference and not self.classifier:
