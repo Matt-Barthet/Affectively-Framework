@@ -20,12 +20,14 @@ def load_model(model_type, model_path, env, model_name):
         elif model_type == 'Random':
             return None
         elif model_type == "Explore":
+
             try:
                 with open(model_path, 'rb') as file:
                     model = pickle.load(file)
             except:
-                with gzip.open(f'{model_path}.zip', 'rb') as f:
+                with gzip.open(f'{model_path}', 'rb') as f:
                     model = pickle.load(f)
+            
         else:
             raise ValueError(f"Unknown model type: {model_type}")
         return model

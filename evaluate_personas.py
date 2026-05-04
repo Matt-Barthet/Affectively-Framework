@@ -1,4 +1,5 @@
 from pathlib import Path
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from affectively.environments import GymToGymnasiumWrapper
@@ -8,6 +9,11 @@ from affectively.utils.logging import TensorBoardCallback
 from affectively.environments.solid_game_obs import SolidEnvironmentGameObs
 from affectively.environments.pirates_game_obs import PiratesEnvironmentGameObs
 from agents import load_model
+from archive_utils import get_best_cell, process_surrogate_vectors
+
+
+def discretize_input(val):
+    return int(np.ceil(val) if val > 0 else np.floor(val))
 
 
 def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=False):
@@ -15,23 +21,26 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
     state = env.reset()
     pos_arousal = [[], [], []]
 
-    results = {'score': [], 'arousal': 0, 'behavior': 0, 'arousal_return': 0,
+    results = {'score': [], 'arousal': 0, 'behavior': 0, 'arousal_return': 0, 'lap_time': 0,
                'speed': 0, 'off_road': 0, 'gas_pedal': {-1: 0, 0: 0, 1: 0}, 'steering': {-1: 0, 0: 0, 1: 0}, 'distance_to_cars': 0, 'final_position': 0}
-
     prev_length = 0
+    lap_counter = 0
     for steps in range(steps_per_episode):
         action = model.predict(state, deterministic=True)[0] if model_type != "random" else env.action_space.sample()
         state, reward, done, info = env.step(action)
 
-        if env.game == "platform":
-            pos_arousal[0].append(env.customSideChannel.pos)
-            pos_arousal[1].append(env.episode_arousal_trace[-1] if len(env.episode_arousal_trace) > 0 else 1)
-            pos_arousal[2].append(reward)
+        pos_arousal[0].append(env.customSideChannel.pos)
+        pos_arousal[1].append(env.episode_arousal_trace[-1] if len(env.episode_arousal_trace) > 0 else 1)
+        pos_arousal[2].append(reward)
         
         if len(env.episode_arousal_trace) != prev_length:
             results['off_road'] += np.ceil(env.current_surrogate[7])
-            results['gas_pedal'][int(env.current_surrogate[8])] += 1
-            results['steering'][int(env.current_surrogate[9])] += 1
+            lap_counter += 1
+            if env.current_score == 8 or env.current_score == 16 or env.current_score == 24:
+                results['lap_time'] += lap_counter * 3
+                lap_counter = 0
+            results['gas_pedal'][discretize_input(env.current_surrogate[8])] += 1
+            results['steering'][discretize_input(env.current_surrogate[9])] += 1
             results['speed'] += env.current_surrogate[2]
             results['distance_to_cars'] += env.current_surrogate[25]
             results['score'].append(env.current_score)
@@ -41,13 +50,15 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
         if done:
             env.reset()
 
-    results['off_road'] += np.ceil(env.current_surrogate[7])
-    results['gas_pedal'][int(env.current_surrogate[8])] += 1
-    results['steering'][int(env.current_surrogate[9])] += 1
+    results['off_road'] += env.current_surrogate[7]
+    results['gas_pedal'][discretize_input(env.current_surrogate[8])] += 1
+    results['steering'][discretize_input(env.current_surrogate[9])] += 1
     results['speed'] += env.current_surrogate[2]
     results['distance_to_cars'] += env.current_surrogate[25]
     results['score'].append(env.current_score)
     prev_length = len(env.episode_arousal_trace)
+
+    pd.DataFrame(np.asarray(pos_arousal).T, columns=['Position', 'Arousal', 'Score']).to_csv("Pos_Arousal_Score.csv")
 
     for idx in range(len(env.episode_arousal_trace)-1):
         if env.episode_arousal_trace[idx] == 0 if np.sign(env.model.cluster_arousal[idx+1] - env.model.cluster_arousal[idx]) <= 0 else 1:
@@ -69,58 +80,86 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
 
 def process_archive(model_type, model_path):
     try:
-        best_score = 0
-        best_behavior = 0
-        best_reward = -1
-        best_arousal = 0
-        cell_length = 0
-        best_cell = None
+        results = {'score': [], 'arousal': 0, 'behavior': 0, 'arousal_return': 0, 'lap_time': 0,
+               'speed': 0, 'off_road': 0, 'gas_pedal': {-1: 0, 0: 0, 1: 0}, 'steering': {-1: 0, 0: 0, 1: 0}, 'distance_to_cars': 0, 'final_position': 0}
+
         archive = load_model(model_type, model_path, env, "")
-        arousal_trace = []
+        best_cell = get_best_cell(archive)
+        print(f"Best cell: reward={best_cell.reward}, behavior={best_cell.behavior_reward}, arousal={best_cell.arousal_reward}, length={best_cell.get_cell_length()}")
 
-        for cell in archive.values():
-            if cell.reward > best_reward:
-                best_cell = cell
-
-        best_reward = best_cell.reward
-        best_score = best_cell.score
-        best_behavior = best_cell.behavior_reward
-        best_arousal = best_cell.arousal_reward
-        cell_length = len(best_cell.trajectory_dict['state_trajectory'])
         arousal_trace = best_cell.trajectory_dict['arousal_trajectory']
+        _, valid_vectors, counter = process_surrogate_vectors(best_cell)
 
-        if task == "Imitate":
-            normalizer = env.model.cluster_score[-1] if cluster > 0 else best_score
-        else:
-            if game == "platform":
-                run_scores.append(best_score / 460)
-                run_arousals.append(best_arousal / 40)
-            elif game == "solid":
-                run_scores.append(best_score / 24)
-                run_arousals.append(best_arousal / 24 if freq == "Synchronized" else best_arousal / 40)
+        lap_counter = 0
+        current_lap = 0
+        scores = []
 
-        if freq == "Synchronized":
-            if weight == 0 and task == "Minimize":
-                run_arousals[-1] = 1 - run_arousals[-1]
+        for vector in valid_vectors:
+            results['off_road'] += vector[7]
+            results['gas_pedal'][discretize_input(vector[8])] += 1
+            results['steering'][discretize_input(vector[9])] += 1
+            results['speed'] += vector[2]
+            results['distance_to_cars'] += vector[25]
 
-        print(cell_length, len(arousal_trace), run_arousals[-1], run_scores[-1])
+            score = np.ceil(vector[1])
+            lap_counter += 1
+            if current_lap < score // 8 and (score == 8 or score == 16 or score == 24):
+                print(f"Score: {score}, Lap Counter: {lap_counter}, Current Lap: {current_lap}")
+                results['lap_time'] += lap_counter / 4
+                current_lap = score // 8
+                lap_counter = 0
+
+            scores.append(score)
+            if int(vector[1]) == env.model.cluster_score[-1]:
+                results['final_position'] = vector[0]
+
+        for idx in range(len(arousal_trace)-1):
+            if arousal_trace[idx] == 0 if np.sign(env.model.cluster_arousal[idx+1] - env.model.cluster_arousal[idx]) <= 0 else 1:
+                results['arousal_return'] += 1
+
+        results['final_position'] = best_cell.trajectory_dict['arousal_vectors'][-1][0] if results['final_position'] == 0 else results['final_position']
+        results['arousal_return'] /= len(arousal_trace)
+        results['score'] = best_cell.score
+        results['off_road'] /= counter
+        results['speed'] /= counter
+        results['behavior'] = best_cell.behavior_reward 
+
+        results['arousal'] = best_cell.arousal_reward
+        results['gas_pedal'] = np.asarray(list(results['gas_pedal'].values())) / len(arousal_trace)
+        results['steering'] = np.asarray(list(results['steering'].values())) / len(arousal_trace)
+        results['lap_time'] /= best_cell.score // 8
+        results['distance_to_cars'] /= len(arousal_trace) * 15
+
+        
+        pos_arousal = [[], [], []]
+        pos_arousal[0] = [list(best_cell.trajectory_dict['raw_state'][idx][0][0:3]) for idx in range(300)]
+        pos_arousal[1] = [v for v in arousal_trace for _ in range(15)][:300]
+        pos_arousal[2] = scores[:300]
+        pd.DataFrame(np.asarray(pos_arousal).T, columns=['Position', 'Arousal', 'Score']).to_csv("Pos_Arousal_Score.csv")
+
+        return results
 
     except FileNotFoundError:
         return None
-    except:
-        return None
+    except Exception as e:
+        print(f"Error processing archive: {e}")
+        return results
 
 
 if __name__ == "__main__":
 
     runs = 10
     results = []
-    df = pd.read_csv('experiment_results.csv')
 
-    for model_type in ['random','DQN','PPO']:
+    try:
+        df = pd.read_csv('experiment_results.csv')
+    except:
+        df = pd.DataFrame()
+    for model_type in ['Explore']:
+
         env = SolidEnvironmentGameObs(
             0,
-            graphics=True,
+            graphics=False,
             weight=0,
             discretize=model_type=="Explore",
             cluster=0,
@@ -128,13 +167,13 @@ if __name__ == "__main__":
             period_ra=False,
             decision_period=10,
             imitate=True,
-            capture_fps=10
+            capture_fps=-60
         )
         gymnasium_env = GymToGymnasiumWrapper(env)
 
         for weight in [0.0, 0.5, 1.0]:
 
-            for cluster in [1, 2, 3, 4]:
+            for cluster in [1,2,3,4]:
 
                 run_scores = []
                 run_arousals = []
@@ -142,6 +181,7 @@ if __name__ == "__main__":
                 run_arousal_returns = []
 
                 run_final_positions = []
+                run_lap_times = []
                 run_off_road = []
                 run_speeds = []
                 run_gas_pedals = []
@@ -152,17 +192,18 @@ if __name__ == "__main__":
                     print("Skipping random runs...")
                     continue
                 # Check if this weight, cluster, alg combo are in the results df, if so, skip
-                if any((df['model'] == model_type) & (df['weight'] == weight) & (df['cluster'] == cluster)):
-                    print(f"Skipping: {model_type}, cluster={cluster}, weight={weight} (already evaluated)")
-                    continue
+                try:
+                    if any((df['model'] == model_type) & (df['weight'] == weight) & (df['cluster'] == cluster)):
+                        print(f"Skipping: {model_type}, cluster={cluster}, weight={weight} (already evaluated)")
+                        continue
+                except KeyError:
+                    pass
 
-                for run in range(runs):
+                for run in range(10):
 
                     if model_type == "Explore":
                         model_name = f"MlpPolicy-Cluster{cluster}-{weight}λ-run{run}"
-                        model_path = f"results/solid/Synchronized Reward/Ordinal/Classification/Imitate Arousal/{model_type}/{model_name}.zip"
-                        scores, r_a, r_b, metrics = process_archive(model_name, model_path)
-                        
+                        model_path = f"results/solid/Synchronized Reward/Ordinal/Classification/Imitate Arousal/{model_type}/{model_name}"                        
                     elif model_type != 'random':
                         if model_type == 'PPO':
                             model_name = f"MlpPolicy-Cluster{cluster}-{weight}λ-run{run}"
@@ -182,10 +223,17 @@ if __name__ == "__main__":
                         env.cluster = cluster
                         discretize=model_type=="Explore",
                         env.reinit()
-                        model = load_model(model_type, model_path, env, model_name) if model_type != "random" else None
-                        env.callback = TensorBoardCallback("", gymnasium_env, model)
-                        run_results = run_evaluation(env, model, model_type, steps_per_episode=600)
+
+                        if model_type == "Explore":
+                            run_results = process_archive(model_type, model_path)
+                        else:
+                            model = load_model(model_type, model_path, env, model_name) if model_type != "random" else None
+                            env.callback = TensorBoardCallback("", gymnasium_env, model)
+                            run_results = run_evaluation(env, model if model_type != "random" else None, model_type, steps_per_episode=600)
                         
+                        if run_results is None: 
+                            continue
+
                         run_results['behavior'] /= env.model.cluster_score[-1]
                         run_results['arousal'] /= env.model.cluster_score[-1]
 
@@ -195,6 +243,7 @@ if __name__ == "__main__":
                         run_arousal_returns.append(run_results['arousal_return'])       
 
                         run_final_positions.append(run_results['final_position'])
+                        run_lap_times.append(run_results['lap_time'])
                         run_off_road.append(run_results['off_road'])
                         run_speeds.append(run_results['speed'])
                         run_gas_pedals.append(run_results['gas_pedal'])
@@ -202,7 +251,7 @@ if __name__ == "__main__":
                         run_distance_to_cars.append(run_results['distance_to_cars'])
                         
                         print(f"Behavior: {run_results['behavior']:.2f}, Score: {run_results['score']:.2f}, Arousal: {run_results['arousal']:.3f}, Arousal Return: {run_results['arousal_return']:.3f}")
-                        print(f"Final Position: {run_results['final_position']:.2f}, Off-road: {run_results['off_road']:.2f}, Speed: {run_results['speed']:.2f}, Distance to Cars: {run_results['distance_to_cars']:.2f}\n")
+                        print(f"Final Position: {run_results['final_position']:.2f}, Lap Time: {run_results['lap_time']:.2f}, Off-road: {run_results['off_road']:.2f}, Speed: {run_results['speed']:.2f}, Distance to Cars: {run_results['distance_to_cars']:.2f}\n")
 
                     except Exception as e:
                         print(f"Raised: {e}")
@@ -213,6 +262,7 @@ if __name__ == "__main__":
                 behavior_mean, behavior_ci = compute_confidence_interval(run_behaviors)
                 arousal_return_mean, arousal_return_ci = compute_confidence_interval(run_arousal_returns)
                 final_position_mean, final_position_ci = compute_confidence_interval(run_final_positions)
+                lap_time_mean, lap_time_ci = compute_confidence_interval(run_lap_times)
                 off_road_mean, off_road_ci = compute_confidence_interval(run_off_road)
                 speed_mean, speed_ci = compute_confidence_interval(run_speeds)
                 distance_to_cars_mean, distance_to_cars_ci = compute_confidence_interval(run_distance_to_cars)
@@ -239,6 +289,8 @@ if __name__ == "__main__":
                     'arousal_return_ci': arousal_return_ci,
                     'final_position_mean': final_position_mean,
                     'final_position_ci': final_position_ci,
+                    'lap_time_mean': lap_time_mean,
+                    'lap_time_ci': lap_time_ci,
                     'off_road_mean': off_road_mean,
                     'off_road_ci': off_road_ci,
                     'speed_mean': speed_mean,
@@ -251,6 +303,10 @@ if __name__ == "__main__":
                     'steering_ci': str(steering_ci),
                     'scores_raw': run_scores,
                     'arousal_raw': run_arousals,
+                    'final_position_raw': run_final_positions,
+                    'lap_time_raw': run_lap_times,
+                    'off_road_raw': run_off_road,
+                    'distance_to_cars_raw': run_distance_to_cars,
                     "frequency": 'Synchronized',
                     "cluster": cluster,
                     'game': 'Solid'
@@ -258,7 +314,7 @@ if __name__ == "__main__":
 
                 print(f"Summary for {model_type}/Cluster {cluster}/λ={weight}:")
                 print(f"Behavior: {behavior_mean:.2f} ± {behavior_ci:.2f}, Score: {score_mean:.2f} ± {score_ci:.2f}, Arousal: {arousal_mean:.3f} ± {arousal_ci:.3f}")
-                print(f"Final Position: {final_position_mean:.2f} ± {final_position_ci:.2f}, Off-road: {off_road_mean:.2f} ± {off_road_ci:.2f}, Speed: {speed_mean:.2f} ± {speed_ci:.2f}, Distance to Cars: {distance_to_cars_mean:.2f} ± {distance_to_cars_ci:.2f}\n")
+                print(f"Final Position: {final_position_mean:.2f} ± {final_position_ci:.2f}, Lap Time: {lap_time_mean:.2f} ± {lap_time_ci:.2f}, Off-road: {off_road_mean:.2f} ± {off_road_ci:.2f}, Speed: {speed_mean:.2f} ± {speed_ci:.2f}, Distance to Cars: {distance_to_cars_mean:.2f} ± {distance_to_cars_ci:.2f}\n")
                 
         df = pd.concat([df, pd.DataFrame(results)])
         output_file = 'experiment_results.csv'
