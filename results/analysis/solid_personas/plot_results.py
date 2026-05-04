@@ -12,6 +12,9 @@ if __name__ == "__main__":
         df = pd.read_csv(f'./experiment_results.csv')
         df = df[df['game'] == game]
 
+        # frequences: synchronized vs asynchronized
+        # targets: maximize vs minimize arousal
+
         models = ['random','PPO', 'DQN', 'Explore']
         colors = cm.viridis(np.linspace(0, 1, len(models)))
         color_dict = dict(zip(models, colors))
@@ -90,5 +93,66 @@ if __name__ == "__main__":
         plt.savefig(f'./{game}_personas_all_clusters.png')
         plt.show()
 
+        # Helper to build means/CIs per condition for a given subset
+        def compute_stats(subset_df):
+            s_means, s_cis, a_means, a_cis = {m: [] for m in models}, {m: [] for m in models}, {m: [] for m in models}, {m: [] for m in models}
+            for weight in weights:
+                w_sub = subset_df[subset_df['weight'] == weight]
+                for model in models:
+                    m_sub = w_sub[w_sub['model'] == model]
+                    s_means[model].append(m_sub['score_mean'].mean() if len(m_sub) > 0 else 0)
+                    s_cis[model].append(m_sub['score_ci'].mean() if len(m_sub) > 0 else 0)
+                    a_means[model].append(m_sub['arousal_mean'].mean() if len(m_sub) > 0 else 0)
+                    a_cis[model].append(m_sub['arousal_ci'].mean() if len(m_sub) > 0 else 0)
+            return s_means, s_cis, a_means, a_cis
 
-       
+        def plot_condition_comparison(conditions, col_key, col_labels, filename, row_title):
+            fig, axes = plt.subplots(len(conditions), 2, figsize=(12, 5 * len(conditions)))
+            if len(conditions) == 1:
+                axes = [axes]
+            for row_idx, cond in enumerate(conditions):
+                subset = df[df[col_key] == cond]
+                s_means, s_cis, a_means, a_cis = compute_stats(subset)
+                ax_b, ax_a = axes[row_idx][0], axes[row_idx][1]
+                for i, algo in enumerate(models):
+                    ax_b.bar(x + i * bar_width, s_means[algo], bar_width, yerr=s_cis[algo], capsize=3, label=display_dict[algo], color=color_dict[algo], edgecolor='black')
+                    ax_a.bar(x + i * bar_width, a_means[algo], bar_width, yerr=a_cis[algo], capsize=3, label=display_dict[algo], color=color_dict[algo], edgecolor='black')
+                for ax, ylabel, title in [
+                    (ax_b, r'$R_b$', f'Behavior — {col_labels[row_idx]}'),
+                    (ax_a, r'$R_a$', f'Affect — {col_labels[row_idx]}'),
+                ]:
+                    ax.set_xlabel('$\lambda$', fontsize=13)
+                    ax.set_ylabel(ylabel, fontsize=13)
+                    ax.set_title(title, fontsize=14)
+                    ax.set_ylim(-0.05, 1.05)
+                    ax.set_xticks(x + bar_width * (n_algos - 1) / 2)
+                    ax.set_xticklabels(weight_names_list, fontsize=13)
+                    ax.tick_params(axis='y', labelsize=13)
+            handles, labels = axes[0][0].get_legend_handles_labels()
+            plt.tight_layout()
+            fig.subplots_adjust(top=0.92)
+            fig.suptitle(row_title, fontsize=16)
+            fig.legend(handles, labels, loc='upper center', ncol=len(labels), bbox_to_anchor=(0.5, 0.98), fontsize=13)
+            plt.savefig(f'./{filename}')
+            plt.show()
+
+        # Frequency comparison: Synchronized vs Asynchronized
+        plot_condition_comparison(
+            conditions=['Synchronized', 'Asynchronized'],
+            col_key='frequency',
+            col_labels=['Synchronized', 'Asynchronized'],
+            filename=f'{game}_frequency_comparison.png',
+            row_title=f'{game.capitalize()} — Frequency Comparison',
+        )
+
+        # Task comparison: Maximize vs Minimize arousal
+        plot_condition_comparison(
+            conditions=['Maximize', 'Minimize'],
+            col_key='task',
+            col_labels=['Maximize Arousal', 'Minimize Arousal'],
+            filename=f'{game}_task_comparison.png',
+            row_title=f'{game.capitalize()} — Task Comparison',
+        )
+
+
+

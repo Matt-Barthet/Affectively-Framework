@@ -45,7 +45,6 @@ SURROGATE_LABELS = {
 
 
 def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=False):
-    state = env.reset()
     max_score = 24 if env.game.lower() == "solid" else 460 if env.game.lower() == "platform" else 500
     print(max_score)
     results = {'score': 0, 'arousal': 0, 'behavior': 0, 'arousal_return': 0, 'reward': 0,
@@ -53,6 +52,7 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
     surrogate_vectors = []
     prev_length = 0
 
+    state = env.reset()
     for _ in range(steps_per_episode):
         action = model.predict(state, deterministic=True)[0] if model_type != "random" else env.action_space.sample()
         state, _, done, _ = env.step(action)
@@ -60,10 +60,8 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
             if hasattr(env, 'current_surrogate') and env.current_surrogate is not None:
                 surrogate_vectors.append(np.array(env.current_surrogate))
             prev_length = len(env.episode_arousal_trace)
-
         if int(env.current_score) == max_score:
             break
-
         if done:
             env.reset()
 
@@ -172,7 +170,7 @@ if __name__ == "__main__":
                                     target_arousal=1,
                                     period_ra=False,
                                     decision_period=10,
-                                    reloadEvery=100,
+                                    reloadEvery=20000,
                                     capture_fps=60
                                 )
                             elif game == 'fps':
