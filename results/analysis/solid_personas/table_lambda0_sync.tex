@@ -1,0 +1,15 @@
+\begin{table}[ht]
+\centering
+\caption{Arousal return results for $\lambda=0.0$, Synchronized frequency (Maximize Arousal task). Values shown as mean $\pm$ 95\% CI. \textbf{Bold} indicates best per game.}
+\label{tab:results_lambda0_sync}
+\begin{tabular}{lccc}
+\toprule
+Algorithm & Racing & Platformer & FPS \\
+\midrule
+Random & \textbf{0.815 $\pm$ 0.060} & \textbf{0.815 $\pm$ 0.056} & 0.075 $\pm$ 0.029 \\
+PPO & 0.755 $\pm$ 0.075 & 0.555 $\pm$ 0.163 & 0.360 $\pm$ 0.249 \\
+DQN & 0.539 $\pm$ 0.201 & 0.718 $\pm$ 0.062 & \textbf{0.396 $\pm$ 0.327} \\
+Go-Explore & 0.647 $\pm$ 0.052 & 0.756 $\pm$ 0.077 & 0.180 $\pm$ 0.068 \\
+\bottomrule
+\end{tabular}
+\end{table}
