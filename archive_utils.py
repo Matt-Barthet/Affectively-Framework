@@ -12,16 +12,23 @@ def get_best_cell(archive):
 def process_surrogate_vectors(best_cell, model):
     """
     Extract valid surrogate vectors from an archive best cell.
+    Deduplicates consecutive identical vectors so each generate_arousal window
+    contributes one entry regardless of how many steps it covered. This also
+    removes stale entries recorded before the first generate_arousal fires in
+    each exploration segment (they are exact duplicates of the previous window).
     Returns (mean_vector, valid_vectors, count). mean_vector is empty if
     no valid vectors exist.
     """
+    all_vectors = best_cell.trajectory_dict['arousal_vectors']
+    valid_vectors = [v for v in all_vectors if len(v) in (model.surrogate_length, model.surrogate_length + 1)]
 
-    valid_vectors = [np.array(v[-model.surrogate_length:]) for v in best_cell.trajectory_dict['raw_state']]
-    try:
-        print(valid_vectors[0][0])
-    except:
-        valid_vectors = [v for v in best_cell.trajectory_dict['arousal_vectors']]
+    if not valid_vectors:
+        return np.array([]), [], 0
 
-    print()   
-    print() 
-    return np.mean(valid_vectors, axis=0), valid_vectors, len(valid_vectors)
+    # Keep only the first occurrence of each run of identical vectors
+    unique_vectors = [valid_vectors[0]]
+    for v in valid_vectors[1:]:
+        if not np.array_equal(v, unique_vectors[-1]):
+            unique_vectors.append(v)
+
+    return np.mean(unique_vectors, axis=0), unique_vectors, len(unique_vectors)

@@ -33,10 +33,12 @@ class Cell:
                                 "uncertainty_trajectory": [],
                                 "arousal_vectors": [],
                                 "score_trajectory": [],
-                                "raw_state":[]}
+                                "raw_state": [],
+                                }
 
         self.human_vector = []
 
+        self.current_surrogate = []
         self.score, self.previous_score = 0, 0
         self.cumulative_score = 0
         self.arousal = 0
@@ -148,10 +150,23 @@ class Explorer:
         Explore a fixed number of random actions from the current cell.
         """
         self.current_cell = self.select_cell()
+
+        prev = 0
+        lister = []
+        for element in self.current_cell.trajectory_dict['arousal_vectors']:
+            if len(element) > 0:
+                lister.append(element[1])
+                if element[1] < prev:
+                    print("BUGGGGGGG")
+                    print(self.current_cell.trajectory_dict['score_trajectory'])
+                    exit()
+
+                prev = element[1]
+
         if self.current_cell.get_cell_length() >= 600:
             return
 
-        if self.num_episodes % 200 == 0 and self.num_episodes > 0 :
+        if self.env.game == "platform" and self.num_episodes % 200 == 0 and self.num_episodes > 0 :
             self.gymnasium_env.reset()
             self.current_cell.key = self.root_cell.key
         else:
@@ -159,6 +174,7 @@ class Explorer:
                 null_action = self.gymnasium_env.action_space.sample()
                 null_action[-1] = self.current_cell.key
                 self.gymnasium_env.step(null_action)
+
             except UnityGymException:
                 return 0
 
@@ -170,9 +186,10 @@ class Explorer:
         self.env.cumulative_rb = self.current_cell.cumulative_score
         self.env.cumulative_ra = self.current_cell.arousal_reward
         self.env.estimated_position = self.current_cell.estimated_position
-        self.env.surrogate_list = self.current_cell.human_vector
         self.env.episode_arousal_trace = self.current_cell.trajectory_dict['arousal_trajectory']
         self.env.arousal_episode_length = self.current_cell.arousal_ep_length
+        self.env.surrogate_list = list(self.current_cell.human_vector)
+        self.env.current_surrogate = self.current_cell.current_surrogate.copy()
 
         for j in range(explore_length):
 
@@ -190,7 +207,6 @@ class Explorer:
             try:
                 state, _, _, done, _ = self.gymnasium_env.step(action)
             except UnityGymException:
-                # print("UnityGymException")
                 return j
 
             self.num_timesteps += 1
@@ -200,15 +216,20 @@ class Explorer:
             new_cell.trajectory_dict['state_trajectory'].append(state)
             new_cell.trajectory_dict['arousal_trajectory'] = list(self.env.episode_arousal_trace)
             new_cell.trajectory_dict['score_trajectory'].append(self.env.cumulative_rb)
-            new_cell.trajectory_dict['raw_state'].append(self.gymnasium_env.env.raw_state)
-            new_cell.trajectory_dict['arousal_vectors'].append(self.env.current_surrogate)
-            new_cell.human_vector = self.env.surrogate_list
+            new_cell.trajectory_dict['raw_state'].append(self.gymnasium_env.env.raw_state[0][:6])
+            cs = self.env.current_surrogate
+            if len(cs) > 0:
+                new_cell.trajectory_dict['arousal_vectors'].append(np.append(cs, self.env.episode_length))
+            else:
+                new_cell.trajectory_dict['arousal_vectors'].append(np.append(np.zeros(self.env.surrogate_length), self.env.episode_length))
+            new_cell.human_vector = list(self.env.surrogate_list)
             new_cell.final = new_cell.get_cell_length() >= 600
             new_cell.previous_score = self.env.previous_score
             new_cell.score = self.env.current_score
             new_cell.cumulative_score = self.env.cumulative_rb
             new_cell.behavior_reward = self.env.cumulative_rb
             new_cell.arousal_ep_length = self.env.arousal_episode_length
+            new_cell.current_surrogate = self.env.current_surrogate.copy()
 
             new_cell.reward = self.env.cumulative_rl
             new_cell.arousal_reward = self.env.cumulative_ra
@@ -222,6 +243,10 @@ class Explorer:
             if self.num_timesteps % 100_000 == 0:
                 print("Timestep: ", self.num_timesteps, len(self.archive), self.bestCell.get_cell_length(), self.bestCell.reward, self.updates)
                 self.env.callback.on_episode_end()
+
+            if done:
+                break
+
 
         if len(self.archive) > 10_000:
             self.save(self.logdir, False)

@@ -139,24 +139,19 @@ class AbstractSurrogateModel(ABC):
 
         if self.game == "solid":
             for i in range(1, 25):
-                self.behavior_reward_book[i] = 0
+                self.behavior_reward_book[i] = -1
         elif self.game == "platform":
             for i in range(10, 470, 10):
-                self.behavior_reward_book[i] = 0
+                self.behavior_reward_book[i] = -1
         elif self.game == "fps":
             for i in range(10, 510, 10):
-                self.behavior_reward_book[i] = 0
+                self.behavior_reward_book[i] = -1
 
         for idx in range(len(self.cluster_score)):
             score = self.cluster_score[idx]
-            if score not in self.behavior_reward_book:
+            if self.behavior_reward_book.get(score, -1) == -1:
                 self.behavior_reward_book[score] = idx
-
-        # print(self.behavior_reward_book)
-        # from matplotlib import pyplot as plt
-        # plt.errorbar(np.arange(len(self.cluster_score)), self.cluster_score, label='Cluster Score', alpha=0.7, color='orange')
-        # plt.show()
-        # exit() 
+                
 
         # if not self.preference:
         for player in self.players.unique():
@@ -177,7 +172,8 @@ class AbstractSurrogateModel(ABC):
 
         if self.preference and self.classifier:
             arousals = self.data['[output]ranking'].values
-            diffs = np.diff(self.cluster_arousal)
+            windowed_arousal = self.cluster_arousal[::repeat_factor]
+            diffs = np.diff(windowed_arousal)
             ordinal_labels = np.where(diffs > 0, 1, 0)
             self.cluster_arousal_ordinal = np.insert(ordinal_labels, 0, 1)
             prev_idx = 0

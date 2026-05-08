@@ -312,8 +312,7 @@ class BaseEnvironment(gym.Env, ABC):
             if self.period_ra and (len(self.period_arousal_trace) > 0):
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
             elif not self.period_ra and self.score_change:
-                # print()
-                # print(self.previous_score, self.current_score)
+
                 final_reward = self.reward_behavior() * (1 - self.weight) + (self.reward_affect() * self.weight)
             self.cumulative_rl += final_reward
 
