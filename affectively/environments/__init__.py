@@ -126,7 +126,7 @@ def create_environment(args, run, callback=None):
             env = PiratesEnvironmentGameObs(
                 id_number=run,
                 weight=args.weight,
-                graphics=True,
+                graphics=args.headless == 0,
                 cluster=args.cluster,
                 target_arousal=args.target_arousal,
                 period_ra=args.periodic_ra,

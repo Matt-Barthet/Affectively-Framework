@@ -12,3 +12,6 @@ affectively_environments.egg-info/
 *-Episode*
 *zip.zip
 */Timers/
+/results/
+/runs/
+/tests/

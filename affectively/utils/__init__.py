@@ -20,7 +20,7 @@ def init_parser(parser):
     parser.add_argument("--cluster", type=int, required=True, help="Cluster index for Arousal Persona")
     parser.add_argument("--periodic_ra", type=int, required=True, help="Assign arousal rewards every 3 seconds, instead of synchronised with behavior.")
     parser.add_argument("--cv", required=True, type=int, help="0 for GameObs, 1 for CV")
-    parser.add_argument("--headless", required=True, type=int, help="0 for headless mode, 1 for graphics mode")
+    parser.add_argument("--headless", required=True, type=int, help="0 to show graphics, 1 to run headless")
     parser.add_argument("--logdir", required=True, help="Log directory for TensorBoard")
     parser.add_argument("--grayscale", required=True, type=int, help="0 for RGB, 1 for grayscale")
     parser.add_argument("--discretize", required=True, type=int, help="0 for continuous, 1 for discretized observations")

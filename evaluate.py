@@ -44,6 +44,28 @@ SURROGATE_LABELS = {
 }
 
 
+def aggregate_surrogate_vectors(vectors, game):
+    """Aggregate per-window surrogate vectors into the requested evaluation metrics."""
+    arr = np.asarray(vectors, dtype=float)
+    if arr.size == 0:
+        return np.zeros(len(SURROGATE_LABELS[game]), dtype=float)
+    if arr.ndim == 1:
+        arr = arr.reshape(1, -1)
+
+    aggregated = []
+    for index, label in enumerate(SURROGATE_LABELS[game]):
+        values = arr[:, index]
+        if game == 'solid' and label == 'playerStanding':
+            value = float(values[-1])
+        elif 'KillCount' in label:
+            value = float(np.sum(np.ceil(values)))
+        else:
+            value = float(np.mean(values))
+        aggregated.append(value)
+
+    return np.asarray(aggregated, dtype=float)
+
+
 def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=False):
     max_score = 24 if env.game.lower() == "solid" else 460 if env.game.lower() == "platform" else 500
     print(max_score)
@@ -65,7 +87,7 @@ def run_evaluation(env, model, model_type, steps_per_episode=600, imitation=Fals
         if done:
             env.reset()
 
-    results['surrogate'] = np.mean(surrogate_vectors, axis=0)
+    results['surrogate'] = aggregate_surrogate_vectors(surrogate_vectors, env.game.lower())
 
     for arousal in env.episode_arousal_trace:
         if arousal == env.target_arousal:
@@ -83,9 +105,10 @@ def process_archive(model_type, model_path, target_arousal, model):
     try:
         archive = load_model(model_type, model_path, target_arousal, "")
         best_cell = get_best_cell(archive)
-        arousal_trace = best_cell.trajectory_dict['arousal_trajectory']
+        arousal_trace = best_cell.trajectory_dict['arousal_trajectory']  
         arousal_return = sum(1 for a in arousal_trace if a == target_arousal) / len(arousal_trace)
-        surrogate_mean, _, _ = process_surrogate_vectors(best_cell, model)
+        _, surrogate_trace, _ = process_surrogate_vectors(best_cell, model)
+        surrogate_mean = aggregate_surrogate_vectors(surrogate_trace, model.game.lower())
 
         return {
             'score': best_cell.score,
@@ -99,6 +122,7 @@ def process_archive(model_type, model_path, target_arousal, model):
         return None
     except Exception as e:
         print(f"Error processing archive: {e}")
+        return None
         return {
             'score': best_cell.score,
             'arousal': best_cell.arousal_reward,
@@ -151,7 +175,7 @@ if __name__ == "__main__":
                             if game == 'solid':
                                 env = SolidEnvironmentGameObs(
                                     0,
-                                    graphics=True,
+                                    graphics=False,
                                     weight=0,
                                     discretize=False,
                                     cluster=0,
@@ -285,8 +309,8 @@ if __name__ == "__main__":
                                 'arousal_ci': arousal_ci,
                                 'arousal_return_mean': arousal_return_mean,
                                 'arousal_return_ci': arousal_return_ci,
-                                **{f'{SURROGATE_LABELS[game][i]}_mean': surrogate_mean[i] for i in range(len(surrogate_mean))},
-                                **{f'{SURROGATE_LABELS[game][i]}_ci': surrogate_ci[i] for i in range(len(surrogate_ci))},
+                                **{f'{SURROGATE_LABELS[game][i]}_mean': surrogate_mean[i] for i in range(len(SURROGATE_LABELS[game]))},
+                                **{f'{SURROGATE_LABELS[game][i]}_ci': surrogate_ci[i] for i in range(len(SURROGATE_LABELS[game]))},
                                 'scores_raw': run_scores,
                                 'arousal_raw': run_arousals,
                                 "frequency": freq,

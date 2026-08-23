@@ -1,0 +1,14 @@
+__pycache__
+/Tensorboard/*
+.idea
+affectively_environments.egg-info/
+/examples/Tensorboard
+/examples/Results/
+/examples/Results
+*.lock
+*.DS_Store
+.DS_Store
+**/*.DS_Store
+*-Episode*
+*zip.zip
+*/Timers/

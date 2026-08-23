@@ -60,7 +60,7 @@ class BaseEnvironment(gym.Env, ABC):
             dtype = np.float32
 
         self.discretize = False
-        if imitate:
+        if imitate and len(obs_space['shape']) == 1:
             obs_space['shape'] = (obs_space['shape'][0] + 3,)
 
         self.obs_size = obs_space['shape']
@@ -90,12 +90,8 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.episode_length, self.arousal_episode_length = 0, 0
 
-        if self.decision_period != 1 and self.game == "solid":
-            all_target_scores = [k for k, v in self.model.behavior_reward_book.items() if v != 0]
-            self.max_target_score = max(all_target_scores)
-            pass
-        else:
-            self.max_target_score = 100
+        all_target_scores = self._valid_reward_targets(self.model.behavior_reward_book)
+        self.max_target_score = max(all_target_scores, default=0)
 
         self.target_arousal = target_arousal
         self.preference = preference
@@ -116,6 +112,11 @@ class BaseEnvironment(gym.Env, ABC):
 
         self.correct_step_bug = correct_step_bug
 
+    @staticmethod
+    def _valid_reward_targets(reward_book):
+        """Return scores with a valid, non-negative target time index."""
+        return sorted(score for score, timestamp in reward_book.items() if timestamp >= 0)
+
     def reinit(self):
         self.model = LinearSurrogateModel(game=self.game, cluster=self.cluster, classifier=self.classifier, preference=self.preference)
 
@@ -127,7 +128,7 @@ class BaseEnvironment(gym.Env, ABC):
                 arousal_window = self.episode_arousal_trace[-5:]
                 arousal_window = list(arousal_window) + list(np.zeros(5-len(arousal_window))) if len(arousal_window) < 5 else arousal_window
                 state[modality] = np.concatenate((state[modality], arousal_window))
-                if self.imitation_learning == 1:
+                if self.imitation_learning == 1 and not self.discretize:
                     added = [self.episode_length, len(self.episode_arousal_trace), self.target_time_idx]
                     state[modality] = np.concatenate((added, state[modality]))
                 break
@@ -167,7 +168,7 @@ class BaseEnvironment(gym.Env, ABC):
             r_b = 1
 
         elif self.current_score <= self.max_target_score:
-            all_target_scores = np.array([k for k, v in self.model.behavior_reward_book.items() if v != 0])
+            all_target_scores = np.array(self._valid_reward_targets(self.model.behavior_reward_book))
             future_targets = all_target_scores[all_target_scores >= self.current_score]
             if len(future_targets) > 0:
                 nearest_target_score = np.min(future_targets)
@@ -217,6 +218,7 @@ class BaseEnvironment(gym.Env, ABC):
             elif not self.period_ra and  self.current_score <= self.max_target_score and self.current_score in self.model.behavior_reward_book:
                 target = self.model.arousal_reward_book[self.current_score]
             else:
+                self.period_arousal_trace.clear()
                 return 0
         else:
             target = int(self.target_arousal)

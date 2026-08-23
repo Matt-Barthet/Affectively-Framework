@@ -25,10 +25,13 @@ def process_surrogate_vectors(best_cell, model):
     if not valid_vectors:
         return np.array([]), [], 0
 
-    # Keep only the first occurrence of each run of identical vectors
+    # Keep only the first occurrence of each run of identical vectors.
+    # Compare only the surrogate portion; the appended episode_length changes
+    # every step and would otherwise prevent any deduplication.
+    n_surr = model.surrogate_length
     unique_vectors = [valid_vectors[0]]
     for v in valid_vectors[1:]:
-        if not np.array_equal(v, unique_vectors[-1]):
+        if not np.array_equal(v[:n_surr], unique_vectors[-1][:n_surr]):
             unique_vectors.append(v)
 
     return np.mean(unique_vectors, axis=0), unique_vectors, len(unique_vectors)

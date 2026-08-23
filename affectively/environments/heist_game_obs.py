@@ -12,7 +12,7 @@ class HeistEnvironmentGameObs(HeistEnvironment):
         super().__init__(id_number=id_number, graphics=graphics, 
                          obs={"low": -np.inf, "high": np.inf, "shape": (152,), "type": np.float32},
                          weight=weight, frame_buffer=False, cluster=cluster, targetArousal=target_arousal, period_ra=period_ra, classifier=classifier, preference=preference,
-                         capture_fps=capture_fps, decision_period=decision_period, sensitivity=sensitivity,correct_step_bug=correct_step_bug)
+                         capture_fps=capture_fps, decision_period=decision_period, sensitivity=sensitivity, imitate=imitate, correct_step_bug=correct_step_bug)
         self.discretize = discretize
 
     def sample_weighted_action(self):

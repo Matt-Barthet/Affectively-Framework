@@ -23,6 +23,8 @@ class AbstractSurrogateModel(ABC):
         self.best_params = {}
         self.cluster_score, self.cluster_arousal = [], []
         self.cluster_arousal_ordinal = []
+        self.cluster_surrogate_mean = np.empty((0, 0))
+        self.surrogate_col_names = []
         self._setup_paths()
         
         self.data, self.x_train, self.y_train = None, None, None
@@ -93,6 +95,39 @@ class AbstractSurrogateModel(ABC):
             return np.argmax(avg_prediction, axis=1)[0]
         else:
             return avg_prediction[0] if len(avg_prediction.shape) == 1 else avg_prediction[0][0]
+
+    @staticmethod
+    def build_behavior_reward_book(cluster_score, game):
+        """Return the first expected time index for each score milestone.
+
+        Persona traces are an average over players and are sampled every three
+        seconds.  Consequently, a trace can skip a game score (for example,
+        moving from 70 to 90 in Platform).  The former implementation seeded
+        every Platform/FPS score and left skipped values at ``-1``.  Those
+        ``-1`` values were later treated as valid array indices, which pointed
+        at the last arousal sample.  Instead, map every reachable milestone to
+        the first trace index at or beyond that score.
+        """
+        game = game.lower()
+        score_step = 1 if game in {"solid", "racing"} else 10
+        scores = np.asarray(cluster_score, dtype=float)
+
+        if scores.size == 0:
+            return {}
+
+        # Scores cannot decrease during an episode.  Averaging and rounding
+        # can introduce small regressions, so keep the target schedule
+        # monotonic before locating each milestone.
+        scores = np.maximum.accumulate(np.rint(scores / score_step).astype(int) * score_step)
+        reward_book = {0: 0}
+        max_score = int(scores[-1])
+
+        for score in range(score_step, max_score + 1, score_step):
+            target_index = int(np.searchsorted(scores, score, side="left"))
+            if target_index < len(scores):
+                reward_book[score] = target_index
+
+        return reward_book
     
 
     def load_data(self):
@@ -133,24 +168,10 @@ class AbstractSurrogateModel(ABC):
         if self.game.lower() != "solid" and self.game.lower() != "racing":
             self.cluster_score = np.round(self.cluster_score / 10) * 10
         else:
-            self.cluster_score = np.round(self.cluster_score)   
+            self.cluster_score = np.round(self.cluster_score)
 
         self.cluster_score = np.repeat(self.cluster_score, repeat_factor)
-
-        if self.game == "solid":
-            for i in range(1, 25):
-                self.behavior_reward_book[i] = -1
-        elif self.game == "platform":
-            for i in range(10, 470, 10):
-                self.behavior_reward_book[i] = -1
-        elif self.game == "fps":
-            for i in range(10, 510, 10):
-                self.behavior_reward_book[i] = -1
-
-        for idx in range(len(self.cluster_score)):
-            score = self.cluster_score[idx]
-            if self.behavior_reward_book.get(score, -1) == -1:
-                self.behavior_reward_book[score] = idx
+        self.behavior_reward_book = self.build_behavior_reward_book(self.cluster_score, self.game)
                 
 
         # if not self.preference:
@@ -168,6 +189,25 @@ class AbstractSurrogateModel(ABC):
         self.cluster_arousal = np.mean(arousals_stacked, axis=1)
         self.cluster_arousal = np.repeat(self.cluster_arousal, repeat_factor)
 
+        _exclude = {'[output]arousal', '[control]player_id'}
+        surrogate_interval_cols = [c for c in self.interval_data.columns if c not in _exclude]
+        self.surrogate_col_names = surrogate_interval_cols
+        surrogate_traces = []
+        for player in self.players.unique():
+            try:
+                player_mask = self.interval_data['[control]player_id'] == player
+                player_surr = self.interval_data.loc[player_mask, surrogate_interval_cols].values[:40]
+                padded = np.pad(player_surr,
+                                ((0, max(0, 40 - len(player_surr))), (0, 0)),
+                                mode='edge')
+                surrogate_traces.append(padded)
+            except Exception:
+                pass
+        if surrogate_traces:
+            self.cluster_surrogate_mean = np.mean(np.stack(surrogate_traces, axis=0), axis=0)
+        else:
+            self.cluster_surrogate_mean = np.zeros((40, len(surrogate_interval_cols)))
+
         from matplotlib import pyplot as plt
 
         if self.preference and self.classifier:
@@ -180,8 +220,6 @@ class AbstractSurrogateModel(ABC):
             for score, idx in self.behavior_reward_book.items():
                 self.arousal_reward_book[int(score)] = 1 if self.cluster_arousal[idx] - self.cluster_arousal[prev_idx] >= 0 else 0
                 prev_idx = idx
-
-            self.arousal_reward_book[int(score)+1] = 1 if self.cluster_arousal[-1] - self.cluster_arousal[idx] >= 0 else 0
 
             self.plot_labels = np.where(np.array(list(self.arousal_reward_book.values())) == 0, -1, 1)
             self.data = self.data.drop(columns=['[output]ranking', '[output]delta'])
